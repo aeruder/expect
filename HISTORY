@@ -3,6 +3,30 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+10/1/01 5.33.0	<mark@doradosoftware.com> found that expect's diagnostics
+		didn't include the "no" after testing for a full buffer.
+
+		Hemang Lavana <hlavana@cisco.com> noted that "debug" (Dbg_On)
+		calls didn't always force the debugger into step mode.
+
+		Martin Kammerhofer <dada@sbox.tugraz.at> noted that the man
+		page neglected to document interpreter -eof.
+
+		Chris Clare <clarec@nortelnetworks.com> provided fix for
+		multiple decl in C lib.
+
+		Sheng Wang <wangs@sh.bel.alcatel.be> found interact's
+		can-match code had broken.  It was missing the special hook
+		that Henry had added just for this purpose.  How strange.
+
+		Dieter Fiebelkorn <dieter@fiebelkorn.net> requested addition
+		to config.guess for Power*Macintosh:Darwin for MacOSX.
+		Aside - to download latest config.guess:
+		 cvs -d :pserver:anoncvs@subversions.gnu.org:/cvs checkout \
+		 config
+
+		Added pipeline example to unbuffer man page.
+
 8/4/00 5.32.2	Allen J. Newton <anewton@alturia.fleet.org> provided code for
 		generating passwords with special characters in mkpasswd.
 

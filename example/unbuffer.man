@@ -28,6 +28,13 @@ You can disable this automatic buffering as follows:
 	unbuffer od -c /tmp/fifo | more
 
 .fi
+When you have a pipeline, unbuffer must be applied to each element
+except the last (since that doesn't have its output redirected).
+Example:
+.nf
+
+        unbuffer p1 | unbuffer p2 | unbuffer p3 | p4
+.fi
 .SH BUGS
 
 The man page is longer than the program.

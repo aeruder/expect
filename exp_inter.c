@@ -291,7 +291,7 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 		int result;
 
 		re = Tcl_GetRegExpFromObj(NULL, km->keys,
-			TCL_REG_ADVANCED|TCL_REG_BOSONLY);
+			TCL_REG_ADVANCED|TCL_REG_BOSONLY|TCL_REG_CANMATCH);
 		flags = (offset > 0) ? TCL_REG_NOTBOL : 0;
 
 		result = Tcl_RegExpExecObj(NULL, re, esPtr->buffer, offset,

@@ -435,6 +435,9 @@ EOF
 		echo ns32k-sni-sysv
 	fi
 	exit 0 ;;
+    Power*Macintosh:Darwin:*:*)
+        echo powerpc-darwin${UNAME_RELEASE}
+        exit 0 ;;
 esac
 
 #echo '(No uname command or uname output not recognized.)' 1>&2

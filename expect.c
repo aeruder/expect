@@ -853,7 +853,8 @@ char *suffix;
 	    return EXP_MATCH;
 	}
 	expDiagLogU(no);
-    } else if ((Tcl_GetCharLength(esPtr->buffer) == esPtr->msize)
+    } else if (e->use == PAT_FULLBUFFER) {
+      if ((Tcl_GetCharLength(esPtr->buffer) == esPtr->msize)
 	    && (length > 0)) {
 	expDiagLogU(Tcl_GetString(e->pat));
 	expDiagLogU("? ");
@@ -863,6 +864,9 @@ char *suffix;
 	o->esPtr = esPtr;
 	expDiagLogU(yes);
 	return(EXP_FULLBUFFER);
+      } else {
+	expDiagLogU(no);
+      }
     }
     return(EXP_NOMATCH);
 }

@@ -427,9 +427,9 @@ EXTERN int exp_ttyinit;			/* set tty parms to sane state */
 EXTERN int exp_console;			/* redirect console */
 
 #ifdef HAVE_SIGLONGJMP
-sigjmp_buf exp_readenv;		/* for interruptable read() */
+EXTERN sigjmp_buf exp_readenv;		/* for interruptable read() */
 #else
-jmp_buf exp_readenv;		/* for interruptable read() */
+EXTERN jmp_buf exp_readenv;		/* for interruptable read() */
 #endif /* HAVE_SIGLONGJMP */
 
 EXTERN int exp_reading;			/* whether we can longjmp or not */
