@@ -1,3 +1,23 @@
+2003-05-08  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_clib.c (expectv): Applied patch provided on c.l.t., by Don
+	  Libes <libes@nist.gov> in response to a bug report by "Heath
+	  Moore" <hmoore@systran.com> in same place:
+
+	  > Regarding expect 5.38...
+	  >
+	  > I'm using libexpect on RedHat 8.0 to communicate via telnet,
+	  > and am having problems with it locking up instead of timing
+	  > out.  Causing traffic during the lockup breaks the lockup.  I
+	  > looked at the sources, and think I may have found the reason.
+	  >
+	  > It appears as though i_read can be called with remtime== 0,
+	  > which means do > one read() and return without using alarm(),
+	  > even when exp_timeout is non-zero.  This would happen if
+	  > i_read were to return after receiving non-matching data when
+	  > end_time == current_time.  The subsequent i_read would then
+	  > wait until it received data.
+
 2003-02-17  Andreas Kupries  <andreask@activestate.com>
 
 	* Makefile.in:

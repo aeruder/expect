@@ -3006,20 +3006,19 @@ struct exp_case *ecases;
 
 		/*
 		 * check for timeout
+ 		 * we should timeout if either
+ 		 *   1) exp_timeout > remtime <= 0 (normal)
+ 		 *   2) exp_timeout == 0 and we have polled at least once
 		 */
-		if ((exp_timeout >= 0) && ((remtime < 0) || polled)) {
+		if (((exp_timeout > remtime) && (remtime <= 0)) ||
+ 		    ((exp_timeout == 0) && polled)) {
 			exp_debuglog("expect: timeout\r\n");
 			exp_match_end = exp_buffer;
 			return_normally(EXP_TIMEOUT);
 		}
 
-		/*
-		 * if timeout == 0, indicate a poll has
-		 * occurred so that next time through loop causes timeout
-		 */
-		if (exp_timeout == 0) {
-			polled = 1;
-		}
+ 		/* remember that we have actually checked at least once */
+ 		polled = 1;
 
 		cc = i_read(fd,fp,
 				exp_buffer_end,
