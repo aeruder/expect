@@ -27,6 +27,17 @@ would appreciate credit if you use this file or parts of it.
 */
 extern char *TclGetRegError();
 
+#if defined(HAVE_PTMX_BSD) && defined(HAVE_PTMX)
+/*
+ * Some systems have both PTMX and PTMX_BSD.
+ * In fact, alphaev56-dec-osf4.0e has /dev/pts, /dev/pty, /dev/ptym,
+ * /dev/ptm, /dev/ptmx, and /dev/ptmx_bsd
+ * Suggestion from Martin Buchholz <martin@xemacs.org> is that BSD
+ * is usually deprecated and so should be here.
+ */
+#undef HAVE_PTMX_BSD
+#endif
+
 /* Linux and Digital systems can be configured to have both.
 According to Ashley Pittman <ashley@ilo.dec.com>, Digital works better
 with openpty which supports 4000 while ptmx supports 60. */

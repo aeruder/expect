@@ -3,6 +3,15 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+5/14/00 5.32.0	New version for timing with Ajuba TclPro 1.4.  This new version
+		of Expect has no new features or behaviors but a lot has been
+		fixed since 5.31.0.
+
+		Martin Buchholz <martin@xemacs.org> noted that his
+		alphaev56-dec-osf4.0e has ptmx and ptmx_bsd (and ptm, pts, pty,
+		ptym).  He suggested that BSD things are now usually
+		deprecated so to skip ptmx_bsd if ptmx avail.
+
 		Chang Li <changl@neatware.com> noted that debugger's bp cmd
 		broke on every command.  Was a bug in breakpoint_trace from
 		when we installed the new regexp engine.
