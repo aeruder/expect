@@ -160,6 +160,7 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 	    Tcl_UniChar ch, startChar, endChar;
 
 	    pattern++;
+	    oldString = string;
 	    string += Tcl_UtfToUniChar(string, &ch);
 
 	    while (1) {
@@ -196,9 +197,10 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 		    pattern = Tcl_UtfPrev(pattern, pstart);
 		    break;
 		}
-		pattern++;
+		pattern = Tcl_UtfNext(pattern);
 	    }
 	    pattern++;
+	    match += (string - oldString); /* incr by # of bytes in char */
 	    continue;
 	}
  
