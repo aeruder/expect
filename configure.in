@@ -310,6 +310,18 @@ else
   AC_MSG_RESULT(unshared)
 fi
 
+# now see if we can/should use Tcl stubs
+AC_MSG_CHECKING([whether to use Tcl stubs])
+AC_ARG_ENABLE(stubs,
+	[  --enable-stubs     use Tcl stubs, if available],
+	[enable_stubs=$enableval], [enable_stubs=no])
+if test "$enable_shared" = "yes" && test "$enable_stubs" = "yes" && test "x${TCL_SUPPORTS_STUBS}" = "x1"; then
+  AC_MSG_RESULT(yes)
+  EXP_CFLAGS="$EXP_CFLAGS -DUSE_TCL_STUBS"
+else
+  AC_MSG_RESULT(no)
+fi
+
 #
 # Now that we've found the Tcl sources, configure the debugger
 # this is a little tricky because it has its own configure script
@@ -1160,12 +1172,14 @@ fi
 # to hitting config's max symbols, pack everything together here and
 # do test ourselves.  Ugh.  
 #
-if test "x$TCL_SHLIB_LD_LIBS" = "x" ; then
+if test "$enable_stubs" = "yes"; then
+    EXP_SHLIB_LD_LIBS="$TCL_BUILD_STUB_LIB_SPEC $TCL_DL_LIBS $LIBS $LIBS -lc"
+elif test "x$TCL_SHLIB_LD_LIBS" = "x" ; then
 	EXP_SHLIB_LD_LIBS="$LIBS"
 else
 	# seems a little strange to build in Tcl's build-lib, but
 	# that's what Tk does.
-	EXP_SHLIB_LD_LIBS="$TCL_BUILD_LIB_SPEC $TCL_DL_LIBS $LIBS -lc"
+	  EXP_SHLIB_LD_LIBS="$TCL_BUILD_LIB_SPEC $TCL_DL_LIBS $LIBS -lc"
 fi
 
 #--------------------------------------------------------------------

@@ -7,6 +7,9 @@ dollars.  Therefore it is public domain.  However, the author and NIST
 would appreciate credit if this program or parts of it are used.
 */
 
+/* Don't use stubs since we are in the main application. */
+#undef USE_TCL_STUBS
+
 #include "expect_cf.h"
 #include <stdio.h>
 #include "tcl.h"

@@ -2258,6 +2258,13 @@ char **argv;
 		}
 	}
 
+	/*
+	 * Restore previous definition of close.  Needed when expect is
+	 * dynamically loaded after close has been redefined
+	 * e.g.  the virtual file system in tclkit
+	 */
+	Tcl_Eval(interp, "rename _close.pre_expect close");
+
 	Tcl_Exit(value);
 	/*NOTREACHED*/
 }
@@ -2308,12 +2315,12 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
 	/* Historical note: we used "close"  long before there was a */
 	/* Tcl builtin by the same name. */
 
-	Tcl_CmdInfo info;
+        Tcl_CmdInfo* close_info;
+
 	Tcl_ResetResult(interp);
-	if (0 == Tcl_GetCommandInfo(interp,"close",&info)) {
-	    info.clientData = 0;
-	}
-	return(Tcl_CloseObjCmd(info.clientData,interp,objc_orig,objv_orig));
+
+	close_info = (Tcl_CmdInfo*) Tcl_GetAssocData (interp, EXP_CMDINFO_CLOSE, NULL);
+	return(close_info->objProc(close_info->objClientData,interp,objc_orig,objv_orig));
     }
 
     if (chanName) {
@@ -2958,7 +2965,9 @@ Tcl_Obj *CONST objv[];
     /* if successful (i.e., TCL_RETURN is returned) */
     /* modify the result, so that we will handle it specially */
 
-    int result = Tcl_ReturnObjCmd(clientData,interp,objc,objv);
+    Tcl_CmdInfo* return_info = (Tcl_CmdInfo*) Tcl_GetAssocData (interp, EXP_CMDINFO_RETURN, NULL);
+
+    int result = return_info->objProc(return_info->objClientData,interp,objc,objv);
     if (result == TCL_RETURN)
         result = EXP_TCL_RETURN;
     return result;

@@ -310,3 +310,6 @@ EXTERN ExpState *	expDevttyGet _ANSI_ARGS_((void));
 /* generic functions that really should be provided by Tcl */
 EXTERN int		expSizeGet _ANSI_ARGS_((ExpState *));
 EXTERN int		expSizeZero _ANSI_ARGS_((ExpState *));
+
+#define EXP_CMDINFO_CLOSE  "expect/cmdinfo/close"
+#define EXP_CMDINFO_RETURN "expect/cmdinfo/return"

@@ -474,17 +474,30 @@ if {$exp_exec_library != \"\"} {\n\
     lappend auto_path $exp_exec_library\n\
 }";
 
+static void
+DeleteCmdInfo (clientData, interp)
+     ClientData clientData;
+     Tcl_Interp *interp;
+{
+  ckfree (clientData);
+}
+
+
 int
 Expect_Init(interp)
 Tcl_Interp *interp;
 {
     static int first_time = TRUE;
 
+    Tcl_CmdInfo* close_info  = NULL;
+    Tcl_CmdInfo* return_info = NULL;
+
     if (first_time) {
 	int tcl_major = atoi(TCL_VERSION);
 	char *dot = strchr(TCL_VERSION,'.');
 	int tcl_minor = atoi(dot+1);
 
+#ifndef USE_TCL_STUBS
 	if (tcl_major < NEED_TCL_MAJOR || 
 	    (tcl_major == NEED_TCL_MAJOR && tcl_minor < NEED_TCL_MINOR)) {
 	    sprintf(interp->result,
@@ -493,11 +506,48 @@ Tcl_Interp *interp;
 		    NEED_TCL_MAJOR,NEED_TCL_MINOR);
 	    return TCL_ERROR;
 	}
+#endif
     }
 
+#ifndef USE_TCL_STUBS
     if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
       return TCL_ERROR;
     }
+#else
+    if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {
+      return TCL_ERROR;
+    }
+#endif
+
+    /*
+     * 	Save initial close and return for later use
+     */
+
+    close_info = (Tcl_CmdInfo*) ckalloc (sizeof (Tcl_CmdInfo));
+    if (Tcl_GetCommandInfo(interp, "close", close_info) == 0) {
+        ckfree ((char*) close_info);
+        return TCL_ERROR;
+    }
+    return_info = (Tcl_CmdInfo*) ckalloc (sizeof (Tcl_CmdInfo));
+    if (Tcl_GetCommandInfo(interp, "return", return_info) == 0){
+        ckfree ((char*) close_info);
+        ckfree ((char*) return_info);
+	return TCL_ERROR;
+    }
+    Tcl_SetAssocData (interp, EXP_CMDINFO_CLOSE,  DeleteCmdInfo, (ClientData) close_info);
+    Tcl_SetAssocData (interp, EXP_CMDINFO_RETURN, DeleteCmdInfo, (ClientData) return_info);
+
+    /*
+     * Expect redefines close so we need to save the original (pre-expect)
+     * definition so it can be restored before exiting.
+     *
+     * Needed when expect is dynamically loaded after close has
+     * been redefined e.g. the virtual file system in tclkit
+     */
+    if (TclRenameCommand(interp, "close", "_close.pre_expect") != TCL_OK) {
+        return TCL_ERROR;
+    }
+ 
     if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
       return TCL_ERROR;
     }

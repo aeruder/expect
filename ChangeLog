@@ -1,5 +1,18 @@
 2003-02-14  Andreas Kupries  <andreask@activestate.com>
 
+	* configure.in:   Made expect aware of tcl stubs. Derived from the
+	* exp_command.h:  patches to expect done by Steve Landers
+	* exp_command.c:  <stevel@digital-smarties.com>. Modifications:
+	* exp_main_sub.c  No global cmdinfo structures for 'close' and
+	* exp_main_exp.c: 'return'. Made this per-interpreter information
+	* exp_main_tk.c:  as it should be. Using interp assoc data for this.
+
+	NOTE: stubs is not default, but has to be activated via '--enable-stubs'.
+
+	* configure:      Regenerated.
+
+2003-02-14  Andreas Kupries  <andreask@activestate.com>
+
 	* exp_chan.c (exp_close_all): Save the nextPtr in a local variable
 	  before calling 'exp_close' as 'expStateFree' can be called from
 	  it under some circumstances, possibly causing the memory

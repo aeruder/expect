@@ -32,6 +32,9 @@
 static char sccsid[] = "@(#) tkAppInit.c 1.19 95/12/23 17:09:24";
 #endif /* not lint */
 
+/* Don't use stubs since we are in the main application. */
+#undef USE_TCL_STUBS
+
 #include <ctype.h>
 
 #include "tk.h"
