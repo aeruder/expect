@@ -3,6 +3,13 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Jonathan Kamens fixed printf formats in several pty diags.
+
+		rm_nulls -d was set to wrong value.
+
+5/12/00 5.31.8	After receiving yet another request for fully versioned
+		archives, gave in.
+
 		Signal handler sometimes sent error to stderr inappropriately.
 
 4/27/00 5.31.7	Rob Savoye fixed Debian ptys and properly checking of libpt.

@@ -370,7 +370,7 @@ The following fragment uses
 to continue running the script in the background.  
 .nf
 
-    if [fork]!=0 exit
+    if {[fork]!=0} exit
     disconnect
     . . .
 
@@ -386,7 +386,7 @@ command which demonstrates how to turn off password echoing.)
     send_user "password?\\ "
     expect_user -re "(.*)\\n"
     for {} 1 {} {
-        if [fork]!=0 {sleep 3600;continue}
+        if {[fork]!=0} {sleep 3600;continue}
         disconnect
         spawn priv_prog
         expect Password:
@@ -1835,7 +1835,7 @@ If /dev/tty does not exist (such as in a cron, at, or batch script), then
 is not defined.  This may be tested as:
 .nf
 
-    if [info vars tty_spawn_id] {
+    if {[info vars tty_spawn_id]} {
         # /dev/tty exists
     } else {
         # /dev/tty doesn't exist

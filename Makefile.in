@@ -671,7 +671,7 @@ tar:	expect-$(VERSION).tar
 ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz install-html
 	cp expect-$(VERSION).tar.Z $(FTPDIR)/expect.tar.Z
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/expect.tar.gz
-	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/expect-@EXP_VERSION_FULL@.tar.gz
 	cp HISTORY $(FTPDIR)
 	cp README $(FTPDIR)/README.distribution
 	cp example/README $(FTPDIR)/example

@@ -2718,9 +2718,9 @@ char **argv;
 
     if (argc == 0) {
 	if (Default) {
-	    value = exp_default_match_max;
+	  value = exp_default_rm_nulls;
 	} else {
-	    value = esPtr->rm_nulls;
+	  value = esPtr->rm_nulls;
 	}
 	sprintf(interp->result,"%d",value);
 	return(TCL_OK);

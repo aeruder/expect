@@ -626,18 +626,18 @@ char *stty_args;
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
 		if (ioctl (slave, I_PUSH, "ldterm")) {
-			expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
+			expDiagLogPtrStrStr("ioctl(%d,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
 	}
 #else
 #if defined(HAVE_PTMX)
 	if (ioctl(slave, I_PUSH, "ptem")) {
-		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,expErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%d,I_PUSH,\"ptem\") = %s\n",slave,expErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ldterm")) {
-		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%d,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ttcompat")) {
-		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,expErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%d,I_PUSH,\"ttcompat\") = %s\n",slave,expErrnoMsg(errno));
 	}
 #endif
 #endif
