@@ -1,3 +1,10 @@
+2003-02-03  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_log.c (expLogChannelOpen): Fixed the bug reported on
+	  comp.lang.tcl by Mordechai T. Abzug
+	  <morty@sanctuary.arbutus.md.us>. The bugfix itself was provided
+	  by Don Libes.
+
 2002-10-09  Andreas Kupries  <andreask@pliers.activestate.com>
 
 	* exp_command.c (Exp_SpawnCmd): Tcl_GetChannelHandle expected a

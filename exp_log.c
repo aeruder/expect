@@ -456,6 +456,7 @@ expLogChannelOpen(interp,filename,append)
     }
     Tcl_RegisterChannel(interp,tsdPtr->logChannel);
     Tcl_SetChannelOption(interp,tsdPtr->logChannel,"-buffering","none");
+    expLogAppendSet(append);
     return TCL_OK;
 }
 
