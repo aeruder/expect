@@ -4,7 +4,10 @@
 # built-in commands.  Sourcing this file into Tcl runs the tests and
 # generates output for errors.  No output means no errors were found.
 
-if {[string compare test [info procs test]] == 1} then {source defs}
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
 
 #exp_internal -f /dev/ttyp5 0
 
@@ -24,3 +27,5 @@ test stty-1.2 {basic stty operation} {
 
 #exp_internal 0
 
+cleanupTests
+return

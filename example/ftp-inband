@@ -22,7 +22,7 @@ set verbose_flag 0
 proc send_verbose {msg} {
 	global verbose_flag
 
-	if $verbose_flag {
+	if {$verbose_flag} {
 		send_user $msg
 	}
 }
@@ -30,7 +30,7 @@ proc send_verbose {msg} {
 proc get {infile outfile} {
 	global prompt verbose_flag
 
-	if (!$verbose_flag) {
+	if {!$verbose_flag} {
 		log_user 0
 	}
 
@@ -80,7 +80,7 @@ proc get {infile outfile} {
 		}
 	}
 
-	if ($verbose_flag) {
+	if {$verbose_flag} {
 		send_user "\n"		;# after last "."
 		log_user 1
 	}
@@ -98,7 +98,7 @@ proc get {infile outfile} {
 	exec uncompress -f $outfile_compressed
 
 	send_verbose "renaming\n"
-	if [catch "exec cp $outfile_plain $outfile" msg] {
+	if {[catch "exec cp $outfile_plain $outfile" msg]} {
 		send_user "could not move file in place, reason: $msg\n"
 		send_user "left as $outfile_plain\n"
 		exec rm -f $outfile_encoded
@@ -115,7 +115,7 @@ proc get {infile outfile} {
 proc put {infile outfile} {
 	global prompt verbose_flag
 
-	if (!$verbose_flag) {
+	if {!$verbose_flag} {
 		log_user 0
 	}
 
@@ -153,13 +153,13 @@ proc put {infile outfile} {
 	log_user 0
 
 	set fp [open $infile_encoded r]
-	while 1 {
+	while {1} {
 		if {-1 == [gets $fp buf]} break
 		send_verbose "."
 		send -- "$buf\r"
 	}
 
-	if ($verbose_flag) {
+	if {$verbose_flag} {
 		send_user "\n"			;# after last "."
 		log_user 1
 	}
@@ -250,7 +250,7 @@ proc verbose {} {
 proc verbose_status {} {
 	global verbose_flag
 
-	if $verbose_flag {
+	if {$verbose_flag} {
 		return "on"
 	} else {
 		return "off"

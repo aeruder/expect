@@ -98,8 +98,12 @@ static int weeknumber();
 adddecl(static int iso8601wknum();)
 #else
 
+#ifndef strchr
 extern char *strchr(const char *str, int ch);
+#endif
+
 extern char *getenv(const char *v);
+
 static int weeknumber(const struct tm *timeptr, int firstweekday);
 adddecl(static int iso8601wknum(const struct tm *timeptr);)
 #endif
@@ -493,7 +497,7 @@ iso8601wknum(const struct tm *timeptr)
 	 * main body of the standard. Thus it requires week 53.
 	 */
 
-	int weeknum, jan1day, diff;
+	int weeknum, jan1day;
 
 	/* get week number, Monday as first day of the week */
 	weeknum = weeknumber(timeptr, 1);

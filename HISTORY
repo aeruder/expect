@@ -3,6 +3,101 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Scriptics reported memory leak.  Was bug in parse_expect_args.
+
+		"Michael P. Reilly" <arcege@shore.net> noted clib was hanging
+		in spawn code.  status_pipe wasn't being closed.
+
+		Egil Kvaleberg <egil@kvaleberg.no> provided fix due to new gcc
+		which defines strchr as a macro.
+
+		Dave Morrison <drmorris@corp.phone.com> noted some printfs
+		in exp_log.c that misinterpreted embedded %'s with resulting
+		core dumps.
+
+		Dick Goodwin <goodwin@qosnetics.com> noted that "system echo
+		foo" returned with no apparent effect.  Due to closeonexec
+		in expect's channel driver.  Added skip if std channel.
+		Fixed similar bug in stty command.  Minor bug left in stty
+		which isn't passing output back from underlying exec.
+
+		Stacy W. Smith <stacy@ixc-comm.com> provided patch that uses
+		sigsetjmp instead of setjmp that he says fixes a problem he
+		encountered with C lib where it stopped timing out in expect()
+		as if the signals were corrupted.  The man page doesn't
+		explain the difference between these calls in a way that makes
+		sense as to why they should make a difference, but I'll the
+		names are certainly suggestive so I'll try it.  He says "it
+		  appears that the linux setjmp behaves a little differently
+		  compared to setjmp on some other OSs.  Specifically, setjmp
+		  on linux does not save the signal context.  It seems most
+		  BSDish OSs do save the signal context with setjmp.  On those
+		  machines, it appears setjmp(env) is equivalent to
+		  sigsetjmp(env,1) whereas on linux, setjmp(env) is equivalent
+		  to sigsetjmp(env,0).  My patch made a (probably bad)
+		  assumption that if siglongjmp() exists that we should use
+		  the sigXXX versions.  I specifically tested for siglongjmp 
+		  rather than sigsetjmp because on linux, sigsetjmp is just a
+		  #define for  __sigsetjmp.  It appears that linux will give
+		  the BSD behaviour if  __FAVOR_BSD is defined, but I didn't
+		  know what other implications that might have.
+
+		Michael Schumacher provided fix so that test for whether
+		configure was out-of-date worked when not using the default
+		build dir.
+
+11/1/99 5.31.3	Shlomi Mahlab <shlomi@seagull.co.il> noted all.tcl in CVS
+		but not distribution.
+
+		More notes from Keith Brown on HP cc complaints in exp_pty.c.
+
+10/28/99 5.31.2	"Keith Brown" <surely@nortelnetworks.com> noted that HP cc
+		objected to auto aggregate initialization in
+		expLogChannelOpen.
+
+10/22/99 5.31.1 Official release!
+
+		P Darcy Barnett <pdb@cam.nist.gov> noted Makefile could
+		produce "autoconf not found" for non-developers using CVS.
+		Made configure detect and provide advice on workaround.
+
+		Fixed bug in interact -echo exhibited in rftp example.
+
+		Ryan Murray <rmurray@cyberhqz.com> noted Expect wasn't
+		handling handling 8-bit bytes correctly.  I had accidentally
+		used Tcl_Write instead of Tcl_WriteChar.
+
+		Ashley Pittman <ashley@ilo.dec.com> noted that digital unix
+		V5.0 prefers openpty (4000 ptys) over ptmx (60 ptys), so I'm
+		reversing the login in pty_termios.c.  This also controls
+		linux, but no linux hackers have weighed in on this subject
+		yet.
+
+		Andrew Tannenbaum <trb@world.std.com> noted exp_internal
+		command and "expect -exact" were broken.
+
+6/29/99 5.31.0	See the NEWS file for this date for an overview.  (I'm
+		too tired to add all the details.  Maybe later.)
+
+		Fixed exp_clib so that it immediately reported failure of
+		exec (in spawn) rather than passing it back through pipe.
+
+		Removed error checking from ioctl(TIOCSCTTY) to pacify the
+		variety of (but not all) Linux systems and a few others which
+		define TIOCSCTTY but return an error although seem to work
+		anyway.
+
+		Added configure test for 0 vs 2-arg setpgrp.
+
+		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
+		to compile Linux (2.2.5) so that it recognized both openpty
+		and ptmx leading to conflicts.  I arbitrarily chose ptmx.
+
+10/15/99 5.30.2	Herve Tireford <tdes46@email.sps.mot.com> noted extraneous
+		sleep(20) in clib.  Apparently left over from debugging, oops.
+
+8/18/99 5.30.1	Added test for newer versions of Tcl that are incompatible.
+
 		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
 		to compile Linux (2.2.5) so that it recognized both openpty
 		and ptmx leading to conflicts.  I arbitrarily chose ptmx.

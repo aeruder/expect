@@ -62,7 +62,10 @@ main(){
 	exp_loguser = 1;
 	exp_timeout = 3600;
 
-	fd1 = exp_spawnl("chess","chess",(char *)0);
+	if (-1 == (fd1 = exp_spawnl("chess","chess",(char *)0))) {
+	  perror("chess");
+	  exit(-1);
+	}
 
 	if (-1 == exp_expectl(fd1,exp_glob,"Chess\r\n",0,exp_end)) exit;
 

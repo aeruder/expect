@@ -99,7 +99,7 @@ expect -re (.*)\r\n {
 close
 wait
 
-if [info exists error] {
+if {[info exists error]} {
 	errormsg "$error"
 } else {
 	successmsg "Password changed successfully."

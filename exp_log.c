@@ -9,19 +9,59 @@
 /*				objects to including varargs.h twice, just */
 /*				omit this one. */
 #include "tclInt.h"
+#ifdef NO_STDLIB_H
+#include "../compat/stdlib.h"
+#else
+#include <stdlib.h>		/* for malloc */
+#endif
+#include <ctype.h>
+
 #include "expect_comm.h"
 #include "exp_int.h"
 #include "exp_rename.h"
+#include "exp_command.h"
 #include "exp_log.h"
 
-int loguser = TRUE;		/* if TRUE, expect/spawn may write to stdout */
-int logfile_all = FALSE;	/* if TRUE, write log of all interactions */
-				/* despite value of loguser. */
-FILE *logfile = 0;
-FILE *debugfile = 0;
-int exp_is_debugging = FALSE;
+typedef struct ThreadSpecificData {
+    Tcl_Channel diagChannel;
+    Tcl_DString diagFilename;
+    int diagToStderr;
 
-/* Following this are several functions that log the conversation. */
+    Tcl_Channel logChannel;
+    Tcl_DString logFilename;	/* if no name, then it came from -open or -leaveopen */
+    int logAppend;
+    int logLeaveOpen;
+    int logAll;			/* if TRUE, write log of all interactions
+				 * despite value of logUser - i.e., even if
+				 * user is not seeing it (via stdout)
+				 */
+    int logUser;		/* TRUE if user sees interactions on stdout */
+} ThreadSpecificData;
+
+static Tcl_ThreadDataKey dataKey;
+
+/*
+ * create a reasonably large buffer for the bulk of the output routines
+ * that are not too large
+ */
+static char bigbuf[2000];
+
+/*
+ * Following this are several functions that log the conversation.  Some
+ * general notes on all of them:
+ */
+
+/*
+ * ignore sprintf return value ("character count") because it's not
+ * defined in terms of UTF so it would be misinterpreted if we passed
+ * it on.
+ */
+
+/*
+ * if necessary, they could be made more efficient by skipping vsprintf based
+ * on booleans
+ */
+
 /* Most of them have multiple calls to printf-style functions.  */
 /* At first glance, it seems stupid to reformat the same arguments again */
 /* but we have no way of telling how long the formatted output will be */
@@ -29,76 +69,126 @@ int exp_is_debugging = FALSE;
 /* Fortunately, in production code, most of the duplicate reformatting */
 /* will be skipped, since it is due to handling errors and debugging. */
 
+/*
+ * Name: expWriteBytesAndLogIfTtyU
+ *
+ * Output to channel (and log if channel is stdout or devtty)
+ *
+ * Returns: TCL_OK or TCL_ERROR;
+ */
+
+int
+expWriteBytesAndLogIfTtyU(esPtr,buf,lenBytes)
+    ExpState *esPtr;
+    char *buf;
+    int lenBytes;
+{
+    int wc;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (esPtr->valid)
+	wc = Tcl_WriteChars(esPtr->channel,buf,lenBytes);
+
+    if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevttyIs(esPtr))) {
+	Tcl_WriteChars(tsdPtr->logChannel,buf,lenBytes);
+    }
+    return wc;
+}
+
+/*
+ * Name: expLogDiagU
+ *
+ * Send to the Log (and Diag if open).  This is for writing to the log.
+ * (In contrast, expDiagLog... is for writing diagnostics.)
+ */
+
+void
+expLogDiagU(buf)
+char *buf;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    expDiagWriteChars(buf,-1);
+    if (tsdPtr->logChannel) {
+	Tcl_WriteChars(tsdPtr->logChannel, buf, -1);
+    }
+}
+
+/*
+ * Name: expLogInteractionU
+ *
+ * Show chars to user if they've requested it, UNLESS they're seeing it
+ * already because they're typing it and tty driver is echoing it.
+ * Also send to Diag and Log if appropriate.
+ */
+void
+expLogInteractionU(esPtr,buf)
+    ExpState *esPtr;
+    char *buf;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (tsdPtr->logAll || (tsdPtr->logUser && tsdPtr->logChannel)) {
+	Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
+    }
+
+    /* hmm.... if stdout is closed such as by disconnect, loguser
+       should be forced FALSE */
+
+    /* don't write to user if they're seeing it already, i.e., typing it! */
+    if (tsdPtr->logUser && (!expStdinoutIs(esPtr)) && (!expDevttyIs(esPtr))) {
+	ExpState *stdinout = expStdinoutGet();
+	if (stdinout->valid) {
+	    Tcl_WriteChars(stdinout->channel,buf,-1);
+	}
+    }
+    expDiagWriteChars(buf,-1);
+}
+
 /* send to log if open */
 /* send to stderr if debugging enabled */
 /* use this for logging everything but the parent/child conversation */
 /* (this turns out to be almost nothing) */
 /* uppercase L differentiates if from math function of same name */
-#define LOGUSER		(loguser || force_stdout)
+#define LOGUSER		(tsdPtr->logUser || force_stdout)
 /*VARARGS*/
 void
-exp_log TCL_VARARGS_DEF(int,arg1)
-/*exp_log(va_alist)*/
-/*va_dcl*/
+expStdoutLog TCL_VARARGS_DEF(int,arg1)
 {
-	int force_stdout;
-	char *fmt;
-	va_list args;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    int force_stdout;
+    char *fmt;
+    va_list args;
 
-	force_stdout = TCL_VARARGS_START(int,arg1,args);
-	/*va_start(args);*/
-	/*force_stdout = va_arg(args,int);*/
-	fmt = va_arg(args,char *);
-	if (debugfile) vfprintf(debugfile,fmt,args);
-	if (logfile_all || (LOGUSER && logfile)) vfprintf(logfile,fmt,args);
-	if (LOGUSER) vfprintf(stdout,fmt,args);
-	va_end(args);
+    force_stdout = TCL_VARARGS_START(int,arg1,args);
+    fmt = va_arg(args,char *);
+
+    if ((!tsdPtr->logUser) && (!force_stdout) && (!tsdPtr->logAll)) return;
+
+    (void) vsprintf(bigbuf,fmt,args);
+    expDiagWriteBytes(bigbuf,-1);
+    if (tsdPtr->logAll || (LOGUSER && tsdPtr->logChannel)) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
+    if (LOGUSER) fprintf(stdout,"%s",bigbuf);
+    va_end(args);
 }
 
 /* just like log but does no formatting */
 /* send to log if open */
 /* use this function for logging the parent/child conversation */
 void
-exp_nflog(buf,force_stdout)
+expStdoutLogU(buf,force_stdout)
 char *buf;
-int force_stdout;	/* override value of loguser */
+int force_stdout;	/* override value of logUser */
 {
-	int length = strlen(buf);
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    int length;
 
-	if (debugfile) fwrite(buf,1,length,debugfile);
-	if (logfile_all || (LOGUSER && logfile)) fwrite(buf,1,length,logfile);
-	if (LOGUSER) fwrite(buf,1,length,stdout);
-#if 0
-	if (logfile_all || (LOGUSER && logfile)) {
-		int newlength = exp_copy_out(length);
-		fwrite(exp_out_buffer,1,newlength,logfile);
-	}
-#endif
-}
-#undef LOGUSER
+    if ((!tsdPtr->logUser) && (!force_stdout) && (!tsdPtr->logAll)) return;
 
-/* send to log if open and debugging enabled */
-/* send to stderr if debugging enabled */
-/* use this function for recording unusual things in the log */
-/*VARARGS*/
-void
-debuglog TCL_VARARGS_DEF(char *,arg1)
-/*debuglog(va_alist)*/
-/*va_dcl*/
-{
-	char *fmt;
-	va_list args;
-
-	fmt = TCL_VARARGS_START(char *,arg1,args);
-	/*va_start(args);*/
-	/*fmt = va_arg(args,char *);*/
-	if (debugfile) vfprintf(debugfile,fmt,args);
-	if (is_debugging) {
-		vfprintf(stderr,fmt,args);
-		if (logfile) vfprintf(logfile,fmt,args);
-	}
-
-	va_end(args);
+    length = strlen(buf);
+    expDiagWriteBytes(buf,length);
+    if (tsdPtr->logAll || (LOGUSER && tsdPtr->logChannel)) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
+    if (LOGUSER) fwrite(buf,1,length,stdout);
 }
 
 /* send to log if open */
@@ -106,20 +196,21 @@ debuglog TCL_VARARGS_DEF(char *,arg1)
 /* use this function for error conditions */
 /*VARARGS*/
 void
-exp_errorlog TCL_VARARGS_DEF(char *,arg1)
-/*exp_errorlog(va_alist)*/
-/*va_dcl*/
+expErrorLog TCL_VARARGS_DEF(char *,arg1)
 {
-	char *fmt;
-	va_list args;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-	fmt = TCL_VARARGS_START(char *,arg1,args);
-	/*va_start(args);*/
-	/*fmt = va_arg(args,char *);*/
-	vfprintf(stderr,fmt,args);
-	if (debugfile) vfprintf(debugfile,fmt,args);
-	if (logfile) vfprintf(logfile,fmt,args);
-	va_end(args);
+    char *fmt;
+    va_list args;
+
+    fmt = TCL_VARARGS_START(char *,arg1,args);
+    (void) vsprintf(bigbuf,fmt,args);
+
+    expDiagWriteChars(bigbuf,-1);
+    fprintf(stderr,"%s",bigbuf);
+    if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
+    
+    va_end(args);
 }
 
 /* just like errorlog but does no formatting */
@@ -127,135 +218,437 @@ exp_errorlog TCL_VARARGS_DEF(char *,arg1)
 /* use this function for logging the parent/child conversation */
 /*ARGSUSED*/
 void
-exp_nferrorlog(buf,force_stdout)
+expErrorLogU(buf)
 char *buf;
-int force_stdout;	/* not used, only declared here for compat with */
-			/* exp_nflog() */
 {
-	int length = strlen(buf);
-	fwrite(buf,1,length,stderr);
-	if (debugfile) fwrite(buf,1,length,debugfile);
-	if (logfile) fwrite(buf,1,length,logfile);
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    int length = strlen(buf);
+    fwrite(buf,1,length,stderr);
+    expDiagWriteChars(buf,-1);
+    if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
 }
 
-#if 0
-static int out_buffer_size;
-static char *outp_last;
-static char *out_buffer;
-static char *outp;	/* pointer into out_buffer - static in order */
-			/* to update whenever out_buffer is enlarged */
 
+
+/* send diagnostics to Diag, Log, and stderr */
+/* use this function for recording unusual things in the log */
+/*VARARGS*/
+void
+expDiagLog TCL_VARARGS_DEF(char *,arg1)
+{
+    char *fmt;
+    va_list args;
+
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if ((tsdPtr->diagToStderr == 0) && (tsdPtr->diagChannel == 0)) return;
+
+    fmt = TCL_VARARGS_START(char *,arg1,args);
+
+    (void) vsprintf(bigbuf,fmt,args);
+
+    expDiagWriteBytes(bigbuf,-1);
+    if (tsdPtr->diagToStderr) {
+	fprintf(stderr,"%s",bigbuf);
+	if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
+    }
+
+    va_end(args);
+}
+
+
+/* expDiagLog for unformatted strings
+   this also takes care of arbitrary large strings */
+void
+expDiagLogU(str)
+    char *str;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if ((tsdPtr->diagToStderr == 0) && (tsdPtr->diagChannel == 0)) return;
+
+    expDiagWriteBytes(str,-1);
+
+    if (tsdPtr->diagToStderr) {
+	fprintf(stderr,"%s",str);
+	if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,str,-1);
+    }
+}
 
 void
-exp_init_log()
+expDiagToStderrSet(val)
+    int val;
 {
-	out_buffer = ckalloc(BUFSIZ);
-	out_buffer_size = BUFSIZ;
-	outp_last = out_buffer + BUFSIZ - 1;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    tsdPtr->diagToStderr = val;
+}
+    
+
+int
+expDiagToStderrGet() {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->diagToStderr;
+}
+
+Tcl_Channel
+expDiagChannelGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->diagChannel;
+}
+
+void
+expDiagChannelClose(interp)
+    Tcl_Interp *interp;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (!tsdPtr->diagChannel) return;
+    Tcl_UnregisterChannel(interp,tsdPtr->diagChannel);
+    Tcl_DStringFree(&tsdPtr->diagFilename);
+    tsdPtr->diagChannel = 0;
+}
+
+/* currently this registers the channel, however the exp_internal
+   command doesn't currently give the channel name to the user so
+   this is kind of useless - but we might change this someday */
+int
+expDiagChannelOpen(interp,filename)
+    Tcl_Interp *interp;
+    char *filename;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    char *newfilename;
+
+    Tcl_ResetResult(interp);
+    newfilename = Tcl_TranslateFileName(interp,filename,&tsdPtr->diagFilename);
+    if (!newfilename) return TCL_ERROR;
+
+    /* Tcl_TildeSubst doesn't store into dstring */
+    /* if no ~, so force string into dstring */
+    /* this is only needed so that next time around */
+    /* we can get dstring for -info if necessary */
+    if (Tcl_DStringValue(&tsdPtr->diagFilename)[0] == '\0') {
+	Tcl_DStringAppend(&tsdPtr->diagFilename,filename,-1);
+    }
+
+    tsdPtr->diagChannel = Tcl_OpenFileChannel(interp,newfilename,"a",0777);
+    if (!tsdPtr->diagChannel) {
+	Tcl_DStringFree(&tsdPtr->diagFilename);
+	return TCL_ERROR;
+    }
+    Tcl_RegisterChannel(interp,tsdPtr->diagChannel);
+    Tcl_SetChannelOption(interp,tsdPtr->diagChannel,"-buffering","none");
+    return TCL_OK;
+}
+
+void
+expDiagWriteObj(obj)
+    Tcl_Obj *obj;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (!tsdPtr->diagChannel) return;
+
+    Tcl_WriteObj(tsdPtr->diagChannel,obj);
+}
+
+/* write 8-bit bytes */
+void
+expDiagWriteBytes(str,len)
+    char *str;
+    int len;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (!tsdPtr->diagChannel) return;
+
+    Tcl_Write(tsdPtr->diagChannel,str,len);
+}
+
+/* write UTF chars */
+void
+expDiagWriteChars(str,len)
+    char *str;
+    int len;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (!tsdPtr->diagChannel) return;
+
+    Tcl_WriteChars(tsdPtr->diagChannel,str,len);
 }
 
 char *
-enlarge_out_buffer()
+expDiagFilename()
 {
-	int offset = outp - out_buffer;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-	int new_out_buffer_size = out_buffer_size = BUFSIZ;
-	realloc(out_buffer,new_out_buffer_size);
-
-	out_buffer_size = new_out_buffer_size;
-	outp = out_buffer + offset;
-
-	outp_last = out_buffer + out_buffer_size - 1;
-
-	return(out_buffer);
+    return Tcl_DStringValue(&tsdPtr->diagFilename);
 }
 
-/* like sprintf, but uses a static buffer enlarged as necessary */
-/* currently supported are %s, %d, and %#d where # is a single-digit */
 void
-exp_sprintf TCL_VARARGS_DEF(char *,arg1)
-/* exp_sprintf(va_alist)*/
-/*va_dcl*/
+expLogChannelClose(interp)
+    Tcl_Interp *interp;
 {
-	char *fmt;
-	va_list args;
-	char int_literal[20];	/* big enough for an int literal? */
-	char *int_litp;		/* pointer into int_literal */
-	char *width;
-	char *string_arg;
-	int int_arg;
-	char *int_fmt;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
-	fmt = TCL_VARARGS_START(char *,arg1,args);
-	/*va_start(args);*/
-	/*fmt = va_arg(args,char *);*/
+    if (!tsdPtr->logChannel) return;
 
-	while (*fmt != '\0') {
-		if (*fmt != '%') {
-			*outp++ = *fmt++;
-			continue;
-		}
-
-		/* currently, only single-digit widths are used */
-		if (isdigit(*fmt)) {
-			width = fmt++;
-		} else width = 0;
-
-		switch (*fmt) {
-		case 's':	/* interpolate string */
-			string_arg = va_arg(args,char *);
-
-			while (*string_arg) {
-				if (outp == outp_last) {
-					if (enlarge_out_buffer() == 0) {
-						/* FAIL */
-						return;
-					}
-				}
-				*outp++ = *string_arg++;
-			}
-			fmt++;
-			break;
-		case 'd':	/* interpolate int */
-			int_arg = va_arg(args,int);
-
-			if (width) int_fmt = width;
-			else int_fmt = fmt;
-
-			sprintf(int_literal,int_fmt,int_arg);
-
-			int_litp = int_literal;
-			for (int_litp;*int_litp;) {
-				if (enlarge_out_buffer() == 0) return;
-				*outp++ = *int_litp++;
-			}
-			fmt++;
-			break;
-		default:	/* anything else is literal */
-			if (enlarge_out_buffer() == 0) return;	/* FAIL */
-			*outp++ = *fmt++;
-			break;
-		}
+    if (Tcl_DStringLength(&tsdPtr->logFilename)) {
+	/* it's a channel that we created */
+	Tcl_UnregisterChannel(interp,tsdPtr->logChannel);
+	Tcl_DStringFree(&tsdPtr->logFilename);
+    } else {
+	/* it's a channel that tcl::open created */
+	if (!tsdPtr->logLeaveOpen) {
+	    Tcl_UnregisterChannel(interp,tsdPtr->logChannel);
 	}
+    }
+    tsdPtr->logChannel = 0;
+    tsdPtr->logAll = 0; /* can't write to log if none open! */
 }
 
-/* copy input string to exp_output, replacing \r\n sequences by \n */
-/* return length of new string */
+/* currently this registers the channel, however the exp_log_file
+   command doesn't currently give the channel name to the user so
+   this is kind of useless - but we might change this someday */
 int
-exp_copy_out(char *s)
+expLogChannelOpen(interp,filename,append)
+    Tcl_Interp *interp;
+    char *filename;
+    int append;
 {
-	outp = out_buffer;
-	int count = 0;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    char *newfilename;
+    char mode[2];
 
-	while (*s) {
-		if ((*s == '\r') && (*(s+1) =='\n')) s++;
-		if (enlarge_out_buffer() == 0) {
-			/* FAIL */
-			break;
-		}
-		*outp = *s;
-		count++;
-	}
-	return count;
+    if (append) {
+      strcpy(mode,"a");
+    } else {
+      strcpy(mode,"w");
+    }
+
+    Tcl_ResetResult(interp);
+    newfilename = Tcl_TranslateFileName(interp,filename,&tsdPtr->logFilename);
+    if (!newfilename) return TCL_ERROR;
+
+    /* Tcl_TildeSubst doesn't store into dstring */
+    /* if no ~, so force string into dstring */
+    /* this is only needed so that next time around */
+    /* we can get dstring for -info if necessary */
+    if (Tcl_DStringValue(&tsdPtr->logFilename)[0] == '\0') {
+	Tcl_DStringAppend(&tsdPtr->logFilename,filename,-1);
+    }
+
+    tsdPtr->logChannel = Tcl_OpenFileChannel(interp,newfilename,mode,0777);
+    if (!tsdPtr->logChannel) {
+	Tcl_DStringFree(&tsdPtr->logFilename);
+	return TCL_ERROR;
+    }
+    Tcl_RegisterChannel(interp,tsdPtr->logChannel);
+    Tcl_SetChannelOption(interp,tsdPtr->logChannel,"-buffering","none");
+    return TCL_OK;
 }
-#endif
+
+int
+expLogAppendGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->logAppend;
+}
+
+void
+expLogAppendSet(app)
+    int app;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    tsdPtr->logAppend = app;
+}
+
+int
+expLogAllGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->logAll;
+}
+
+void
+expLogAllSet(app)
+    int app;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    tsdPtr->logAll = app;
+    /* should probably confirm logChannel != 0 */
+}
+
+int
+expLogToStdoutGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->logUser;
+}
+
+void
+expLogToStdoutSet(app)
+    int app;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    tsdPtr->logUser = app;
+}
+
+int
+expLogLeaveOpenGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->logLeaveOpen;
+}
+
+void
+expLogLeaveOpenSet(app)
+    int app;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    tsdPtr->logLeaveOpen = app;
+}
+
+Tcl_Channel
+expLogChannelGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    return tsdPtr->logChannel;
+}
+
+/* to set to a pre-opened channel (presumably by tcl::open) */
+int
+expLogChannelSet(interp,name)
+    Tcl_Interp *interp;
+    char *name;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    int mode;
+    
+    if (0 == (tsdPtr->logChannel = Tcl_GetChannel(interp,name,&mode))) {
+	return TCL_ERROR;
+    }
+    if (!(mode & TCL_WRITABLE)) {
+	tsdPtr->logChannel = 0;
+	Tcl_SetResult(interp,"channel is not writable",TCL_VOLATILE);
+	return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+char *
+expLogFilenameGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    return Tcl_DStringValue(&tsdPtr->logFilename);
+}
+
+int
+expLogUserGet()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    return tsdPtr->logUser;
+}
+
+void
+expLogUserSet(logUser)
+    int logUser;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    tsdPtr->logUser = logUser;
+}
+
+
+
+/* generate printable versions of random ASCII strings.  Primarily used */
+/* in diagnostic mode, "expect -d" */
+static char *
+expPrintifyReal(s)
+char *s;
+{
+	static int destlen = 0;
+	static char *dest = 0;
+	char *d;		/* ptr into dest */
+	unsigned int need;
+	Tcl_UniChar ch;
+
+	if (s == 0) return("<null>");
+
+	/* worst case is every character takes 4 to printify */
+	need = strlen(s)*6 + 1;
+	if (need > destlen) {
+		if (dest) ckfree(dest);
+		dest = ckalloc(need);
+		destlen = need;
+	}
+
+	for (d = dest;*s;) {
+	    s += Tcl_UtfToUniChar(s, &ch);
+	    if (ch == '\r') {
+		strcpy(d,"\\r");		d += 2;
+	    } else if (ch == '\n') {
+		strcpy(d,"\\n");		d += 2;
+	    } else if (ch == '\t') {
+		strcpy(d,"\\t");		d += 2;
+	    } else if ((ch < 0x80) && isprint(UCHAR(ch))) {
+		*d = (char)ch;			d += 1;
+	    } else {
+		sprintf(d,"\\u%04x",ch);	d += 6;
+	    }
+	}
+	*d = '\0';
+	return(dest);
+}
+
+char *
+expPrintifyObj(obj)
+    Tcl_Obj *obj;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    /* don't bother writing into bigbuf if we're not going to ever use it */
+    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return((char *)0);
+    
+    return expPrintifyReal(Tcl_GetString(obj));
+}
+
+char *
+expPrintify(s) /* INTL */
+char *s;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    /* don't bother writing into bigbuf if we're not going to ever use it */
+    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return((char *)0);
+
+    return expPrintifyReal(s);
+}
+ 
+void
+expDiagInit()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    Tcl_DStringInit(&tsdPtr->diagFilename);
+    tsdPtr->diagChannel = 0;
+    tsdPtr->diagToStderr = 0;
+}
+
+void
+expLogInit()
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    Tcl_DStringInit(&tsdPtr->logFilename);
+    tsdPtr->logChannel = 0;
+    tsdPtr->logAll = FALSE;
+    tsdPtr->logUser = TRUE;
+}

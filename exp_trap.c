@@ -87,12 +87,11 @@ int code;
 	int rc;
 	int i;
 	Tcl_Interp *sig_interp;
-/*	extern Tcl_Interp *exp_interp;*/
 
-	exp_debuglog("sighandler: handling signal(%d)\r\n",got_sig);
+	expDiagLog("sighandler: handling signal(%d)\r\n",got_sig);
 
 	if (got_sig <= 0 || got_sig >= NSIG) {
-		errorlog("caught impossible signal %d\r\n",got_sig);
+		expErrorLog("caught impossible signal %d\r\n",got_sig);
 		abort();
 	}
 
@@ -107,7 +106,7 @@ int code;
 	/* Don't we need to temporarily block bottomhalf? */
 	if (current_sig == SIGCHLD) {
 		sigchld_count--;
-		exp_debuglog("sigchld_count-- == %d\n",sigchld_count);
+		expDiagLog("sigchld_count-- == %d\n",sigchld_count);
 	}
 
 	if (!trap->action) {
@@ -115,7 +114,7 @@ int code;
 		/* signaler predefined, since we are calling explicitly */
 		/* from another part of the program, and it is just simpler */
 		if (current_sig == 0) return code;
-		errorlog("caught unexpected signal: %s (%d)\r\n",
+		expErrorLog("caught unexpected signal: %s (%d)\r\n",
 			signal_to_string(current_sig),current_sig);
 		abort();
 	}
@@ -159,7 +158,7 @@ int code;
 #ifdef REARM_SIG
 int sigchld_sleep;
 static int rearm_sigchld = FALSE;	/* TRUE if sigchld needs to be */
-					/* rearmed (i.e., because it has
+					/* rearmed (i.e., because it has */
 					/* just gone off) */
 static int rearming_sigchld = FALSE;
 #endif
@@ -198,12 +197,15 @@ int sig;
 	 */
 	if (sig == SIGCHLD) {
 		sigchld_count++;
-/*		exp_debuglog(stderr,"sigchld_count++ == %d\n",sigchld_count);*/
 	}
 #if 0
 	/* if we are doing an i_read, restart it */
-	if (env_valid && (sig != 0)) longjmp(env,2);
-#endif
+#ifdef HAVE_SIGLONGJMP
+      if (env_valid && (sig != 0)) siglongjmp(env,2);
+#else
+      if (env_valid && (sig != 0)) longjmp(env,2);
+#endif  /* HAVE_SIGLONGJMP */
+#endif /* 0 */
 }
 
 /*ARGSUSED*/
@@ -292,15 +294,16 @@ char *s;
 
 /*ARGSUSED*/
 int
-Exp_TrapCmd(clientData, interp, argc, argv)
+Exp_TrapObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];
 {
 	char *action = 0;
 	int n;		/* number of signals in list */
-	char **list;	/* list of signals */
+	Tcl_Obj **list;	/* list of signals */
+	char *arg;
 	int len;	/* length of action */
 	int i;
 	int show_name = FALSE;	/* if user asked for current sig by name */
@@ -311,71 +314,78 @@ char **argv;
 	Tcl_Interp *new_interp = interp;/* interp in which to evaluate */
 					/* action when signal occurs */
 
-	argc--; argv++;
+	objc--; objv++;
 
-	while (*argv) {
-		if (streq(*argv,"-code")) {
-			argc--; argv++; 
+	while (objc) {
+	  arg = Tcl_GetString(*objv);
+
+		if (streq(arg,"-code")) {
+			objc--; objv++; 
 			new_code = TRUE;
-		} else if (streq(*argv,"-interp")) {
-			argc--; argv++; 
+		} else if (streq(arg,"-interp")) {
+			objc--; objv++; 
 			new_interp = 0;
-		} else if (streq(*argv,"-name")) {
-			argc--; argv++;
+		} else if (streq(arg,"-name")) {
+			objc--; objv++;
 			show_name = TRUE;
-		} else if (streq(*argv,"-number")) {
-			argc--; argv++;
+		} else if (streq(arg,"-number")) {
+			objc--; objv++;
 			show_number = TRUE;
-		} else if (streq(*argv,"-max")) {
-			argc--; argv++;
+		} else if (streq(arg,"-max")) {
+			objc--; objv++;
 			show_max = TRUE;
 		} else break;
 	}
 
 	if (show_name || show_number || show_max) {
-		if (argc > 0) goto usage_error;
+		if (objc > 0) goto usage_error;
 		if (show_max) {
-			sprintf(interp->result,"%d",NSIG-1);
-			return TCL_OK;
+		  Tcl_SetObjResult(interp,Tcl_NewIntObj(NSIG-1));
 		}
 
 		if (current_sig == NO_SIG) {
-			exp_error(interp,"no signal in progress");
-			return TCL_ERROR;
+		  Tcl_SetResult(interp,"no signal in progress",TCL_STATIC);
+		  return TCL_ERROR;
 		}
 		if (show_name) {
-			/* skip over "SIG" */
-			interp->result = signal_to_string(current_sig) + 3;
+		  /* skip over "SIG" */
+		  Tcl_SetResult(interp,signal_to_string(current_sig) + 3,TCL_STATIC);
 		} else {
-			sprintf(interp->result,"%d",current_sig);
+		  Tcl_SetObjResult(interp,Tcl_NewIntObj(current_sig));
 		}
 		return TCL_OK;
 	}
 
-	if (argc == 0 || argc > 2) goto usage_error;
+	if (objc == 0 || objc > 2) goto usage_error;
 
-	if (argc == 1) {
-		int sig = exp_string_to_signal(interp,*argv);
+	if (objc == 1) {
+		int sig = exp_string_to_signal(interp,arg);
 		if (sig == -1) return TCL_ERROR;
 
 		if (traps[sig].action) {
-			Tcl_AppendResult(interp,traps[sig].action,(char *)0);
+			Tcl_SetResult(interp,traps[sig].action,TCL_STATIC);
 		} else {
-			interp->result = "SIG_DFL";
+			Tcl_SetResult(interp,"SIG_DFL",TCL_STATIC);
 		}
 		return TCL_OK;
 	}
 
-	action = *argv;
+	action = arg;
 
-	/* argv[1] is the list of signals - crack it open */
-	if (TCL_OK != Tcl_SplitList(interp,argv[1],&n,&list)) {
-		errorlog("%s\r\n",interp->result);
+	/* objv[1] is the list of signals - crack it open */
+	if (TCL_OK != Tcl_ListObjGetElements(interp,objv[1],&n,&list)) {
+		expErrorLogU(Tcl_GetStringResult(interp));
+		expErrorLogU("\r\n");
 		goto usage_error;
 	}
 
 	for (i=0;i<n;i++) {
-		int sig = exp_string_to_signal(interp,list[i]);
+	  char *s;
+	  int sig;
+
+	  s = Tcl_GetString(list[i]);
+
+		sig = exp_string_to_signal(interp,s);
 		if (sig == -1) {
 			rc = TCL_ERROR;
 			break;
@@ -387,19 +397,8 @@ char **argv;
 			break;
 		}
 
-#if 0
-#ifdef TCL_DEBUGGER
-		if (sig == SIGINT && exp_tcl_debugger_available) {
-			exp_debuglog("trap: cannot trap SIGINT while using debugger\r\n");
-			continue;
-		}
-#endif /* TCL_DEBUGGER */
-#endif
-
-		exp_debuglog("trap: setting up signal %d (\"%s\")\r\n",sig,list[i]);
-
+		expDiagLog("trap: setting up signal %d (\"%s\")\r\n",sig,s);
 		if (traps[sig].action) ckfree(traps[sig].action);
-
 		if (streq(action,"SIG_DFL")) {
 			/* should've been free'd by now if nec. */
 			traps[sig].action = 0;
@@ -419,7 +418,9 @@ char **argv;
 			} else signal(sig,bottomhalf);
 		}
 	}
-	ckfree((char *)list);
+	/* It is no longer necessary to free the split list since it */
+	/* is still owned by Tcl, yes? */
+	/*	ckfree((char *)list); */
 	return(rc);
  usage_error:
 	exp_error(interp,"usage: trap [command or SIG_DFL or SIG_IGN] {list of signals}");
@@ -436,13 +437,13 @@ int oldcode;
 {
 	int code_flag;
 	int newcode;
-	Tcl_DString ei;	/* errorInfo */
-	char *eip;
-	Tcl_DString ec;	/* errorCode */
-	char *ecp;
-	Tcl_DString ir;	/* interp->result */
+	Tcl_Obj *eip;   /* errorInfo */
+	Tcl_Obj *ecp;	/* errorCode */
+	Tcl_Obj *irp;	/* interp->result */
 
-	exp_debuglog("async event handler: Tcl_Eval(%s)\r\n",trap->action);
+	expDiagLogU("async event handler: Tcl_Eval(");
+	expDiagLogU(trap->action);
+	expDiagLogU(")\r\n");
 
 	/* save to prevent user from redefining trap->code while trap */
 	/* is executing */
@@ -452,19 +453,13 @@ int oldcode;
 		/* 
 		 * save return values
 		 */
-		eip = Tcl_GetVar(interp,"errorInfo",TCL_GLOBAL_ONLY);
-		if (eip) {
-			Tcl_DStringInit(&ei);
-			eip = Tcl_DStringAppend(&ei,eip,-1);
-		}
-		ecp = Tcl_GetVar(interp,"errorCode",TCL_GLOBAL_ONLY);
-		if (ecp) {
-			Tcl_DStringInit(&ec);
-			ecp = Tcl_DStringAppend(&ec,ecp,-1);
-		}
-		/* I assume interp->result is always non-zero, right? */
-		Tcl_DStringInit(&ir);
-		Tcl_DStringAppend(&ir,interp->result,-1);
+
+		eip = Tcl_GetVar2Ex(interp,"errorInfo","",TCL_GLOBAL_ONLY);
+		if (eip) eip = Tcl_DuplicateObj(eip);
+		ecp = Tcl_GetVar2Ex(interp,"errorCode","",TCL_GLOBAL_ONLY);
+		if (ecp) ecp = Tcl_DuplicateObj(ecp);
+		irp = Tcl_GetObjResult(interp);
+		if (irp) irp = Tcl_DuplicateObj(irp);
 	}
 
 	newcode = Tcl_GlobalEval(interp,trap->action);
@@ -475,10 +470,12 @@ int oldcode;
 	 */
 
 	if (code_flag) {
-		exp_debuglog("return value = %d for trap %s, action %s\r\n",
-				newcode,signal_to_string(sig),trap->action);
-		if (*interp->result != 0) {
-			errorlog("%s\r\n",interp->result);
+		expDiagLog("return value = %d for trap %s, action ",newcode,signal_to_string(sig));
+		expDiagLogU(trap->action);
+		expDiagLogU("\r\n");
+		if (0 != strcmp(Tcl_GetStringResult(interp),"")) {
+			expErrorLogU(interp->result);
+			expErrorLogU("\r\n");
 
 			/*
 			 * Check errorinfo and see if it contains -nostack.
@@ -488,15 +485,16 @@ int oldcode;
 			 * get back, we'll have lost the value of errorInfo
 			 */
 
-			eip = Tcl_GetVar(interp,"errorInfo",TCL_GLOBAL_ONLY);
-			exp_nostack_dump =
-				(eip && (0 == strncmp("-nostack",eip,8)));
+			eip = Tcl_GetVar2Ex(interp,"errorInfo","",TCL_GLOBAL_ONLY);
+			if (eip) {
+			  exp_nostack_dump = (0 == strncmp("-nostack",Tcl_GetString(eip),8));
+			}
 		}
 	} else if (newcode != TCL_OK && newcode != TCL_RETURN) {
-		if (newcode != TCL_ERROR) {
-			exp_error(interp,"return value = %d for trap %s, action %s\r\n",newcode,signal_to_string(sig),trap->action);
-		}
-		Tcl_BackgroundError(interp);
+	  if (newcode != TCL_ERROR) {
+	    exp_error(interp,"return value = %d for trap %s, action %s\r\n",newcode,signal_to_string(sig),trap->action);
+	  }
+	  Tcl_BackgroundError(interp);
 	}
 
 	if (!code_flag) {
@@ -504,13 +502,19 @@ int oldcode;
 		 * restore values
 		 */
 		Tcl_ResetResult(interp);	/* turns off Tcl's internal */
-				/* flags: ERR_IN_PROGRESS, ERROR_CODE_SET */
+		   /* flags: ERR_IN_PROGRESS, ERROR_CODE_SET */
+		   /* This also wipes clean errorInfo/Code/result which is why */
+		   /* all the calls to Tcl_Dup earlier */
 
 		if (eip) {
-			Tcl_AddErrorInfo(interp,eip);
-			Tcl_DStringFree(&ei);
+		  /* odd that Tcl doesn't have a call that does all this at once */
+		  int len;
+		  char *s = Tcl_GetStringFromObj(eip,&len);
+		  Tcl_AddObjErrorInfo(interp,s,len);
+		  Tcl_DecrRefCount(eip);
+		  /* we never incr'd it, but the code allows this */
 		} else {
-			Tcl_UnsetVar(interp,"errorInfo",0);
+		  Tcl_UnsetVar(interp,"errorInfo",0);
 		}
 
 		/* restore errorCode.  Note that Tcl_AddErrorInfo (above) */
@@ -518,15 +522,13 @@ int oldcode;
 		/* important to avoid calling Tcl_SetErrorCode since this */
 		/* with cause Tcl to set its internal ERROR_CODE_SET flag. */
 		if (ecp) {
-			if (!streq("NONE",ecp))
-				Tcl_SetErrorCode(interp,ecp,(char *)0);
-			Tcl_DStringFree(&ec);
+		  if (!streq("NONE",Tcl_GetString(ecp)))
+		    Tcl_SetErrorCode(interp,ecp);
+		  /* we're just passing on the errorcode obj */
+		  /* presumably, Tcl will incr ref count */
 		} else {
-			Tcl_UnsetVar(interp,"errorCode",0);
+		  Tcl_UnsetVar(interp,"errorCode",0);
 		}
-
-		Tcl_DStringResult(interp,&ir);
-		Tcl_DStringFree(&ir);
 
 		newcode = oldcode;
 
@@ -539,7 +541,7 @@ int oldcode;
 
 static struct exp_cmd_data
 cmd_data[]  = {
-{"trap",	exp_proc(Exp_TrapCmd),	(ClientData)EXP_SPAWN_ID_BAD,	0},
+{"trap",	Exp_TrapObjCmd, 0,	(ClientData)EXP_SPAWN_ID_BAD,	0},
 {0}};
 
 void

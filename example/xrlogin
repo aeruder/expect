@@ -15,7 +15,7 @@ catch {set prompt $env(EXPECT_PROMPT)}
 set timeout -1
 eval spawn rlogin $argv
 expect eof exit -re $prompt
-if [string match "unix:0.0" $env(DISPLAY)] {
+if {[string match "unix:0.0" $env(DISPLAY)]} {
 	set env(DISPLAY) "[exec hostname].[exec domainname]:0.0\r"
 }
 send "setenv DISPLAY $env(DISPLAY)\r"

@@ -4,10 +4,11 @@
 #include "expect_cf.h"
 #include <stdio.h>
 
+#include "tcl.h"
 #include "exp_tty_in.h"
 #include "exp_rename.h"
-#define EXP_AVOID_INCLUDING_TCL_H
 #include "expect_comm.h"
+#include "exp_command.h"
 #include "exp_log.h"
 
 #ifndef TRUE

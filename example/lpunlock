@@ -18,7 +18,7 @@ proc usage {} {
 	exit
 }
 
-if $argc==0 usage
+if {$argc==0} usage
 set printer [lindex $argv 0]
 
 set client [exec hostname]
@@ -28,7 +28,7 @@ if {$argc == 1} {
 	spawn ed /etc/printcap
 	expect "\n"			;# discard character count
 	send "/$printer/\r"
-	for {} 1 {} {
+	for {} {1} {} {
 		expect -re ".*:rm=(\[^:]*):.*\r\n" {
 			set server $expect_out(1,string)
 			break

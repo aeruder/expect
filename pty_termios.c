@@ -27,10 +27,11 @@ would appreciate credit if you use this file or parts of it.
 */
 extern char *TclGetRegError();
 
-/* Linux systems can be configured to have both.  I don't know which is */
-/* better, let's try PTMX */
+/* Linux and Digital systems can be configured to have both.
+According to Ashley Pittman <ashley@ilo.dec.com>, Digital works better
+with openpty which supports 4000 while ptmx supports 60. */
 #if defined(HAVE_OPENPTY) && defined(HAVE_PTMX)
-#undef HAVE_OPENPTY
+#undef HAVE_PTMX
 #endif
 
 #if defined(HAVE_PTYM) && defined(HAVE_PTMX)
@@ -88,7 +89,8 @@ extern char *TclGetRegError();
 #include "exp_rename.h"
 #include "exp_pty.h"
 
-void debuglog();
+void expDiagLog();
+void expDiagLogPtr();
 
 #include <errno.h>
 /*extern char *sys_errlist[];*/
@@ -309,7 +311,7 @@ char *s;	/* stty args */
 /* As long as BSD stty insists on stdout == stderr, we can no longer write */
 /* diagnostics to parent stderr, since stderr has is now child's */
 /* Maybe someday they will fix stty? */
-/*			debuglog("getptyslave: (default) stty %s\n",DFLT_STTY);*/
+/*			expDiagLogPtrStr("exp_getptyslave: (default) stty %s\n",DFLT_STTY);*/
 			pty_stty(DFLT_STTY,slave_name);
 		}
 #endif
@@ -317,7 +319,7 @@ char *s;	/* stty args */
 		/* lastly, give user chance to override any terminal parms */
 		if (s) {
 			/* give user a chance to override any terminal parms */
-/*			debuglog("getptyslave: (user-requested) stty %s\n",s);*/
+/*			expDiagLogPtrStr("exp_getptyslave: (user-requested) stty %s\n",s);*/
 			pty_stty(s,slave_name);
 		}
 	}
@@ -354,7 +356,7 @@ exp_init_pty()
 #endif
 
 int
-getptymaster()
+exp_getptymaster()
 {
 	char *hex, *bank;
 	struct stat stat_buf;
@@ -379,7 +381,7 @@ getptymaster()
 	} else if (grantpt(master)) {
 		static char buf[500];
 		exp_pty_error = buf;
-		sprintf(exp_pty_error,"grantpt(%d (%s)) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", errno, Tcl_ErrnoMsg(errno));
+		sprintf(exp_pty_error,"grantpt(%s) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", expErrnoMsg(errno));
 		close(master);
 		return(-1);
 	}
@@ -606,7 +608,7 @@ int control;	/* if 1, enable pty trapping of close/open/ioctl */
 }
 
 int
-getptyslave(ttycopy,ttyinit,stty_args)
+exp_getptyslave(ttycopy,ttyinit,stty_args)
 int ttycopy;
 int ttyinit;
 char *stty_args;
@@ -617,25 +619,25 @@ char *stty_args;
 	if (0 > (slave = open(slave_name, O_RDWR))) {
 		static char buf[500];
 		exp_pty_error = buf;
-		sprintf(exp_pty_error,"open(%s,rw) = %d (%s)",slave_name,slave,Tcl_ErrnoMsg(errno));
+		sprintf(exp_pty_error,"open(%s,rw) = %d (%s)",slave_name,slave,expErrnoMsg(errno));
 		return(-1);
 	}
 
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
 		if (ioctl (slave, I_PUSH, "ldterm")) {
-			debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+			expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
 	}
 #else
 #if defined(HAVE_PTMX)
 	if (ioctl(slave, I_PUSH, "ptem")) {
-		debuglog("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,expErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ldterm")) {
-		debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,expErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ttcompat")) {
-		debuglog("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,Tcl_ErrnoMsg(errno));
+		expDiagLogPtrStrStr("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,expErrnoMsg(errno));
 	}
 #endif
 #endif
@@ -711,39 +713,39 @@ int fd;
 		(SELECT_MASK_TYPE *)&excep,
 		&t);
 	if (rc != 1) {
-		debuglog("spawned process never started, errno = %d\n",errno);
+		expDiagLogPtrStr("spawned process never started: %s\r\n",expErrnoMsg(errno));
 		return(-1);
 	}
 	if (ioctl(fd,TIOCREQCHECK,&ioctl_info) < 0) {
-		debuglog("ioctl(TIOCREQCHECK) failed, errno = %d\n",errno);
+		expDiagLogPtrStr("ioctl(TIOCREQCHECK) failed: %s\r\n",expErrnoMsg(errno));
 		return(-1);
 	}
 
 	found = ioctl_info.request;
 
-	debuglog("trapped pty op = %x",found);
+	expDiagLogPtrX("trapped pty op = %x",found);
 	if (found == TIOCOPEN) {
-		debuglog(" TIOCOPEN");
+		expDiagLogPtr(" TIOCOPEN");
 	} else if (found == TIOCCLOSE) {
-		debuglog(" TIOCCLOSE");
+		expDiagLogPtr(" TIOCCLOSE");
 	}
 
 #ifdef TIOCSCTTY
 	if (found == TIOCSCTTY) {
-		debuglog(" TIOCSCTTY");
+		expDiagLogPtr(" TIOCSCTTY");
 	}
 #endif
 
 	if (found & IOC_IN) {
-		debuglog(" IOC_IN (set)");
+		expDiagLogPtr(" IOC_IN (set)");
 	} else if (found & IOC_OUT) {
-		debuglog(" IOC_OUT (get)");
+		expDiagLogPtr(" IOC_OUT (get)");
 	}
 
-	debuglog("\n");
+	expDiagLogPtr("\n");
 
 	if (ioctl(fd, TIOCREQSET, &ioctl_info) < 0) {
-		debuglog("ioctl(TIOCREQSET) failed, errno = %d\n",errno);
+		expDiagLogPtrStr("ioctl(TIOCREQSET) failed: %s\r\n",expErrnoMsg(errno));
 		return(-1);
 	}
 	return(found);

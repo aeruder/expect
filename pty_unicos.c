@@ -56,7 +56,7 @@ extern int fork(), execl(), wait();
 #include <sys/sysconfig.h>
 #endif
 
-void debuglog();
+void expDiagLog();
 
 #ifndef TRUE
 #define TRUE 1
@@ -202,7 +202,7 @@ exp_init_pty()
 
 /* returns fd of master end of pseudotty */
 int
-getptymaster()
+exp_getptymaster()
 {
 	struct stat sb;
 	int master;
@@ -210,62 +210,62 @@ getptymaster()
 
 	exp_pty_error = 0;
 
-	debuglog("getptymaster:  lowpty=%d  highpty=%d\n",lowpty,highpty);
+	expDiagLog("exp_getptymaster:  lowpty=%d  highpty=%d\n",lowpty,highpty);
 	for (npty = lowpty; npty <= highpty; npty++) {
 		if (seteuid(0) == -1) {		/* we need to be root! */
-			debuglog("getptymaster:  seteuid root errno=%d\n",
+			expDiagLog("exp_getptymaster:  seteuid root errno=%d\n",
 				errno);
 		}
 		(void) sprintf(linep, "/dev/pty/%03d", npty);
 		master = open(linep, O_RDWR);
 
 		if (master < 0) {
-			debuglog("getptymaster:  open linep=%s errno=%d\n",
+			expDiagLog("exp_getptymaster:  open linep=%s errno=%d\n",
 				linep,errno);
 			continue;
 		}
 
 		(void) sprintf(linet, "/dev/ttyp%03d", npty);
 		if(stat(linet, &sb) < 0) {
-			debuglog("getptymaster:  stat linet=%s errno=%d\n",
+			expDiagLog("exp_getptymaster:  stat linet=%s errno=%d\n",
 				linet,errno);
 			(void) close(master);
 			continue;
 		}
 		if (sb.st_uid || sb.st_gid || sb.st_mode != 0600) {
                         if (chown(linet, realuid, realgid) == -1) {
-				debuglog("getptymaster:  chown linet=%s errno=%d\n",
+				expDiagLog("exp_getptymaster:  chown linet=%s errno=%d\n",
 					linet,errno);
 			}
                         if (chmod(linet, 0600) == -1) {
-				debuglog("getptymaster:  chmod linet=%s errno=%d\n",
+				expDiagLog("exp_getptymaster:  chmod linet=%s errno=%d\n",
 					linet,errno);
 			}
                         (void)close(master);
                         master = open(linep, 2);
                         if (master < 0) {
-				debuglog("getptymaster:  reopen linep=%s errno=%d\n",
+				expDiagLog("exp_getptymaster:  reopen linep=%s errno=%d\n",
 					linep,errno);
                                 continue;
 			}
                 }
 		if (seteuid(realuid) == -1) {	/* back to who we are! */
-			debuglog("getptymaster:  seteuid user errno=%d\n",
+			expDiagLog("exp_getptymaster:  seteuid user errno=%d\n",
 				errno);
 		}
 		if (access(linet, R_OK|W_OK) != 0) {
-			debuglog("getptymaster:  access linet=%s errno=%d\n",
+			expDiagLog("exp_getptymaster:  access linet=%s errno=%d\n",
 				linet,errno);
 			(void) close(master);
 			continue;
 		}
-		debuglog("getptymaster:  allocated %s\n",linet);
+		expDiagLog("exp_getptymaster:  allocated %s\n",linet);
 		ptys[npty] = -1;
 		exp_pty_slave_name = linet;
 		return(master);
 	}
 	if (seteuid(realuid) == -1) {		/* back to who we are! */
-		debuglog("getptymaster:  seteuid user errno=%d\n",errno);
+		expDiagLog("exp_getptymaster:  seteuid user errno=%d\n",errno);
 	}
 	return(-1);
 }
@@ -280,7 +280,7 @@ int control;
 }
 
 int
-getptyslave(ttycopy,ttyinit,stty_args)
+exp_getptyslave(ttycopy,ttyinit,stty_args)
 int ttycopy;
 int ttyinit;
 char *stty_args;
@@ -288,14 +288,14 @@ char *stty_args;
 	int slave;
 
 	if (0 > (slave = open(linet, O_RDWR))) {
-		debuglog("getptyslave:  open linet=%s errno=%d\n",linet,errno);
+		expDiagLog("exp_getptyslave:  open linet=%s errno=%d\n",linet,errno);
 		return(-1);
 	}
 
 	/* sanity check - if slave not 0, skip rest of this and return */
 	/* to what will later be detected as an error in caller */
 	if (0 != slave) {
-		debuglog("getptyslave:  slave fd not 0\n");
+		expDiagLog("exp_getptyslave:  slave fd not 0\n");
 		 return(slave);
 	}
 
@@ -317,7 +317,7 @@ setptyutmp()
 	struct utmp utmp;
 
 	if (seteuid(0) == -1) {		/* Need to be root */
-		debuglog("setptyutmp:  setuid root errno=%d\n",errno);
+		expDiagLog("setptyutmp:  setuid root errno=%d\n",errno);
 		return(-1);
 	}
 	(void) time(&utmp.ut_time);
@@ -328,11 +328,11 @@ setptyutmp()
 	strncpy(utmp.ut_line,linet+5,sizeof(utmp.ut_line));
 	strncpy(utmp.ut_id,linet+8,sizeof(utmp.ut_id));
 	if (pututline(&utmp) == NULL) {
-		debuglog("setptyutmp:  pututline failed\n");
+		expDiagLog("setptyutmp:  pututline failed\n");
 	}
 	endutent();
 	if (seteuid(realuid) == -1)
-		debuglog("setptyutmp:  seteuid user errno=%d\n",errno);
+		expDiagLog("setptyutmp:  seteuid user errno=%d\n",errno);
 	return(0);
 }
 
@@ -343,7 +343,7 @@ int pid;
 
         for (npty = lowpty; npty <= highpty; npty++) {
                 if (ptys[npty] < 0) {
-                        debuglog("setptypid:  ttyp%03d pid=%d\n",npty,pid);
+                        expDiagLog("setptypid:  ttyp%03d pid=%d\n",npty,pid);
                         ptys[npty] = pid;
                         break;
                 }
@@ -355,29 +355,29 @@ ttyp_reset()
         int npty;
 
         if (seteuid(0) == -1) {		/* we need to be root! */
-                debuglog("ttyp_reset:  seteuid root errno=%d\n",errno);
+                expDiagLog("ttyp_reset:  seteuid root errno=%d\n",errno);
         }
         for (npty = lowpty; npty <= highpty; npty++) {
                 if (ptys[npty] <= 0)
                         continue;
 
                 (void) sprintf(linet, "/dev/ttyp%03d", npty);
-                debuglog("ttyp_reset:  resetting %s, killing %d\n",
+                expDiagLog("ttyp_reset:  resetting %s, killing %d\n",
 			linet,ptys[npty]);
                 if (chown(linet,0,0) == -1) {
-                        debuglog("ttyp_reset: chown %s errno=%d\n",linet,errno);
+                        expDiagLog("ttyp_reset: chown %s errno=%d\n",linet,errno);
                 }
                 if (chmod(linet, 0666) == -1) {
-                        debuglog("ttyp_reset: chmod %s errno=%d\n",linet,errno);
+                        expDiagLog("ttyp_reset: chmod %s errno=%d\n",linet,errno);
                 }
                 resetptyutmp();
                 if (kill(ptys[npty],SIGKILL) == -1) {
-                        debuglog("ttyp_reset:  kill pid=%d errno=%d\n",
+                        expDiagLog("ttyp_reset:  kill pid=%d errno=%d\n",
                                 ptys[npty],errno);
                 }
         }
         if (seteuid(realuid) == -1) {   /* Back to who we really are */
-                debuglog("ttyp_reset:  seteuid user errno=%d\n",errno);
+                expDiagLog("ttyp_reset:  seteuid user errno=%d\n",errno);
         }
 }
 
@@ -399,7 +399,7 @@ resetptyutmp()
 
         /* position to entry in utmp file */
         if(getutid(&utmp) == NULL) {
-                debuglog("resetptyutmp:  no utmp entry for %s\n",linet);
+                expDiagLog("resetptyutmp:  no utmp entry for %s\n",linet);
                 return(-1);     /* no utmp entry for this line ??? */
         }
 

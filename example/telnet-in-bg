@@ -7,7 +7,7 @@
 spawn -ignore HUP telnet $argv		;# start telnet
 interact \032 return			;# interact until ^Z
 
-if [fork] exit				;# disconnect from terminal
+if {[fork]} exit				;# disconnect from terminal
 disconnect
 
 set log [open logfile w]		;# open logfile

@@ -88,12 +88,12 @@ static debug_new_action;
 
 struct breakpoint {
 	int id;
-	char *file;	/* file where breakpoint is */
+	Tcl_Obj *file;	/* file where breakpoint is */
 	int line;	/* line where breakpoint is */
-	char *pat;	/* pattern defining where breakpoint can be */
-	regexp *re;	/* regular expression to trigger breakpoint */
-	char *expr;	/* expr to trigger breakpoint */
-	char *cmd;	/* cmd to eval at breakpoint */
+	int re;		/* 1 if this is regexp pattern */
+	Tcl_Obj *pat;	/* pattern defining where breakpoint can be */
+	Tcl_Obj *expr;	/* expr to trigger breakpoint */
+	Tcl_Obj *cmd;	/* cmd to eval at breakpoint */
 	struct breakpoint *next, *previous;
 };
 
@@ -124,50 +124,49 @@ breakpoint_print(interp,b)
 Tcl_Interp *interp;
 struct breakpoint *b;
 {
-	print(interp,"breakpoint %d: ",b->id);
+    print(interp,"breakpoint %d: ",b->id);
 
-	if (b->re) {
-		print(interp,"-re \"%s\" ",b->pat);
-	} else if (b->pat) {
-		print(interp,"-glob \"%s\" ",b->pat);
-	} else if (b->line != NO_LINE) {
-		if (b->file) {
-			print(interp,"%s:",b->file);
-		}
-		print(interp,"%d ",b->line);
+    if (b->re) {
+	print(interp,"-re \"%s\" ",Tcl_GetString(b->pat));
+    } else if (b->pat) {
+	print(interp,"-glob \"%s\" ",Tcl_GetString(b->pat));
+    } else if (b->line != NO_LINE) {
+	if (b->file) {
+	    print(interp,"%s:",Tcl_GetString(b->file));
 	}
+	print(interp,"%d ",b->line);
+    }
 
-	if (b->expr)
-		print(interp,"if {%s} ",b->expr);
+    if (b->expr)
+	print(interp,"if {%s} ",Tcl_GetString(b->expr));
 
-	if (b->cmd)
-		print(interp,"then {%s}",b->cmd);
+    if (b->cmd)
+	print(interp,"then {%s}",Tcl_GetString(b->cmd));
 
-	print(interp,"\n");
+    print(interp,"\n");
 }
 
 static void
-save_re_matches(interp,re)
+save_re_matches(interp, re, objPtr)
 Tcl_Interp *interp;
-regexp *re;
+Tcl_RegExp re;
+Tcl_Obj *objPtr;
 {
-	int i;
-	char name[20];
-	char match_char;/* place to hold char temporarily */
-			/* uprooted by a NULL */
+    Tcl_RegExpInfo info;
+    int i, start;
+    char name[20];
 
-	for (i=0;i<NSUBEXP;i++) {
-		if (re->startp[i] == 0) break;
+    Tcl_RegExpGetInfo(re, &info); 
+    for (i=0;i<=info.nsubs;i++) {
+	start = info.matches[i].start;
+	/* end = info.matches[i].end-1;*/
 
-		sprintf(name,"%d",i);
-		/* temporarily null-terminate in middle */
-		match_char = *re->endp[i];
-		*re->endp[i] = 0;
-		Tcl_SetVar2(interp,Dbg_VarName,name,re->startp[i],0);
+	if (start == -1) continue;
 
-		/* undo temporary null-terminator */
-		*re->endp[i] = match_char;
-	}
+	sprintf(name,"%d",i);
+	Tcl_SetVar2Ex(interp, Dbg_VarName, name, Tcl_GetRange(objPtr,
+		info.matches[i].start, info.matches[i].end-1), 0);
+    }
 }
 
 /* return 1 to break, 0 to continue */
@@ -177,32 +176,41 @@ Tcl_Interp *interp;
 char *cmd;		/* command about to be executed */
 struct breakpoint *bp;	/* breakpoint to test */
 {
-	if (bp->re) {
-		if (0 == TclRegExec(bp->re,cmd,cmd)) return 0;
-		save_re_matches(interp,bp->re);
-	} else if (bp->pat) {
-		if (0 == Tcl_StringMatch(cmd,bp->pat)) return 0;
-	} else if (bp->line != NO_LINE) {
-		/* not yet implemented - awaiting support from Tcl */
-		return 0;
+    if (bp->re) {
+	Tcl_Obj *cmdObj;
+	Tcl_RegExp re = Tcl_GetRegExpFromObj(NULL, bp->pat,
+		TCL_REG_ADVANCED);
+	cmdObj = Tcl_NewStringObj(cmd,-1);
+	Tcl_IncrRefCount(cmdObj);
+	if (Tcl_RegExpExecObj(NULL, re, cmdObj, 0 /* offset */,
+		-1 /* nmatches */, 0 /* eflags */) > 0) {
+	    save_re_matches(interp, re, cmdObj);
 	}
+	Tcl_DecrRefCount(cmdObj);
+    } else if (bp->pat) {
+	if (0 == Tcl_StringMatch(cmd,
+		Tcl_GetString(bp->pat))) return 0;
+    } else if (bp->line != NO_LINE) {
+	/* not yet implemented - awaiting support from Tcl */
+	return 0;
+    }
 
-	if (bp->expr) {
-		int value;
+    if (bp->expr) {
+	int value;
 
-		/* ignore errors, since they are likely due to */
-		/* simply being out of scope a lot */
-		if (TCL_OK != Tcl_ExprBoolean(interp,bp->expr,&value)
-		    || (value == 0)) return 0;
-	}
+	/* ignore errors, since they are likely due to */
+	/* simply being out of scope a lot */
+	if (TCL_OK != Tcl_ExprBooleanObj(interp,bp->expr,&value)
+		|| (value == 0)) return 0;
+    }
 
-	if (bp->cmd) {
-		Tcl_Eval(interp,bp->cmd);
-	} else {
-		breakpoint_print(interp,bp);
-	}
+    if (bp->cmd) {
+	Tcl_EvalObjEx(interp, bp->cmd, 0);
+    } else {
+	breakpoint_print(interp,bp);
+    }
 
-	return 1;
+    return 1;
 }
 
 static char *already_at_top_level = "already at top level";
@@ -291,49 +299,49 @@ TclGetFrame2(interp, origFramePtr, string, framePtrPtr, dir)
 static char *printify(s)
 char *s;
 {
-	static int destlen = 0;
-	char *d;		/* ptr into dest */
-	unsigned int need;
-	static char buf_basic[DEFAULT_WIDTH+1];
-	static char *dest = buf_basic;
+    static int destlen = 0;
+    char *d;		/* ptr into dest */
+    unsigned int need;
+    static char buf_basic[DEFAULT_WIDTH+1];
+    static char *dest = buf_basic;
+    Tcl_UniChar ch;
 
-	if (s == 0) return("<null>");
+    if (s == 0) return("<null>");
 
-	/* worst case is every character takes 4 to printify */
-	need = strlen(s)*4;
-	if (need > destlen) {
-		if (dest && (dest != buf_basic)) ckfree(dest);
-		dest = (char *)ckalloc(need+1);
-		destlen = need;
+    /* worst case is every character takes 4 to printify */
+    need = strlen(s)*6;
+    if (need > destlen) {
+	if (dest && (dest != buf_basic)) ckfree(dest);
+	dest = (char *)ckalloc(need+1);
+	destlen = need;
+    }
+
+    for (d = dest;*s;) {
+	s += Tcl_UtfToUniChar(s, &ch);
+	if (ch == '\b') {
+	    strcpy(d,"\\b");		d += 2;
+	} else if (ch == '\f') {
+	    strcpy(d,"\\f");		d += 2;
+	} else if (ch == '\v') {
+	    strcpy(d,"\\v");		d += 2;
+	} else if (ch == '\r') {
+	    strcpy(d,"\\r");		d += 2;
+	} else if (ch == '\n') {
+	    strcpy(d,"\\n");		d += 2;
+	} else if (ch == '\t') {
+	    strcpy(d,"\\t");		d += 2;
+	} else if ((unsigned)ch < 0x20) { /* unsigned strips parity */
+	    sprintf(d,"\\%03o",ch);		d += 4;
+	} else if (ch == 0177) {
+	    strcpy(d,"\\177");		d += 4;
+	} else if ((ch < 0x80) && isprint(UCHAR(ch))) {
+	    *d = (char)ch;		d += 1;
+	} else {
+	    sprintf(d,"\\u%04x",ch);	d += 6;
 	}
-
-	for (d = dest;*s;s++) {
-		/* since we check at worst by every 4 bytes, play */
-		/* conservative and subtract 4 from the limit */
-		if (d-dest > destlen-4) break;
-
-		if (*s == '\b') {
-			strcpy(d,"\\b");		d += 2;
-		} else if (*s == '\f') {
-			strcpy(d,"\\f");		d += 2;
-		} else if (*s == '\v') {
-			strcpy(d,"\\v");		d += 2;
-		} else if (*s == '\r') {
-			strcpy(d,"\\r");		d += 2;
-		} else if (*s == '\n') {
-			strcpy(d,"\\n");		d += 2;
-		} else if (*s == '\t') {
-			strcpy(d,"\\t");		d += 2;
-		} else if ((unsigned)*s < 0x20) { /* unsigned strips parity */
-			sprintf(d,"\\%03o",*s);		d += 4;
-		} else if (*s == 0177) {
-			strcpy(d,"\\177");		d += 4;
-		} else {
-			*d = *s;			d += 1;
-		}
-	}
-	*d = '\0';
-	return(dest);
+    }
+    *d = '\0';
+    return(dest);
 }
 
 static
@@ -367,8 +375,8 @@ char *argv[];
 	arg_index = 1;
 	
 	while (argc && (space > 0)) {
-		char *elementPtr;
-		char *nextPtr;
+		CONST char *elementPtr;
+		CONST char *nextPtr;
 		int wrap;
 
 		/* braces/quotes have been stripped off arguments */
@@ -429,7 +437,7 @@ Tcl_Obj *objv[];
     char **argv;
     int argc;
     int len;
-    argv = ckalloc(objc+1 * sizeof(char *));
+    argv = (char **)ckalloc(objc+1 * sizeof(char *));
     for (argc=0 ; argc<objc ; argc++) {
 	argv[argc] = Tcl_GetStringFromObj(objv[argc],&len);
     }
@@ -751,10 +759,10 @@ void
 breakpoint_destroy(b)
 struct breakpoint *b;
 {
-	if (b->file) ckfree(b->file);
-	if (b->pat) ckfree(b->pat);
-	if (b->re) ckfree((char *)b->re);			
-	if (b->cmd) ckfree(b->cmd);
+	if (b->file) Tcl_DecrRefCount(b->file);
+	if (b->pat) Tcl_DecrRefCount(b->pat);
+	if (b->cmd) Tcl_DecrRefCount(b->cmd);
+	if (b->expr) Tcl_DecrRefCount(b->expr);
 
 	/* unlink from chain */
 	if ((b->previous == 0) && (b->next == 0)) {
@@ -773,12 +781,12 @@ struct breakpoint *b;
 }
 
 static void
-savestr(straddr,str)
-char **straddr;
+savestr(objPtr,str)
+Tcl_Obj **objPtr;
 char *str;
 {
-	*straddr = ckalloc(strlen(str)+1);
-	strcpy(*straddr,str);
+    *objPtr = Tcl_NewStringObj(str, -1);
+    Tcl_IncrRefCount(*objPtr);
 }
 
 /* return 1 if a string is substring of a flag */
@@ -880,9 +888,15 @@ char **argv;
 
 	if (flageq("-regexp",argv[0],2)) {
 		argc--; argv++;
-		if ((argc > 0) && (b->re = TclRegComp(argv[0]))) {
-			savestr(&b->pat,argv[0]);
-			argc--; argv++;
+		if (argc > 0) {
+		    b->re = 1;
+		    savestr(&b->pat,argv[0]);
+		    if (Tcl_GetRegExpFromObj(interp, b->pat, TCL_REG_ADVANCED)
+			    == NULL) {
+			breakpoint_destroy(b);
+			return TCL_ERROR;
+		    }
+		    argc--; argv++;
 		} else {
 			breakpoint_fail("bad regular expression")
 		}
@@ -917,7 +931,7 @@ char **argv;
 		} else {
 			/* not an int? - unwind & assume it is an expression */
 
-			if (b->file) ckfree(b->file);
+			if (b->file) Tcl_DecrRefCount(b->file);
 		}
 	}
 

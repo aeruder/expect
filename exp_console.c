@@ -33,14 +33,15 @@ would appreciate credit if this program or parts of it are used.
 #include "tcl.h"
 #include "exp_rename.h"
 #include "exp_prog.h"
+#include "exp_command.h"
 #include "exp_log.h"
 
 static void
 exp_console_manipulation_failed(s)
 char *s;
 {
-	exp_errorlog("expect: spawn: cannot %s console, check permissions of /dev/console\n",s);
-	exit(-1);
+    expErrorLog("expect: spawn: cannot %s console, check permissions of /dev/console\n",s);
+    exit(-1);
 }
 
 void

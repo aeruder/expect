@@ -34,14 +34,19 @@ would appreciate credit if this program or parts of it are used.
 #include <signal.h>
 #include <setjmp.h>
 #include <sys/file.h>
-#define EXP_AVOID_INCLUDING_TCL_H 1
+#include "tcl.h"
+#include "exp_int.h"
 #include "expect_comm.h"
 #include "exp_rename.h"
 #include "exp_pty.h"
 
 #include <errno.h>
 
-void debuglog();
+#if 0
+void expDiagLog();
+void expDiagLogU();
+void expDiagLogPtrSet();
+#endif
 
 #ifndef TRUE
 #define TRUE 1
@@ -61,7 +66,12 @@ static char locksrc[50] = "/tmp/expect.pid"; /* pid is replaced by real pid */
 
 static int i_read_errno;/* place to save errno, if i_read() == -1, so it
 			   doesn't get overwritten before we get to read it */
+#ifdef HAVE_SIGLONGJMP
+static sigjmp_buf env;                /* for interruptable read() */
+#else
 static jmp_buf env;		/* for interruptable read() */
+#endif  /* HAVE_SIGLONGJMP */
+
 static int env_valid = FALSE;	/* whether we can longjmp or not */
 
 /* sigalarm_handler and i_read are here just for supporting the sanity */
@@ -84,7 +94,11 @@ int n;		/* unused, for compatibility with STDC */
 
 	/* check env_valid first to protect us from the alarm occurring */
 	/* in the window between i_read and alarm(0) */
+#ifdef HAVE_SIGLONGJMP
+	if (env_valid) siglongjmp(env,1);
+#else
 	if (env_valid) longjmp(env,1);
+#endif  /* HAVE_SIGLONGJMP */
 }
 
 /* interruptable read */
@@ -105,7 +119,11 @@ int timeout;
 
 	alarm(timeout);
 
+#ifdef HAVE_SIGLONGJMP
+	if (1 != sigsetjmp(env,1)) {
+#else
 	if (1 != setjmp(env)) {
+#endif  /* HAVE_SIGLONGJMP */
 		env_valid = TRUE;
 		cc = read(fd,buffer,length);
 	}
@@ -183,7 +201,7 @@ char *num;	/* string representation of number */
 	/* with it.  This allows us to rigorously test the */
 	/* pty is usable. */
 	if (exp_pty_lock(bank,num) == 0) {
-		debuglog("pty master (%s) is locked...skipping\r\n",master_name);
+		expDiagLogPtrStr("pty master (%s) is locked...skipping\r\n",master_name);
 		return(-1);
 	}
 	/* verify no one else is using slave by attempting */
@@ -200,7 +218,7 @@ char *num;	/* string representation of number */
 
 #ifdef HAVE_PTYTRAP
 	if (access(slave_name, R_OK|W_OK) != 0) {
-		debuglog("could not open slave for pty master (%s)...skipping\r\n",
+		expDiagLogPtrStr("could not open slave for pty master (%s)...skipping\r\n",
 			master_name);
 		(void) close(master);
 		return -1;
@@ -215,7 +233,7 @@ char *num;	/* string representation of number */
 	cc = i_read(master,&c,1,10);
 	(void) close(master);
 	if (!(cc == 0 || cc == -1)) {
-		debuglog("%s slave open, skipping\r\n",slave_name);
+		expDiagLogPtrStr("%s slave open, skipping\r\n",slave_name);
 		locked = FALSE;	/* leave lock file around so Expect's avoid */
 				/* retrying this pty for near future */
 		return -1;
@@ -232,12 +250,12 @@ char *num;	/* string representation of number */
 	cc = i_read(slave,&c,1,10);
 	(void) close(slave);
 	if (!(cc == 0 || cc == -1)) {
-		debuglog("%s master open, skipping\r\n",master_name);
+		expDiagLogPtrStr("%s master open, skipping\r\n",master_name);
 		return -1;
 	}
 
 	/* seems ok, let's use it */
-	debuglog("using master pty %s\n",master_name);
+	expDiagLogPtrStr("using master pty %s\n",master_name);
 	return(open(master_name,RDWR));
 #endif
 }
@@ -277,3 +295,74 @@ char *num;	/* string representation of number */
 	return locked;
 }
 
+/* 
+ * expDiagLog needs a different definition, depending on whether its
+ * called inside of Expect or the clib.  Allow it to be set using this
+ * function.  It's done here because this file (and pty_XXX.c) are the 
+ * ones that call expDiagLog from the two different environments.
+ */
+
+static void		(*expDiagLogPtrVal) _ANSI_ARGS_((char *));
+
+void
+expDiagLogPtrSet(fn)
+     void (*fn) _ANSI_ARGS_((char *));
+{
+  expDiagLogPtrVal = fn;
+}
+
+void
+expDiagLogPtr(str)
+     char *str;
+{
+  (*expDiagLogPtrVal)(str);
+}
+
+
+
+void
+expDiagLogPtrX(fmt,num)
+     char *fmt;
+     int num;
+{
+  static char buf[1000];
+  sprintf(buf,fmt,num);
+  (*expDiagLogPtrVal)(buf);
+}
+
+
+void
+expDiagLogPtrStr(fmt,str1)
+     char *fmt;
+     char *str1;
+{
+  static char buf[1000];
+  sprintf(buf,fmt,str1);
+  (*expDiagLogPtrVal)(buf);
+}
+
+void
+expDiagLogPtrStrStr(fmt,str1,str2)
+     char *fmt;
+     char *str1, *str2;
+{
+  static char buf[1000];
+  sprintf(buf,fmt,str1,str2);
+  (*expDiagLogPtrVal)(buf);
+}
+
+static char *		(*expErrnoMsgVal) _ANSI_ARGS_((int));
+
+char *
+expErrnoMsg(errorNo)
+int errorNo;
+{
+  return (*expErrnoMsgVal)(errorNo);
+}
+
+void
+expErrnoMsgSet(fn)
+     char * (*fn) _ANSI_ARGS_((int));
+{
+  expErrnoMsgVal = fn;
+}

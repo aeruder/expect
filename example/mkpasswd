@@ -10,9 +10,9 @@ set minupper 2
 set verbose 0
 set distribute 0
 
-if [file executable /bin/yppasswd] {
+if {[file executable /bin/yppasswd]} {
 	set defaultprog /bin/yppasswd
-} elseif [file executable /bin/passwd] {
+} elseif {[file executable /bin/passwd]} {
 	set defaultprog /bin/passwd
 } else {
 	set defaultprog passwd

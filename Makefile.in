@@ -237,23 +237,26 @@ PTY = pty_$(PTY_TYPE)
 CFILES = exp_command.c expect.c $(PTY).c \
 	exp_inter.c exp_regexp.c exp_tty.c \
 	exp_log.c exp_main_sub.c exp_pty.c \
-	exp_printify.c exp_trap.c exp_strf.c \
-	exp_console.c exp_glob.c exp_win.c Dbg.c exp_clib.c \
+	exp_trap.c exp_strf.c \
+	exp_console.c exp_glob.c exp_win.c exp_clib.c \
 	exp_closetcl.c exp_memmove.c exp_tty_comm.c \
-	exp_$(EVENT_TYPE).c exp_$(EVENT_ABLE).c
+	exp_$(EVENT_TYPE).c exp_$(EVENT_ABLE).c \
+	exp_chan.c Dbg.c
 OFILES = exp_command.o expect.o $(PTY).o exp_inter.o exp_regexp.o exp_tty.o \
-	exp_log.o exp_main_sub.o exp_pty.o exp_printify.o exp_trap.o \
-	exp_console.o exp_strf.o exp_glob.o exp_win.o Dbg.o exp_clib.o \
+	exp_log.o exp_main_sub.o exp_pty.o exp_trap.o \
+	exp_console.o exp_strf.o exp_glob.o exp_win.o exp_clib.o \
 	exp_closetcl.o exp_memmove.o exp_tty_comm.o \
-	exp_$(EVENT_TYPE).o exp_$(EVENT_ABLE).o
+	exp_$(EVENT_TYPE).o exp_$(EVENT_ABLE).o \
+	exp_chan.o Dbg.o
 SHARED_OFILES = shared/exp_command.o shared/expect.o shared/$(PTY).o \
 	shared/exp_inter.o shared/exp_regexp.o shared/exp_tty.o \
 	shared/exp_log.o shared/exp_main_sub.o shared/exp_pty.o \
-	shared/exp_printify.o shared/exp_trap.o \
+	shared/exp_trap.o \
 	shared/exp_console.o shared/exp_strf.o shared/exp_glob.o \
-	shared/exp_win.o shared/Dbg.o shared/exp_clib.o \
+	shared/exp_win.o shared/exp_clib.o \
 	shared/exp_closetcl.o shared/exp_memmove.o shared/exp_tty_comm.o \
-	shared/exp_$(EVENT_TYPE).o shared/exp_$(EVENT_ABLE).o
+	shared/exp_$(EVENT_TYPE).o shared/exp_$(EVENT_ABLE).o \
+	shared/exp_chan.o shared/Dbg.o
 
 # Expect libraries (both .a and shared)
 EXP_LIB_FILES = @EXP_LIB_FILES@
@@ -421,12 +424,7 @@ install-binaries: expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
 # install Expectk (and man page) if present
 	-if [ -s expectk_installed ] ; then \
 	  $(INSTALL_PROGRAM) expectk_installed $(bindir)/expectk ; \
-	  $(INSTALL_DATA) $(srcdir)/expectk.man $(man1dir)/expectk.1 ; \
 	else true; fi
-# install Expect man page
-	$(INSTALL_DATA) $(srcdir)/expect.man $(man1dir)/expect.1
-# install man page for Expect and Expectk libraries
-	$(INSTALL_DATA) $(srcdir)/libexpect.man $(man3dir)/libexpect.3
 # install Expect's public include files
 #	$(INSTALL_DATA) expect_cf.h $(includedir)
 	$(INSTALL_DATA) $(srcdir)/expect.h $(includedir)
@@ -455,6 +453,15 @@ install-libraries:
 	done
 
 install-doc:
+	${srcdir}/mkinstalldirs $(man1dir) $(man3dir)
+# install Expectk man page if present
+	-if [ -s expectk_installed ] ; then \
+	  $(INSTALL_DATA) $(srcdir)/expectk.man $(man1dir)/expectk.1 ; \
+	else true; fi
+# install Expect man page
+	$(INSTALL_DATA) $(srcdir)/expect.man $(man1dir)/expect.1
+# install man page for Expect and Expectk libraries
+	$(INSTALL_DATA) $(srcdir)/libexpect.man $(man3dir)/libexpect.3
 	-for i in $(SCRIPT_MANPAGE_LIST) ; do \
 	  if [ -f $(srcdir)/example/$$i.man ] ; then \
 	    $(INSTALL_DATA) $(srcdir)/example/$$i.man $(man1dir)/$$i.1 ; \
@@ -628,9 +635,12 @@ GCCINC = -I$(GCCROOT)/include
 SABERDEFINE = -D__sparc__
 
 # Following target builds expect under CodeCenter.
+# Note that CodeCenter doesn't understand backslashes in STTY - there is a
+# default value in the code itself that is used.  So if you don't use the default,
+# you'll have to hand-edit the source.
 # If using ObjectCenter, before loading, type: setopt primary_language C
 exp:	$(CFILES) exp_main_exp.c
-	#load $(CPPFLAGS) $(STTY) $(CFILES) exp_main_exp.c $(TCLLIB) $(GCCLIB) $(EXP_AND_TCL_LIBS)
+	#load $(CPPFLAGS) $(CFILES) exp_main_exp.c $(TCLLIB) $(GCCLIB) $(EXP_AND_TCL_LIBS)
 
 # Following target builds expectk under CodeCenter.  Notes:
 # Because of explicit #includes of <X11/...> in tk.h, you need to create
@@ -649,8 +659,6 @@ otk:    $(CFILES) exp_main_tk.c
 # Targets for pushing out releases
 ######################################
 
-# until we are completely switched over, keep updating old ftp site too
-OLDFTPDIR = /proj/elib/online/pub/expect
 FTPDIR = /proj/itl/www/div826/subject/expect
 
 # make a private tar file for myself
@@ -661,23 +669,14 @@ tar:	expect-$(VERSION).tar
 ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz
 	cp expect-$(VERSION).tar.Z $(FTPDIR)/expect.tar.Z
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/expect.tar.gz
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/
 	cp HISTORY $(FTPDIR)
 	cp README $(FTPDIR)/README.distribution
 	cp example/README $(FTPDIR)/example
 	cp `pubfile example` $(FTPDIR)/example
 	ls -l $(FTPDIR)/expect.tar*
-#	update old ftp site too
-	cp expect-$(VERSION).tar.Z $(OLDFTPDIR)/expect.tar.Z
-	cp expect-$(VERSION).tar.gz $(OLDFTPDIR)/expect.tar.gz
-	cp HISTORY $(OLDFTPDIR)
-	cp README $(OLDFTPDIR)/README.distribution
-	cp example/README $(OLDFTPDIR)/example
-	cp `pubfile example` $(OLDFTPDIR)/example
-	ls -l $(OLDFTPDIR)/expect.tar*
 #	delete temp files
 	rm expect-$(VERSION).tar*
-
-
 
 # make an alpha release and install it on ftp server
 alpha:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz
@@ -715,7 +714,7 @@ test:   expect
 	   echo "set srcdir" `pwd` >> .tmp ; \
 	else echo "set srcdir" $(srcdir) >> .tmp ; fi
 	echo "cd \$${srcdir}/tests" >> .tmp
-	echo "source all" >> .tmp
+	echo "source all.tcl" >> .tmp
 	rootme=`pwd`; export rootme; \
 	srcdir=${srcdir} ; export srcdir ; \
 	if [ -f ./expect ] ; then  \
@@ -772,21 +771,21 @@ exp_$(EVENT_TYPE).o: $(srcdir)/exp_$(EVENT_TYPE).c expect_cf.h expect.h \
 	exp_command.h exp_event.h 
 exp_command.o: $(srcdir)/exp_command.c expect_cf.h exp_tty.h \
 	exp_rename.h expect.h exp_command.h \
-	exp_log.h exp_printify.h exp_event.h exp_pty.h 
+	exp_log.h exp_event.h exp_pty.h 
 exp_console.o: $(srcdir)/exp_console.c expect_cf.h exp_rename.h exp_prog.h \
 	exp_log.h
 exp_glob.o: $(srcdir)/exp_glob.c expect_cf.h
 exp_inter.o: $(srcdir)/exp_inter.c expect_cf.h \
 	exp_tty_in.h exp_tty.h exp_rename.h expect.h exp_command.h \
-	exp_log.h exp_printify.h exp_regexp.h exp_tstamp.h
+	exp_log.h exp_regexp.h exp_tstamp.h
 exp_log.o: $(srcdir)/exp_log.c expect_cf.h expect.h \
-	exp_rename.h exp_log.h exp_printify.h 
+	exp_rename.h exp_log.h
 exp_main_exp.o: $(srcdir)/exp_main_exp.c expect_cf.h \
-	expect.h exp_rename.h exp_command.h exp_log.h exp_printify.h
+	expect.h exp_rename.h exp_command.h exp_log.h
 exp_main_sub.o: $(srcdir)/exp_main_sub.c expect_cf.h \
 	exp_rename.h \
 	expect.h exp_command.h exp_tty_in.h exp_tty.h exp_log.h \
-	exp_printify.h exp_event.h 
+	exp_event.h 
 exp_main_tk.o: $(srcdir)/exp_main_tk.c expect_cf.h tcldbg.h
 	$(CC) -c @TK_DEFS@ $(CFLAGS_INT) $(HDEFS) $<	
 shared/exp_main_tk.o: $(srcdir)/exp_main_tk.c expect_cf.h tcldbg.h
@@ -799,7 +798,6 @@ exp_poll.o: $(srcdir)/exp_poll.c expect_cf.h expect.h \
 shared/exp_poll.o: $(srcdir)/exp_poll.c expect_cf.h expect.h \
 	exp_command.h exp_event.h 
 	$(CC) -c $(CFLAGS_INT) @EXP_SHLIB_CFLAGS@ @TCL_DEFS@ $(HDEFS) $< -o shared/$@
-exp_printify.o: $(srcdir)/exp_printify.c expect_cf.h 
 exp_pty.o: $(srcdir)/exp_pty.c expect_cf.h exp_rename.h exp_pty.h 
 exp_regexp.o: $(srcdir)/exp_regexp.c expect_cf.h \
 	expect.h exp_regexp.h 
@@ -809,16 +807,15 @@ exp_simple.o: $(srcdir)/exp_simple.c expect_cf.h \
 	expect.h exp_command.h exp_event.h 
 exp_strf.o: $(srcdir)/exp_strf.c expect_cf.h
 exp_trap.o: $(srcdir)/exp_trap.c expect_cf.h expect.h \
-	exp_command.h exp_log.h exp_printify.h 
+	exp_command.h exp_log.h
 exp_tty.o: $(srcdir)/exp_tty.c expect_cf.h \
 	expect.h exp_rename.h exp_tty_in.h exp_tty.h exp_log.h \
-	exp_printify.h exp_command.h 
+	exp_command.h 
 exp_win.o: $(srcdir)/exp_win.c exp_win.h expect_cf.h
 expect.o: $(srcdir)/expect.c expect_cf.h \
 	exp_rename.h expect.h exp_command.h \
-	exp_log.h exp_printify.h exp_event.h exp_tty.h exp_tstamp.h
-lib_exp.o: $(srcdir)/lib_exp.c expect_cf.h exp_rename.h expect.h \
-	exp_printify.h
+	exp_log.h exp_event.h exp_tty.h exp_tstamp.h
+lib_exp.o: $(srcdir)/lib_exp.c expect_cf.h exp_rename.h expect.h
 pty_sgttyb.o: $(srcdir)/pty_sgttyb.c expect_cf.h exp_rename.h exp_tty_in.h \
 	exp_tty.h exp_pty.h 
 pty_termios.o: $(srcdir)/pty_termios.c expect_cf.h exp_win.h \

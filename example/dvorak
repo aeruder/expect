@@ -26,4 +26,4 @@ send_user "~d for dvorak input\n"
 send_user "~q for qwerty input (default)\n"
 send_user "~e for expect interpreter\n"
 send_user "Enter ~ sequences using qwerty keys\n"
-interact ~d rot ~q {} ~e
+interact ~d rot ~q {} ~e {interpreter -eof exit}

@@ -20,7 +20,7 @@ set promptmode 0
 set option_keys ""
 
 proc check_for_following {type} {
-	if ![llength [uplevel set argv]] {
+	if {![llength [uplevel set argv]]} {
 		puts "autoexpect: [uplevel set flag] requires following $type"
 		exit 1
 	}
@@ -28,7 +28,7 @@ proc check_for_following {type} {
 
 while {[llength $argv]>0} {
 	set flag [lindex $argv 0]
-	if 0==[regexp "^-" $flag] break
+	if {0==[regexp "^-" $flag]} break
 	set argv [lrange $argv 1 end]
 	switch -- $flag \
 	  "-c" {
@@ -84,7 +84,7 @@ proc input_null {} {
 	send -null
 
 	if {$lastkey == ""} {
-		if $echoing {
+		if {$echoing} {
 			sendcmd "$userbuf"
 		}
 		if {$procbuf != ""} {
@@ -92,7 +92,7 @@ proc input_null {} {
 		}
 	} else {
 		sendcmd "$userbuf"
-		if $echoing {
+		if {$echoing} {
 			expcmd "$procbuf"
 			sendcmd "$lastkey"
 		}			
@@ -111,7 +111,7 @@ proc output {s} {
 	send_user -raw -- $s
 
 	if {$lastkey == ""} {
-		if !$echoing {
+		if {!$echoing} {
 			append procbuf $s
 		} else {
 			sendcmd "$userbuf"
@@ -125,7 +125,7 @@ proc output {s} {
 
 	regexp (.)(.*) $s dummy c tail
 	if {$c == $lastkey} {
-		if $echoing {
+		if {$echoing} {
 			append userbuf $lastkey
 			set lastkey ""
 		} else {
@@ -137,14 +137,14 @@ proc output {s} {
 		}
 		append procbuf $s
 
-		if [string length $tail] {
+		if {[string length $tail]} {
 			sendcmd "$userbuf$lastkey"
 			set userbuf ""
 			set lastkey ""
 			set echoing 0
 		}
 	} else {
-		if !$echoing {
+		if {!$echoing} {
 			expcmd "$procbuf"
 		}
 		sendcmd "$userbuf$lastkey"
@@ -172,7 +172,7 @@ proc expand {s} {
 proc expcmd {s} {
 	global promptmode
 
-	if $promptmode {
+	if {$promptmode} {
 		regexp ".*\[\r\n]+(.*)" $s dummy s
 	}
 
@@ -199,7 +199,7 @@ proc cmd {s} {
 proc verbose_send_user {s} {
 	global verbose
 
-	if $verbose {
+	if {$verbose} {
 		send_user -- $s
 	}
 }
@@ -207,7 +207,7 @@ proc verbose_send_user {s} {
 proc ctoggle {} {
 	global conservative send_style
 
-	if $conservative {
+	if {$conservative} {
 		cmd "# conservative mode off - adding no delays"
 		verbose_send_user "conservative mode off\n"
 		set conservative 0
@@ -223,7 +223,7 @@ proc ctoggle {} {
 proc ptoggle {} {
 	global promptmode
 
-	if $promptmode {
+	if {$promptmode} {
 		cmd "# prompt mode off - now looking for complete output"
 		verbose_send_user "prompt mode off\n"
 		set promptmode 0
@@ -241,7 +241,7 @@ proc quote {} {
 }
 	
 
-if [catch {set fd [open $filename w]} msg] {
+if {[catch {set fd [open $filename w]} msg]} {
 	puts $msg
 	exit
 }
@@ -303,14 +303,14 @@ if {$force_conservative} {
 }
 
 cmd "set timeout -1"
-if $conservative {
+if {$conservative} {
 	set send_style " -s"
 	cmd "set send_slow {1 .1}"
 } else {
 	set send_style ""
 }
 
-if [llength $argv]>0 {
+if {[llength $argv]>0} {
 	eval spawn -noecho $argv
 	cmd "spawn $argv"
 } else {
@@ -328,19 +328,14 @@ set echoing 0
 remove_nulls 0
 
 eval interact $option_keys {
-	-re . {
-		input $interact_out(0,string)
-	} null {
-		input_null
-	} \
-	-o \
-	-re .+ {
-		output $interact_out(0,string)
-	} eof {
-		cmd "expect eof"
-		return
-	} null {
-	}
+    -re . {
+	input $interact_out(0,string)
+    } -o -re .+ {
+	output $interact_out(0,string)
+    } eof {
+	cmd "expect eof"
+	return
+    }
 }
 
 close $fd

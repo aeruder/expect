@@ -22,20 +22,20 @@ char *argv[];
 	Tcl_FindExecutable(argv[0]);
 
 	if (Tcl_Init(interp) == TCL_ERROR) {
-		fprintf(stderr,"Tcl_Init failed: %s\n",interp->result);
-		exit(1);
+	    fprintf(stderr,"Tcl_Init failed: %s\n",interp->result);
+	    (void) exit(1);
 	}
 
 	if (Expect_Init(interp) == TCL_ERROR) {
-		fprintf(stderr,"Expect_Init failed: %s\n",interp->result);
-		exit(1);
+	    fprintf(stderr,"Expect_Init failed: %s\n",interp->result);
+	    (void) exit(1);
 	}
 
 	exp_parse_argv(interp,argc,argv);
 
 	/* become interactive if requested or "nothing to do" */
 	if (exp_interactive)
-		(void) exp_interpreter(interp);
+		(void) exp_interpreter(interp,(Tcl_Obj *)0);
 	else if (exp_cmdfile)
 		rc = exp_interpret_cmdfile(interp,exp_cmdfile);
 	else if (exp_cmdfilename)
@@ -43,7 +43,7 @@ char *argv[];
 
 	/* assert(exp_cmdlinecmds != 0) */
 
-	exp_exit(interp,rc);
+	Tcl_Exit(rc);
 	/*NOTREACHED*/
 	return 0;		/* Needed only to prevent compiler warning. */
 }

@@ -117,7 +117,7 @@ set env(LINES) $rows
 set env(COLUMNS) $cols
 
 set env(TERM) "tt"
-if $termcap {
+if {$termcap} {
     set env(TERMCAP) {tt:
 	:cm=\E[%d;%dH:
 	:up=\E[A:
@@ -138,7 +138,7 @@ if $termcap {
     }
 }
 
-if $terminfo {
+if {$terminfo} {
     set env(TERMINFO) /tmp
     set ttsrc "/tmp/tt.src"
     set file [open $ttsrc w]
@@ -165,7 +165,7 @@ if $terminfo {
     close $file
 
     set oldpath $env(PATH)
-    set env(PATH) "/usr/5bin:/usr/lib/terminfo"
+    set env(PATH) "$env(PATH):/usr/5bin:/usr/lib/terminfo"
     if 1==[catch {exec tic $ttsrc} msg] {
 	puts "WARNING: tic failed - if you don't have terminfo support on"
 	puts "your system, change \"set terminfo 1\" to \"set terminfo 0\"."
@@ -271,7 +271,7 @@ proc term_insert {s} {
 	# update cur_col
 	incr cur_col $chars_to_write
 	# update cur_row
-	if $newline {
+	if {$newline} {
 		term_down
 	}
 

@@ -4,7 +4,10 @@
 # built-in commands.  Sourcing this file into Tcl runs the tests and
 # generates output for errors.  No output means no errors were found.
 
-if {[string compare test [info procs test]] == 1} then {source defs}
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
 
 log_user 0
 
@@ -50,7 +53,7 @@ test spawn-1.4 {spawn open file} {
 
 test spawn-1.5 {spawn with no fd leak} {
 	exp_spawn cat
-	set x [expr $first_spawn_id==$spawn_id]
+	set x [expr {"$first_spawn_id"=="$spawn_id"}]
 	exp_close; exp_wait
 	set x
 } {1}	
@@ -63,3 +66,6 @@ test spawn-1.5 {spawn with no fd leak} {
 #ftest spawn-1.7 {spawn with -noecho} {
 #	exp_spawn -noecho cat
 #} {}
+
+cleanupTests
+return

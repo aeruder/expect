@@ -112,7 +112,7 @@ set env(LINES) $rows
 set env(COLUMNS) $cols
 
 set env(TERM) "tt"
-if $termcap {
+if {$termcap} {
     set env(TERMCAP) {tt:
 	:cm=\E[%d;%dH:
 	:up=\E[A:
@@ -134,7 +134,7 @@ if $termcap {
     }
 }
 
-if $terminfo {
+if {$terminfo} {
     set env(TERMINFO) /tmp
     set ttsrc "/tmp/tt.src"
     set file [open $ttsrc w]
@@ -284,7 +284,7 @@ proc term_insert {s} {
 	# update cur_col
 	incr cur_col $chars_to_write
 	# update cur_row
-	if $newline {
+	if {$newline} {
 		term_down
 	}
 

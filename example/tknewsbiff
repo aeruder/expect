@@ -35,7 +35,7 @@ set _window_open 1
 proc mapwindow {} {
 	global _window_open
 
-	if $_window_open {
+	if {$_window_open} {
 		wm deiconify .
 	} else {
 		wm iconify .
@@ -49,7 +49,7 @@ proc _abort {msg} {
 	exit 1
 }
 
-if [info exists env(DOTDIR)] {
+if {[info exists env(DOTDIR)]} {
 	set home $env(DOTDIR)
 } else {
 	set home [glob ~]
@@ -76,8 +76,8 @@ pack .list -side left -fill both -expand 1
 while {[llength $argv]>0} {
 	set arg [lindex $argv 0]
 
-	if [file readable $arg] {
-		if 0==[string compare active [file tail $arg]] {
+	if {[file readable $arg]} {
+		if {0==[string compare active [file tail $arg]]} {
 			set active_file $arg
 			set argv [lrange $argv 1 end]
 		} else {
@@ -106,14 +106,14 @@ proc _read_config_file {} {
 	set watch_list {}
 	set ignore_list {}
 
-	if [file exists $_config_file] {
+	if {[file exists $_config_file]} {
 		# uplevel allows user to set global variables
-		if [catch {uplevel source $_config_file} msg] {
+		if {[catch {uplevel source $_config_file} msg]} {
 			_abort "error reading $_config_file\n$msg"
 		}
 	}
 
-	if [llength $watch_list]==0 {
+	if {[llength $watch_list]==0} {
 		watch *
 	}
 }
@@ -137,11 +137,11 @@ _read_config_file
 
 # if user didn't set newsrc, try ~/.newsrc-server convention.
 # if that fails, fall back to just plain ~/.newsrc
-if ![info exists newsrc] {
+if {![info exists newsrc]} {
 	set newsrc $home/.newsrc-$server
-	if ![file readable $newsrc] {
+	if {![file readable $newsrc]} {
 		set newsrc $home/.newsrc
-		if ![file readable $newsrc] {
+		if {![file readable $newsrc]} {
 			_abort "cannot tell what newgroups you read
 found neither $home/.newsrc-$server nor $home/.newsrc"
 		}
@@ -152,12 +152,12 @@ found neither $home/.newsrc-$server nor $home/.newsrc"
 proc _read_newsrc {} {
 	global db newsrc
 
-	if [catch {set file [open $newsrc]} msg] {
+	if {[catch {set file [open $newsrc]} msg]} {
 		_abort $msg
 	}
 	while {-1 != [gets $file buf]} {
-		if [regexp "!" $buf] continue
-		if [regexp "(\[^:]*):.*\[-, ](\[0-9]+)" $buf dummy ng seen] {
+		if {[regexp "!" $buf]} continue
+		if {[regexp "(\[^:]*):.*\[-, ](\[0-9]+)" $buf dummy ng seen]} {
 			set db($ng,seen) $seen
 		}
 		# only way 2nd regexp can fail is on lines
@@ -169,7 +169,7 @@ proc _read_newsrc {} {
 proc _unknown_host {} {
 	global server _default_server
 
-	if 0==[string compare $_default_server $server] {
+	if {0==[string compare $_default_server $server]} {
 		puts "tknewsbiff: default server <$server> is not known"
 	} else {
 		puts "tknewsbiff: server <$server> is not known"
@@ -194,7 +194,7 @@ proc _read_active {} {
 
 	set active_list {}
 
-	if [info exists active_file] {
+	if {[info exists active_file]} {
 		spawn -open [open $active_file]
 	} else {
 		spawn telnet $server nntp
@@ -247,18 +247,18 @@ proc _isgood {ng threshold} {
 	global db seen_list ignore_list
 
 	# skip if we don't subscribe to it
-	if ![info exists db($ng,seen)] {return 0}
+	if {![info exists db($ng,seen)]} {return 0}
 
 	# skip if the threshold isn't exceeded
 	if {$db($ng,hi) - $db($ng,seen) < $threshold} {return 0}
 
 	# skip if it matches an ignore command
 	foreach igpat $ignore_list {
-		if [string match $igpat $ng] {return 0}
+		if {[string match $igpat $ng]} {return 0}
 	}
 
 	# skip if we've seen it before
-	if [lsearch -exact $seen_list $ng]!=-1 {return 0}
+	if {[lsearch -exact $seen_list $ng]!=-1} {return 0}
 
 	# passed all tests, so remember that we've seen it
 	lappend seen_list $ng
@@ -270,7 +270,7 @@ proc _isgood {ng threshold} {
 proc _isnew {ng} {
 	global previous_seen_list
 
-	if [lsearch -exact $previous_seen_list $ng]==-1 {
+	if {[lsearch -exact $previous_seen_list $ng]==-1} {
 		return 1
 	} else {
 		return 0
@@ -314,14 +314,14 @@ proc _update_ngs {} {
 		}
 
 		foreach ng $active_list {
-			if [string match $ngpat $ng] {
-				if [_isgood $ng $threshold] {
-					if [llength $display] {
+			if {[string match $ngpat $ng]} {
+				if {[_isgood $ng $threshold]} {
+					if {[llength $display]} {
 						set newsgroup $ng
 						uplevel $display
 					}
-					if [_isnew $ng] {
-						if [llength $new] {
+					if {[_isnew $ng]} {
+						if {[llength $new]} {
 							set newsgroup $ng
 							uplevel $new
 						}
@@ -372,7 +372,7 @@ proc _update_window {} {
 
 	_display_ngs $width
 
-	if [string compare [wm state .] withdrawn]==0 {
+	if {[string compare [wm state .] withdrawn]==0} {
 		mapwindow
 	}
 }
@@ -456,7 +456,7 @@ set _update_flag 0
 proc update-now {} {
 	global _update_flag _cat_spawn_id
 
-	if $_update_flag return	;# already set, do nothing
+	if {$_update_flag} return	;# already set, do nothing
 	set _update_flag 1
 
 	exp_send -i $_cat_spawn_id "\r"
@@ -502,11 +502,11 @@ proc _init_ngs {} {
 	catch {unset db}
 }
 
-for {} 1 {_sleep $delay} {
+for {} {1} {_sleep $delay} {
 	_init_ngs
 
 	_read_newsrc
-	if [_read_active] continue
+	if {[_read_active]} continue
 	_read_config_file
 
 	_update_ngs

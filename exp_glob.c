@@ -15,56 +15,18 @@ would appreciate credit if this program or parts of it are used.
 #include "tcl.h"
 #include "exp_int.h"
 
-#if 0
 /* The following functions implement expect's glob-style string matching */
 /* Exp_StringMatch allow's implements the unanchored front (or conversely */
 /* the '^') feature.  Exp_StringMatch2 does the rest of the work. */
-int	/* returns # of chars that matched */
-Exp_StringMatch(string, pattern,offset)
+int	/* returns # of BYTES that matched */
+Exp_StringCaseMatch(string, pattern, nocase, offset)		/* INTL */
 char *string;
 char *pattern;
-int *offset;	/* offset from beginning of string where pattern matches */
+int nocase;
+int *offset;	/* offset in bytes from beginning of string where pattern matches */
 {
 	char *s;
-	int sm;	/* count of chars matched or -1 */
-	int caret = FALSE;
-
-	*offset = 0;
-
-	if (pattern[0] == '^') {
-		caret = TRUE;
-		pattern++;
-	}
-
-	sm = Exp_StringMatch2(string,pattern);
-	if (sm >= 0) return(sm);
-
-	if (caret) return(-1);
-
-	if (pattern[0] == '*') return(-1);
-
-	for (s = string;*s;s++) {
- 		sm = Exp_StringMatch2(s,pattern);
-		if (sm != -1) {
-			*offset = s-string;
-			return(sm);
-		}
-	}
-	return(-1);
-}
-#endif
-
-/* The following functions implement expect's glob-style string matching */
-/* Exp_StringMatch allow's implements the unanchored front (or conversely */
-/* the '^') feature.  Exp_StringMatch2 does the rest of the work. */
-int	/* returns # of chars that matched */
-Exp_StringMatch(string, pattern,offset)
-char *string;
-char *pattern;
-int *offset;	/* offset from beginning of string where pattern matches */
-{
-	char *s;
-	int sm;	/* count of chars matched or -1 */
+	int sm;	/* count of bytes matched or -1 */
 	int caret = FALSE;
 	int star = FALSE;
 
@@ -83,7 +45,7 @@ int *offset;	/* offset from beginning of string where pattern matches */
 	 * Note that 1st iteration must be tried even if string is empty.
 	 */
 
-	sm = Exp_StringMatch2(string,pattern);
+	sm = Exp_StringCaseMatch2(string,pattern, nocase);
 	if (sm >= 0) return(sm);
 
 	if (caret) return -1;
@@ -91,8 +53,8 @@ int *offset;	/* offset from beginning of string where pattern matches */
 
 	if (*string == '\0') return -1;
 
-	for (s = string+1;*s;s++) {
- 		sm = Exp_StringMatch2(s,pattern);
+	for (s = Tcl_UtfNext(string);*s;s = Tcl_UtfNext(s)) {
+ 		sm = Exp_StringCaseMatch2(s,pattern, nocase);
 		if (sm != -1) {
 			*offset = s-string;
 			return(sm);
@@ -101,9 +63,9 @@ int *offset;	/* offset from beginning of string where pattern matches */
 	return -1;
 }
 
-/* Exp_StringMatch2 --
+/* Exp_StringCaseMatch2 --
 
-Like Tcl_StringMatch except that
+Like Tcl_StringCaseMatch except that
 1) returns number of characters matched, -1 if failed.
 	(Can return 0 on patterns like "" or "$")
 2) does not require pattern to match to end of string
@@ -111,13 +73,17 @@ Like Tcl_StringMatch except that
 4) front-anchor is assumed (Tcl_StringMatch retries for non-front-anchor)
 */
 
-int Exp_StringMatch2(string,pattern)
+int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
     register char *string;	/* String. */
     register char *pattern;	/* Pattern, which may contain
 				 * special characters. */
+    int nocase;
 {
-    char c2;
-    int match = 0;	/* # of chars matched */
+    Tcl_UniChar ch1, ch2;
+    int match = 0;	/* # of bytes matched */
+    char *oldString;
+
+    char *pstart = pattern;
 
     while (1) {
 	/* If at end of pattern, success! */
@@ -140,40 +106,29 @@ int Exp_StringMatch2(string,pattern)
 	 */
 	
 	if (*pattern == '*') {
-#if 1
-	    int head_len;
 	    char *tail;
-#endif
+
 	    pattern += 1;
 	    if (*pattern == 0) {
 		return(strlen(string)+match); /* DEL */
 	    }
-#if 1
-	    /* find longest match - switched to this on 12/31/93 */
-	    head_len = strlen(string);	/* length before tail */
-	    tail = string + head_len;
-	    while (head_len >= 0) {
+
+	    /* find LONGEST match */
+	    tail = string + strlen(string);
+	    while (1) {
 		int rc;
 
-		if (-1 != (rc = Exp_StringMatch2(tail, pattern))) {
-		    return rc + match + head_len;	/* DEL */
+		if (-1 != (rc = Exp_StringCaseMatch2(tail, pattern, nocase))) {
+		    return match + (tail - string) + rc;
+		    /* match = # of bytes we've skipped before this */
+		    /* (...) = # of bytes we've skipped due to "*" */
+		    /* rc    = # of bytes we've matched after "*" */
 		}
-		tail--;
-		head_len--;
-	    }
-#else
-	    /* find shortest match */
-	    while (*string != 0) {
-		int rc;					/* DEL */
 
-		if (-1 != (rc = Exp_StringMatch2(string, pattern))) {
-		    return rc+match;		/* DEL */
-		}
-		string += 1;
-		match++;				/* DEL */
+		/* if we've backed up to beginning of string, give up */
+		if (tail == string) break;
+		tail = Tcl_UtfPrev(tail,string);
 	    }
-	    if (*pattern == '$') return 0;	/* handle *$ */
-#endif
 	    return -1;					/* DEL */
 	}
     
@@ -189,7 +144,11 @@ int Exp_StringMatch2(string,pattern)
 	 */
 
 	if (*pattern == '?') {
-	    goto thisCharOK;
+	    pattern++;
+	    oldString = string;
+	    string = Tcl_UtfNext(string);
+	    match += (string - oldString); /* incr by # of bytes in char */
+	    continue;
 	}
 
 	/* Check for a "[" as the next pattern character.  It is followed
@@ -198,47 +157,51 @@ int Exp_StringMatch2(string,pattern)
 	 */
 	
 	if (*pattern == '[') {
-	    pattern += 1;
+	    Tcl_UniChar ch, startChar, endChar;
+
+	    pattern++;
+	    string += Tcl_UtfToUniChar(string, &ch);
+
 	    while (1) {
-		if ((*pattern == ']') || (*pattern == 0)) {
+		if ((*pattern == ']') || (*pattern == '\0')) {
 		    return -1;			/* was 0; DEL */
 		}
-		if (*pattern == *string) {
-		    break;
+		pattern += Tcl_UtfToUniChar(pattern, &startChar);
+		if (nocase) {
+		    startChar = Tcl_UniCharToLower(startChar);
 		}
-		if (pattern[1] == '-') {
-		    c2 = pattern[2];
-		    if (c2 == 0) {
+		if (*pattern == '-') {
+		    pattern++;
+		    if (*pattern == '\0') {
 			return -1;		/* DEL */
 		    }
-		    if ((*pattern <= *string) && (c2 >= *string)) {
+		    pattern += Tcl_UtfToUniChar(pattern, &endChar);
+		    if (nocase) {
+			endChar = Tcl_UniCharToLower(endChar);
+		    }
+		    if (((startChar <= ch) && (ch <= endChar))
+			    || ((endChar <= ch) && (ch <= startChar))) {
+			/*
+			 * Matches ranges of form [a-z] or [z-a].
+			 */
+
 			break;
 		    }
-		    if ((*pattern >= *string) && (c2 <= *string)) {
-			break;
-		    }
-		    pattern += 2;
-		}
-		pattern += 1;
-	    }
-
-/* OOPS! Found a bug in vanilla Tcl - have sent back to Ousterhout */
-/* but he hasn't integrated it yet. - DEL */
-
-#if 0
-	    while ((*pattern != ']') && (*pattern != 0)) {
-#else
-	    while (*pattern != ']') {
-		if (*pattern == 0) {
-		    pattern--;
+		} else if (startChar == ch) {
 		    break;
-	        }
-#endif
-		pattern += 1;
+		}
 	    }
-	    goto thisCharOK;
+	    while (*pattern != ']') {
+		if (*pattern == '\0') {
+		    pattern = Tcl_UtfPrev(pattern, pstart);
+		    break;
+		}
+		pattern++;
+	    }
+	    pattern++;
+	    continue;
 	}
-    
+ 
 	/* If the next pattern character is backslash, strip it off
 	 * so we do exact matching on the character that follows.
 	 */
@@ -254,13 +217,16 @@ int Exp_StringMatch2(string,pattern)
 	 * characters of each string match.
 	 */
 	
-	if (*pattern != *string) {
+	oldString = string;
+	string  += Tcl_UtfToUniChar(string, &ch1);
+	pattern += Tcl_UtfToUniChar(pattern, &ch2);
+	if (nocase) {
+	    if (Tcl_UniCharToLower(ch1) != Tcl_UniCharToLower(ch2)) {
+		return -1;
+	    }
+	} else if (ch1 != ch2) {
 	    return -1;
 	}
-
-	thisCharOK: pattern += 1;
-	string += 1;
-	match++;
+	match += (string - oldString);  /* incr by # of bytes in char */
     }
 }
-

@@ -79,7 +79,7 @@ set env(LINES) $rows
 set env(COLUMNS) $cols
 
 set env(TERM) "tt"
-if $termcap {
+if {$termcap} {
     set env(TERMCAP) {tt:
 	:cm=\E[%d;%dH:
 	:up=\E[A:
@@ -91,7 +91,7 @@ if $termcap {
     }
 }
 
-if $terminfo {
+if {$terminfo} {
     set env(TERMINFO) /tmp
     set ttsrc "/tmp/tt.src"
     set file [open $ttsrc w]
@@ -110,7 +110,7 @@ if $terminfo {
 
     set oldpath $env(PATH)
     set env(PATH) "/usr/5bin:/usr/lib/terminfo"
-    if 1==[catch {exec tic $ttsrc} msg] {
+    if {1==[catch {exec tic $ttsrc} msg]} {
 	puts "WARNING: tic failed - if you don't have terminfo support on"
 	puts "your system, change \"set terminfo 1\" to \"set terminfo 0\"."
 	puts "Here is the original error from running tic:"
@@ -235,7 +235,7 @@ proc term_insert {s} {
 	# update cur_col
 	incr cur_col $chars_to_write
 	# update cur_row
-	if $newline {
+	if {$newline} {
 		term_down
 	}
 
@@ -325,7 +325,7 @@ proc term_expect {args} {
 
 	set desired_timeout [
 	    uplevel {
-		if [info exists timeout] {
+		if {[info exists timeout]} {
 			set timeout
 		} else {
 			uplevel #0 {
@@ -436,7 +436,7 @@ proc connect {} {
 proc dosearch {search} {
   global term
   exp_send_error "Searching for '$search'..."
-  if [string match ?=* "$search"] {set typ ""} else {set typ "k="}
+  if {[string match ?=* "$search"]} {set typ ""} else {set typ "k="}
   sendcommand "$typ$search\r"
   waitfornext
   set countstr [$term get 2.17 2.35]

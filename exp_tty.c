@@ -34,8 +34,8 @@
 #include "exp_prog.h"
 #include "exp_rename.h"
 #include "exp_tty_in.h"
-#include "exp_log.h"
 #include "exp_command.h"
+#include "exp_log.h"
 
 static int is_raw = FALSE;
 static int is_noecho = FALSE;
@@ -149,14 +149,14 @@ int *was_raw, *was_echo;
 	*tty_old = tty_current;		/* save old parameters */
 	*was_raw = is_raw;
 	*was_echo = !is_noecho;
-	debuglog("tty_raw_noecho: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
+	expDiagLog("tty_raw_noecho: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
 
 	exp_tty_raw(1);
 	exp_tty_echo(-1);
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
-		errorlog("ioctl(raw): %s\r\n",Tcl_PosixError(interp));
-		exp_exit(interp,1);
+		expErrorLog("ioctl(raw): %s\r\n",Tcl_PosixError(interp));
+		Tcl_Exit(1);
 	}
 
 	exp_ioctled_devtty = TRUE;
@@ -178,14 +178,14 @@ int *was_raw, *was_echo;
 	*tty_old = tty_current;		/* save old parameters */
 	*was_raw = is_raw;
 	*was_echo = !is_noecho;
-	debuglog("tty_cooked_echo: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
+	expDiagLog("tty_cooked_echo: was raw = %d  echo = %d\r\n",is_raw,!is_noecho);
 
 	exp_tty_raw(-1);
 	exp_tty_echo(1);
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
-		errorlog("ioctl(noraw): %s\r\n",Tcl_PosixError(interp));
-		exp_exit(interp,1);
+		expErrorLog("ioctl(noraw): %s\r\n",Tcl_PosixError(interp));
+		Tcl_Exit(1);
 	}
 	exp_ioctled_devtty = TRUE;
 
@@ -200,13 +200,13 @@ int raw;
 int echo;
 {
 	if (exp_tty_set_simple(tty) == -1) {
-		errorlog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
-		exp_exit(interp,1);
+		expErrorLog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
+		Tcl_Exit(1);
 	}
 	is_raw = raw;
 	is_noecho = !echo;
 	tty_current = *tty;
-	debuglog("tty_set: raw = %d, echo = %d\r\n",is_raw,!is_noecho);
+	expDiagLog("tty_set: raw = %d, echo = %d\r\n",is_raw,!is_noecho);
 	exp_ioctled_devtty = TRUE;
 }	
 
@@ -310,32 +310,33 @@ int devtty;		/* if true, redirect to /dev/tty */
 	int i;
 	int rc;
 
-	/* insert "system" at front, null at end, */
-	/* and optional redirect in middle, hence "+3" */
-	new_argv = (char **)ckalloc((3+argc)*sizeof(char *));
-	new_argv[0] = exec_cmd;
-	new_argv[1] = stty_cmd;
-	for (i=1;i<argc;i++) {
-		new_argv[i+1] = argv[i];
-	}
-	if (devtty) new_argv[++i] =
-#ifdef STTY_READS_STDOUT
-		">/dev/tty";
-#else
-		"</dev/tty";
-#endif
+	Tcl_Obj *cmdObj = Tcl_NewStringObj("",0);
+	Tcl_IncrRefCount(cmdObj);
 
-	new_argv[i+1] = (char *)0;
+	Tcl_AppendStringsToObj(cmdObj,"exec /bin/stty",(char *)0);
+	for (i=1;i<argc;i++) {
+	    Tcl_AppendStringsToObj(cmdObj," ",argv[i],(char *)0);
+	}
+	if (devtty) Tcl_AppendStringsToObj(cmdObj,
+#ifdef STTY_READS_STDOUT
+		" >/dev/tty",
+#else
+		" </dev/tty",
+#endif
+		(char *)0);
 
 	Tcl_ResetResult(interp);
 
-	/* normally, I wouldn't set one of Tcl's own variables, but in this */
-	/* case, I only only want to see if Tcl resets it to non-NONE, */
-	/* and I don't know any other way of doing it */
-	Tcl_SetVar(interp,"errorCode","NONE",0);
-	rc = Tcl_ExecCmd((ClientData)0,interp,argc+1+devtty,new_argv);
+	/*
+	 * normally, I wouldn't set one of Tcl's own variables, but in this
+	 * case, I only want to see if Tcl resets it to non-NONE, and I don't
+	 * know any other way of doing it
+	 */
 
-	ckfree((char *)new_argv);
+	Tcl_SetVar(interp,"errorCode","NONE",0);
+	rc = Tcl_EvalObjEx(interp,cmdObj,TCL_EVAL_DIRECT);
+
+	Tcl_DecrRefCount(cmdObj);
 
 	/* if stty-reads-stdout, stty will fail since Exec */
 	/* will detect the stderr.  Only by examining errorCode */
@@ -380,7 +381,7 @@ char **argv;
 			redirect = argv;
 			infile = *(argv+1);
 			if (!infile) {
-				errorlog("usage: < ttyname");
+				expErrorLog("usage: < ttyname");
 				return TCL_ERROR;
 			}
 			if (streq(infile,"/dev/tty")) {
@@ -391,7 +392,7 @@ char **argv;
 			} else {
 				master = exp_trap_off(infile);
 				if (-1 == (fd = open(infile,2))) {
-					errorlog("couldn't open %s: %s",
+					expErrorLog("couldn't open %s: %s",
 					 infile,Tcl_PosixError(interp));
 					return TCL_ERROR;
 				}
@@ -465,8 +466,8 @@ char **argv;
 		} else if (saw_known_stty_arg) {
 			if (exp_tty_set_simple(&tty_current) == -1) {
 			    if (exp_disconnected || (exp_dev_tty == -1) || !isatty(exp_dev_tty)) {
-				errorlog("stty: impossible in this context\n");
-				errorlog("are you disconnected or in a batch, at, or cron script?");
+				expErrorLog("stty: impossible in this context\n");
+				expErrorLog("are you disconnected or in a batch, at, or cron script?");
 				/* user could've conceivably closed /dev/tty as well */
 			    }
 			    exp_error(interp,"stty: ioctl(user): %s\r\n",Tcl_PosixError(interp));
@@ -569,7 +570,7 @@ char **argv;
 	if (argc == 1) return TCL_OK;
 
 	if (streq(argv[1],"stty")) {
-		debuglog("system stty is deprecated, use stty\r\n");
+		expDiagLogU("system stty is deprecated, use stty\r\n");
 
 		cmd_is_stty = TRUE;
 		was_raw = exp_israw();
@@ -602,8 +603,8 @@ char **argv;
 		        if (ioctl(exp_dev_tty, TCSETSW, &tty_current) == -1) {
 #endif
 			    if (exp_disconnected || (exp_dev_tty == -1) || !isatty(exp_dev_tty)) {
-				errorlog("system stty: impossible in this context\n");
-				errorlog("are you disconnected or in a batch, at, or cron script?");
+				expErrorLog("system stty: impossible in this context\n");
+				expErrorLog("are you disconnected or in a batch, at, or cron script?");
 				/* user could've conceivably closed /dev/tty as well */
 			    }
 			    exp_error(interp,"system stty: ioctl(user): %s\r\n",Tcl_PosixError(interp));
@@ -633,10 +634,13 @@ char **argv;
 	}
 
 	*(bufp-1) = '\0';
+
 	old = signal(SIGCHLD, SIG_DFL);
 	systemStatus = system(buf);
 	signal(SIGCHLD, old);	/* restore signal handler */
-	debuglog("system(%s) = %d\r\n",buf,i);
+	expDiagLogU("system(");
+	expDiagLogU(buf);
+	expDiagLog(") = %d\r\n",i);
 
 	if (systemStatus == -1) {
 		exp_error(interp,Tcl_PosixError(interp));
@@ -651,8 +655,8 @@ char **argv;
 #else
 	        if (ioctl(exp_dev_tty, TCGETS, &tty_current) == -1) {
 #endif
-			errorlog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
-			exp_exit(interp,1);
+			expErrorLog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
+			Tcl_Exit(1);
 		}
 		if (cooked) {
 			/* find out user's new defn of 'cooked' */

@@ -30,41 +30,41 @@ it successfully, please mail back the changes to me.  - Don
 
 #include "tcl.h"
 #include "exp_prog.h"
-#include "exp_command.h"	/* for struct exp_f defs */
+#include "exp_command.h"	/* for struct ExpState defs */
 #include "exp_event.h"
 
 /*ARGSUSED*/
 void
-exp_arm_background_filehandler(m)
-int m;
+exp_arm_background_filehandler(esPtr)
+ExpState *esPtr;
 {
 }
 
 /*ARGSUSED*/
 void
-exp_disarm_background_filehandler(m)
-int m;
+exp_disarm_background_filehandler(esPtr)
+ExpState *esPtr;
 {
 }
 
 /*ARGSUSED*/
 void
-exp_disarm_background_filehandler_force(m)
-int m;
+exp_disarm_background_filehandler_force(esPtr)
+ExpState *esPtr;
 {
 }
 
 /*ARGSUSED*/
 void
-exp_unblock_background_filehandler(m)
-int m;
+exp_unblock_background_filehandler(esPtr)
+ExpState *esPtr;
 {
 }
 
 /*ARGSUSED*/
 void
-exp_block_background_filehandler(m)
-int m;
+exp_block_background_filehandler(esPtr)
+ExpState *esPtr;
 {
 }
 
@@ -78,42 +78,38 @@ int fd;
 /* returns status, one of EOF, TIMEOUT, ERROR or DATA */
 /*ARGSUSED*/
 int
-exp_get_next_event(interp,masters, n,master_out,timeout,key)
+exp_get_next_event(interp,esPtrs, n,esPtrOut,timeout,key)
 Tcl_Interp *interp;
-int *masters;
-int n;			/* # of masters */
-int *master_out;	/* 1st event master, not set if none */
+ExpState (*esPtrs)[];
+int n;			/* # of esPtrs */
+ExpState **esPtrOut;	/* 1st event master, not set if none */
 int timeout;		/* seconds */
 int key;
 {
-	int m;
-	struct exp_f *f;
+    if (n > 1) {
+	exp_error(interp,"expect not compiled with multiprocess support");
+	/* select a different INTERACT_TYPE in Makefile */
+	return(TCL_ERROR);
+    }
 
-	if (n > 1) {
-		exp_error(interp,"expect not compiled with multiprocess support");
-		/* select a different INTERACT_TYPE in Makefile */
-		return(TCL_ERROR);
-	}
+    esPtr = *esPtrOut = esPtrs[0];
 
-	m = *master_out = masters[0];
-	f = exp_fs + m;
+    if (esPtr->key != key) {
+	esPtr->key = key;
+	esPtr->force_read = FALSE;
+	return(EXP_DATA_OLD);
+    } else if ((!esPtr->force_read) && (esPtr->size != 0)) {
+	return(EXP_DATA_OLD);
+    }
 
-	if (f->key != key) {
-		f->key = key;
-		f->force_read = FALSE;
-		return(EXP_DATA_OLD);
-	} else if ((!f->force_read) && (f->size != 0)) {
-		return(EXP_DATA_OLD);
-	}
-
-	return(EXP_DATA_NEW);
+    return(EXP_DATA_NEW);
 }
 
 /*ARGSUSED*/
 int
-exp_get_next_event_info(interp,fd,ready_mask)
+exp_get_next_event_info(interp,esPtr,ready_mask)
 Tcl_Interp *interp;
-int fd;
+ExpState *esPtr;
 int ready_mask;
 {
 }

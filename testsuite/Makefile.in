@@ -39,6 +39,10 @@ RUNTESTFLAGS =
 
 all:
 
+binaries:
+
+libraries:
+
 .PHONY: info install-info check installcheck
 info:
 install-info:

@@ -21,10 +21,10 @@
 
 set timeout -1;			# wait forever
 expect_before {
-	-i $any_spawn_id eof {
-		send_user "player resigned!\n"
-		exit
-	}
+    -i $any_spawn_id eof {
+	send_user "player resigned!\n"
+	exit
+    }
 }
 
 # start things rolling
@@ -40,13 +40,13 @@ set id2 $spawn_id
 expect "Chess\r\n"
 send $expect_out(1,string)
 
-for {} 1 {} {
-	expect {
-		-i $id2 -re "\\.\\. (.*)\n" {
-			send -i $id1 $expect_out(1,string)
-		}
-		-i $id1 -re "\\.\\. .*\\. (.*)\n" {
-			send -i $id2 $expect_out(1,string)
-		}
+while {1} {
+    expect {
+	-i $id2 -re "\\.\\. (.*)\n" {
+	    send -i $id1 $expect_out(1,string)
 	}
+	-i $id1 -re "\\.\\. .*\\. (.*)\n" {
+	    send -i $id2 $expect_out(1,string)
+	}
+    }
 }

@@ -21,9 +21,14 @@ would appreciate credit if this program or parts of it are used.
 
 #include <errno.h>
 
-int		Exp_StringMatch();
-int		Exp_StringMatch2();
-void		exp_console_set _ANSI_ARGS_((void));
+void	exp_console_set     _ANSI_ARGS_((void));
+void	expDiagLogPtrSet    _ANSI_ARGS_((void (*)_ANSI_ARGS_((char *))));
+void	expDiagLogPtr       _ANSI_ARGS_((char *));
+void	expDiagLogPtrX      _ANSI_ARGS_((char *,int));
+void	expDiagLogPtrStr    _ANSI_ARGS_((char *,char *));
+void	expDiagLogPtrStrStr _ANSI_ARGS_((char *,char *,char *));
+void	expErrnoMsgSet      _ANSI_ARGS_((char * (*) _ANSI_ARGS_((int))));
+char *	expErrnoMsg         _ANSI_ARGS_((int));
 
 #ifdef NO_STDLIB_H
 #  include "../compat/stdlib.h"

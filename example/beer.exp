@@ -39,7 +39,7 @@ proc line4 {i} {
 proc out {i s} {
     foreach c [split $s ""] {
 	# don't touch punctuation; just looks too strange if you do
-	if [regexp "\[,. \n\]" $c] {
+	if {[regexp "\[,. \n\]" $c]} {
 	    append d $c
 	    continue
 	}
@@ -58,10 +58,10 @@ proc out {i s} {
 	    0 {
 		# substitute another letter
 
-		if [regexp \[aeiou\] $c] {
+		if {[regexp \[aeiou\] $c]} {
 		    # if vowel, substitute another
 		    append d [string index aeiou [rand 5]]
-		} elseif [regexp \[0-9\] $c] {
+		} elseif {[regexp \[0-9\] $c]} {
 		    # if number, substitute another
 		    append d [string index 123456789 [rand 9]]
 		} else {

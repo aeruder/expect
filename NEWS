@@ -3,6 +3,149 @@ This file is the NEWS file from the Expect distribution.
 ======================================================================
 ======================================================================
 
+Date: 10/22/99
+
+** SUMMARY
+
+Expect 5.31 now works with Tcl 8.2.  Expect 5.31 does NOT work with
+prior releases of Tcl.  Thanks to an incredible amount of work by
+Scott Stanton, Henry Spencer, Melissa Hirschl, and funding from
+Scriptics for making this possible.
+
+** NEW FEATURES
+
+What?  You mean that working with Tcl 8.2 isn't enough?????
+
+Expect supports Tcl's new regexp engine.
+
+Expect supports null bytes in strings directly.  (You no longer have
+to use the "null" keyword to send or match nulls.  Of course, the
+"null" keyword will continue to be supported.)  Null removal (on
+input) is still enabled by default since nulls are almost never
+intended for end-user consumption in interactive dialogues.
+
+** CHANGES IN BEHAVIOR (POTENTIAL INCOMPATIBILITIES)
+
+The interpreter command used to exit upon eof.  Now it uses "-eof
+script" to control this behavior.  The default behavior is to return.
+(This change was required because Expect now gives control to Tcl upon
+exit and Tcl waits (potentially forever) for all processes to die on
+exit.)  Explicit calls to interpreter are almost non-existent.
+However, you should look for *implicit* calls via interact commands
+with a pattern but no action.  This required changes in the examples:
+dislocate, dvorak, kibitz, and xkibitz.
+
+Indirect variables can no longer start with "exp".  Such variables
+will be interpreted as channel names.
+
+Old-style regexps may need conversion.  If you have been protecting
+regexps containing backslashes with {}, then you need to examine all
+your backslashes since the new regexp engine interprets backslash
+sequences (such as \n) itself.  For example:
+
+	expect "\n"         (works the same in Tcl 8.0 and 8.1)
+	expect {\n}         (works differently in Tcl 8.0 and 8.1)
+
+Scriptics has also created a new-regexp-features page which you should
+read: http://www.scriptics.com/support/howto/regexp81.html.  Some of
+the new features allow much more efficient regexps than before.  For
+example, non-greedy quantifiers can replace [split] looping
+constructions with a single regexp, enabling Tcl to parse very
+efficiently.  For the whole story, read the re_syntax man page.
+
+The interact command's regexp matching no longer skips nulls.  (I'd be
+surprised if anyone misses this.  At least I hope ....)
+
+Expect's C library now reports failures in spawn's underlying exec
+directly (by returning -1) rather than the way it used to (as data in
+the pty).  This makes user code more robust.  However, it requires you
+to simplify your code, alas.  See the chesslib.c example.
+
+Linking with Expect's C library no longer requires the Tcl library
+(unless, of course, you make Tcl calls yourself).  Tcl is still
+required to build the library in the first place, however.
+
+** CHANGES IN BEHAVIOR (SHOULD NOT CAUSE INCOMPATIBILITIES)
+
+The match_max command now controls by bytes, not chars.  This won't
+cause problems unless your existing scripts are interacting using
+sizeable chunks of multibyte characters.  (If you don't know what I'm
+talking about, ignore this.)
+
+The Make/configure suite now corresponds to the TEA conventions (at
+least in theory; the conventions are changing regularly so it's hard
+to be less vague on this point).  Significantly, this means that you
+should be able to use the same configure flags as when compiling Tcl
+or any other TEA-compatible extension.  (See the INSTALL file.)
+
+The values of special variables such as exp_spawn_id_any have changed.
+(The values were never documented so you shouldn't have been using
+them anyway.)
+
+Spawn ids now appear as "exp...".  (They used to be small integers.)
+Do not assume that spawn ids will continue to be represented in any
+particular way (other than unique strings).
+
+** OTHER NOTES
+
+Expect uses channels.  There is an Expect channel type.  It is
+possible to use Tcl's channel commands, such as fconfigure, to change
+the encoding.  However, Expect layers its own buffering system on top
+of Tcl's channel handler so don't expect intuitive behavior when using
+commands such as gets and puts.  Unless you know what you're doing, I
+recommend manipulating the Expect channels only with the expect
+commands.
+
+Some effort was made to make Expect support threads, however it is not
+complete.  You can compile Expect with threads enabled but don't run
+Expect in multiple threads just yet.
+
+So much code has changed, there are bound to be bugs in dark corners.
+Please let me know of such cases.  The best response will come by
+supplying a simple test case that can be added to Expect's test suite.
+
+In places where the behavior of Expect was not precisely documented,
+full advantage was taken to do something different :-)
+
+Several esoteric bugs were fixed.
+
+Although Expect itself uses Henry Spencer's new regexp engine,
+Expect's C library still uses his original regexp engine.
+
+No testing has been done of the poll and non-event subsystems.  (These
+are used on systems which don't support select on ptys or ttys.  Some
+minor work needs to be done on them (because the event subsystem was
+rewritten) which I'll probably do only if anyone requests it.
+
+Many deprecated features (deprecated for many years!) have been
+removed.  All such features were deprecated prior to Exploring Expect
+so if that's how you learned Expect, you have nothing to worry about.
+For example, Expect's getpid command predates Tcl's pid command and
+it's been deprecated for, oh.... 6 years - wow!  Other deprecated features
+include:
+  expect -timestamp (flag only; behavior itself was removed years ago)
+  expect -iwrite (flag only; behavior occurs all the time)
+  expect_version (use "exp_version" command)
+  expect_library (use "exp_library" global variable)
+  interact -eof (use "eof" keyword)
+  interact -timeout (use "timeout" keyword)
+  interact -timestamp (use "clock" command)
+  getpid (use "pid" command)
+  system stty (use "stty" command)
+
+With this release, the following are deprecated:
+  timestamp (use "clock" command)
+  debugger (use a different one; there are very nice replacements
+     around.  Fortunately the Expect debugger is not something anyone
+     is wiring into their scripts, so for now, consider it on the
+     endangered species list.  Anyone still want this debugger?)
+
+From now on, the most current snapshots of Expect will be found in the
+Scriptics CVS repository.  Not all snapshots are official releases.
+
+======================================================================
+======================================================================
+
 Date: 8/18/96
 
 Expect now works with Tcl 8.0.
@@ -11,7 +154,7 @@ No changes were made to take advantage of 8.0 features such as
 namespaces.  (If you want to put the Expect commands in a namespace,
 declare a namespace before loading them in.)
 
-Even thought Tcl allows embedded nulls in commands, Expect still does
+Even though Tcl allows embedded nulls in commands, Expect still does
 not.  Tcl still doesn't support embedded in patterns and regexps.
 I'll wait til Tcl supports that before rewriting Expect's null
 support.

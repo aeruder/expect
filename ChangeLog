@@ -1,3 +1,38 @@
+1999-08-31  Jennifer Hom  <jenn@scriptics.com>
+
+	* Makefile.in: Changed test target to source tests/all.tcl instead
+	of tests/all
+
+	* tests/README: Modified documentation to reflect the change from
+	usage of a defs file to the use of package tcltest to run the tests
+
+	* tests/all:
+	* tests/defs:
+	* tests/all.tcl:
+	* tests/cat.test:
+	* tests/expect.test:
+	* tests/logfile.test:
+	* tests/pid.test:
+	* tests/send.test:
+	* tests/spawn.test
+	* tests/stty.test: Modified test files to use package tcltest, 
+	removed tests/all and tests/defs, and added tests/all.tcl 
+
+1999-06-22    <stanton@scriptics.com>
+
+	* expect.c: Fixed bug in token parsing where index was not being
+	incremented properly.
+
+	* configure.in: Changed version number to 5.31.
+
+	* aclocal.m4: Fixed CY_AC_LOAD_TKCONFIG so it tests for Tk_Init
+	instead of Tk_Main (which is only a macro in 8.1 and later).  Also
+	added TCL_BUILD_LIB_SPEC to the set of flags used in this test to
+	avoid linker errors.	
+
+	* Dbgconfig.in: move CY_*_TCLCONFIG tests below AC_PROG_CC so it
+	will work with gcc
+
 Thu Mar 20 14:27:45 1997  Geoffrey Noer  <noer@cygnus.com>
 
 	* configure.in: don't check if stty reads stdout for

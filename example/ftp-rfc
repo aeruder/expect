@@ -7,7 +7,7 @@
 
 exp_version -exit 5.0
 
-if $argc!=1 {
+if {$argc!=1} {
 	send_user "usage: ftp-rfc \[#] \[-index]\n"
 	exit
 }

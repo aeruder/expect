@@ -14,6 +14,14 @@ would appreciate credit if this program or parts of it are used.
 
 #include "expect_comm.h"
 
+/*
+ * This is a convenience macro used to initialize a thread local storage ptr.
+ * Stolen from tclInt.h
+ */
+#ifndef TCL_TSD_INIT
+#define TCL_TSD_INIT(keyPtr)	(ThreadSpecificData *)Tcl_GetThreadData((keyPtr), sizeof(ThreadSpecificData))
+#endif
+
 EXTERN int exp_cmdlinecmds;
 EXTERN int exp_interactive;
 EXTERN FILE *exp_cmdfile;
@@ -28,18 +36,17 @@ EXTERN Tcl_Interp *exp_interp;
 #define Exp_Init Expect_Init
 EXTERN int	Expect_Init _ANSI_ARGS_((Tcl_Interp *));	/* for Tcl_AppInit apps */
 EXTERN void	exp_parse_argv _ANSI_ARGS_((Tcl_Interp *,int argc,char **argv));
-EXTERN int	exp_interpreter _ANSI_ARGS_((Tcl_Interp *));
+EXTERN int	exp_interpreter _ANSI_ARGS_((Tcl_Interp *,Tcl_Obj *));
 EXTERN int	exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,FILE *));
 EXTERN int	exp_interpret_cmdfilename _ANSI_ARGS_((Tcl_Interp *,char *));
 EXTERN void	exp_interpret_rcfiles _ANSI_ARGS_((Tcl_Interp *,int my_rc,int sys_rc));
 
 EXTERN char *	exp_cook _ANSI_ARGS_((char *s,int *len));
 
-EXTERN void	exp_close_on_exec _ANSI_ARGS_((int));
+EXTERN void	expCloseOnExec _ANSI_ARGS_((int));
 
 			/* app-specific exit handler */
 EXTERN void	(*exp_app_exit)_ANSI_ARGS_((Tcl_Interp *));
-EXTERN void	exp_exit _ANSI_ARGS_((Tcl_Interp *,int status));
 EXTERN void	exp_exit_handlers _ANSI_ARGS_((ClientData));
 
 EXTERN void	exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));

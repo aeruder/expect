@@ -61,8 +61,8 @@ main(){
 	exp_timeout = 3600;
 
 	if (0 == (fp1 = exp_popen("chess"))) {
-		printf("exp_popen failed\n");
-		exit(-1);
+	  perror("chess");
+	  exit(-1);
 	}
 
 	if (0 > exp_fexpectl(fp1,exp_glob,"Chess\r\n",0,exp_end)) exit(-1);

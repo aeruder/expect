@@ -45,21 +45,29 @@ Use telnet to access host.
 .TP 4
 -program
 
-Next argument is taken as program to run to set password.  Default is
+Next argument is a program to run to set the password.  Default is
 "passwd".  Other common choices are "yppasswd" and "set passwd" (e.g.,
 VMS hosts).  A program name such as "password fred" can be used to
 create entries for new accounts (when run as root).
 
 .TP 4
 -prompt
-Next argument is taken as a prompt suffix pattern.  This allows
+Next argument is a prompt suffix pattern.  This allows
 the script to know when the shell is prompting.  The default is
 "# " for root and "% " for non-root accounts.
 
 .TP 4
 -timeout
-Next argument is number of seconds to wait for responses.
+Next argument is the number of seconds to wait for responses.
 Default is 30 but some systems can be much slower logging in.
+
+.TP 4
+-su
+
+Next argument is 1 or 0.  If 1, you are additionally prompted for a
+root password which is used to su after logging in.  root's password
+is changed rather than the user's.  This is useful for hosts which
+do not allow root to log in.
 
 .SH HOW TO USE
 The best way to run Passmass is to put the command in a one-line shell
@@ -69,11 +77,11 @@ want to change your passwords on all the hosts.
 
 .SH CAVEATS
 
-It should be obvious that using the same password on multiple hosts
-carries risks.  In particular, if the password can be stolen, then all
-of your accounts are at risk.  Thus, you should not use Passmass in
-situations where your password is visible, such as across a network
-where hackers are known to eavesdrop.
+Using the same password on multiple hosts carries risks.  In
+particular, if the password can be stolen, then all of your accounts
+are at risk.  Thus, you should not use Passmass in situations where
+your password is visible, such as across a network which hackers are
+known to eavesdrop.
 
 On the other hand, if you have enough accounts with different
 passwords, you may end up writing them down somewhere - and

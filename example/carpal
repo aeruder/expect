@@ -8,19 +8,19 @@
 # Date: Feb 26, '95
 
 spawn $env(SHELL)
-set start [timestamp]	;# when we started our current typing period
-set stop [timestamp]	;# when we stopped typing
+set start [clock seconds]	;# when we started our current typing period
+set stop [clock seconds]	;# when we stopped typing
 
 set typing 1200		;# twenty minutes, max typing time allowed
 set notyping 600	;# ten minutes, min notyping time required
 
 interact -nobuffer -re . {
-	set now [timestamp]
+    set now [clock seconds]
 
-	if {$now-$stop > $notyping} {
-		set start [timestamp]
-	} elseif {$now-$start > $typing} {
-		send_user "\007"
-	}
-	set stop [timestamp]
+    if {$now-$stop > $notyping} {
+	set start [clock seconds]
+    } elseif {$now-$start > $typing} {
+	send_user "\007"
+    }
+    set stop [clock seconds]
 }

@@ -26,7 +26,8 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_tty_in.h"
 #include "exp_pty.h"
 
-void debuglog();
+void expDiagLog();
+void expDiagLogU();
 
 #ifndef TRUE
 #define TRUE 1
@@ -159,12 +160,12 @@ exp_init_pty()
 	/* This code is not necessary, but helpful for testing odd things. */
 	if (exp_dev_tty == -1) {
 		/* give ourselves a controlling tty */
-		int master = getptymaster();
+		int master = exp_getptymaster();
 		fcntl(master,F_SETFD,1);	/* close-on-exec */
 		setpgrp(0,0);
 		close(0);
 		close(1);
-		getptyslave(exp_get_var(exp_interp,"stty_init"));
+		exp_getptyslave(exp_get_var(exp_interp,"stty_init"));
 		close(2);
 		fcntl(0,F_DUPFD,2);		/* dup 0 onto 2 */
 	}
@@ -176,7 +177,7 @@ exp_init_pty()
 
 /* returns fd of master end of pseudotty */
 int
-getptymaster()
+exp_getptymaster()
 {
 	int master = -1;
 	char *hex, *bank;
@@ -218,7 +219,7 @@ int control;
 }
 
 int
-getptyslave(ttycopy,ttyinit,stty_args)
+exp_getptyslave(ttycopy,ttyinit,stty_args)
 int ttycopy;
 int ttyinit;
 char *stty_args;

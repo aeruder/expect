@@ -168,9 +168,10 @@ static int rest = 0;
 /* for Expect */
 int my_rc = 1;
 int sys_rc = 1;
-int optcmd_eval();
+static int optcmd_eval();
+static int optcmd_diagToStderr();
 #ifdef TCL_DEBUGGER
-int optcmd_debug();
+static int optcmd_debug();
 #endif
 int print_version = 0;
 
@@ -192,7 +193,7 @@ static Tk_ArgvInfo argTable[] = {
 /* for Expect */
     {"-command", TK_ARGV_GENFUNC, (char *) optcmd_eval, (char *)0,
 	"Command(s) to execute immediately"},
-    {"-diag", TK_ARGV_CONSTANT, (char *) 1, (char *) &exp_is_debugging,
+    {"-diag", TK_ARGV_CONSTANT, (char *) optcmd_diagToStderr, (char *)0,
 	"Enable diagnostics"},
     {"-norc", TK_ARGV_CONSTANT, (char *) 0, (char *) &my_rc,
 	"Don't read ~/.expect.rc"},
@@ -269,7 +270,7 @@ Tk_Init2(interp)
 	if (print_version) {
 	    extern char exp_version[];
 	    printf ("expectk version %s\n", exp_version);
-	    exp_exit (interp, 0);
+	    Tcl_Exit(0);
 	}
 
 	p = Tcl_Merge(argc, argv);
@@ -372,11 +373,7 @@ Tk_Init2(interp)
      * Invoke platform-specific initialization.
      */
 
-#if TCL_MAJOR_VERSION < 8
-    code = TkPlatformInit(interp);
-#else
     code = TkpInit(interp, 0);
-#endif
 
     done:
     if (argv != NULL) {
@@ -386,7 +383,7 @@ Tk_Init2(interp)
 }
 
 /*ARGSUSED*/
-int
+static int
 optcmd_eval(dst,interp,key,argc,argv)
 char *dst;
 Tcl_Interp *interp;
@@ -410,9 +407,21 @@ char **argv;
 	return argc;
 }
 
+static int
+optcmd_diagToStderr(dst,interp,key,argc,argv)
+    char *dst;
+    Tcl_Interp *interp;
+    char *key;
+    int argc;
+    char **argv;
+{
+    expDiagToStderrSet(1);
+    return --argc;  /* what the heck is the convention here!! */
+}
+
 #ifdef TCL_DEBUGGER
 /*ARGSUSED*/
-int
+static int
 optcmd_debug(dst,interp,key,argc,argv)
 char *dst;
 Tcl_Interp *interp;

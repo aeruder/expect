@@ -1,3 +1,5 @@
+#if 0 /*WHOLE FILE*/
+
 /*
  * regcomp and regexec -- regsub and regerror are elsewhere
  *
@@ -992,7 +994,7 @@ char *prog;
 			} else {
 				return(EXP_MATCH);
 			}
-/*			return(EXP_CANMATCH);	/* Success! */
+			/* return(EXP_CANMATCH);  Success! */
 			/* NOTREACHED */
 			break;
 		default:
@@ -1260,3 +1262,4 @@ char *s2;
 	return(count);
 }
 #endif
+#endif /* 0 WHOLE FILE */

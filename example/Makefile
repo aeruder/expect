@@ -1,26 +1,14 @@
-TCLVERSION = 8.0
-EXPVERSION = 5.25
-TCLROOT = ../../tcl$(TCLVERSION)
-
-# Tcl include files.  (If you haven't installed Tcl yet, read the README file).
-# This must point to the directory that contains ALL of Tcl's include
-# files, not just the public ones.
-TCLHDIR = $(TCLROOT)/generic
-
-# TCL library.  Very little actually comes out of it, but it is handy.
-TCLLIB = $(TCLROOT)/unix/libtcl$(TCLVERSION).so
-# if installed, you can use:
-# TCLLIB = -ltcl
+EXPVERSION = 5.31
 
 CC = gcc
 CPLUSPLUS = g++
 CPLUSPLUSLIBDIR = -L/depot/gnu/arch/lib
 CPLUSPLUSLIB = -lg++
 
-CFLAGS = -g -I.. -I$(TCLHDIR)
+CFLAGS = -g -I..
 LIBEXPECT = -L.. -lexpect$(EXPVERSION)
 
-LIBS = $(LIBEXPECT) $(TCLLIB) -lm
+LIBS = $(LIBEXPECT) -lm
 
 SCRIPTS = su2 noidle script.exp bonfield.exp
 

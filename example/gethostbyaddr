@@ -44,7 +44,7 @@ proc usage {} {
 	exit
 }
 
-if [file readable ~/.gethostbyaddr] {source ~/.gethostbyaddr}
+if {[file readable ~/.gethostbyaddr]} {source ~/.gethostbyaddr}
 
 while {[llength $argv]>0} {
 	set flag [lindex $argv 0]
@@ -72,13 +72,13 @@ while {[llength $argv]>0} {
 
 set IPaddress $argv
 
-if [llength $argv]!=1 usage
-if 4!=[scan $IPaddress "%d.%d.%d.%d" a b c d] usage
+if {[llength $argv]!=1} usage
+if {4!=[scan $IPaddress "%d.%d.%d.%d" a b c d]} usage
 
 proc vprint {s} {
 	global verbose
 
-	if !$verbose return
+	if {!$verbose} return
 	send_user $s\n
 }
 
@@ -91,7 +91,7 @@ proc printhost {name how dn} {
 	} else {set verified 0}
 
 	if {$verified || !$reverse || !$dn} {
-		if $tag {
+		if {$tag} {
 			send_user "$name ($how)\n"
 		} else {
 			send_user "$name\n"
@@ -120,7 +120,7 @@ proc verify {name IPaddress} {
 			vprint "timed out"
 		} -re "Address:.*Address:  (\[^\r]*)\r" {
 			set addr2 $expect_out(1,string)
-			if [string match $IPaddress $addr2] {
+			if {[string match $IPaddress $addr2]} {
 				vprint "verified"
 				set rc 1
 			} else {
@@ -142,13 +142,13 @@ proc telnet_error {s} {
 
 proc guessHost {guess} {
 	global guessHost
-	if [info exists guessHost] return
+	if {[info exists guessHost]} return
 	set guessHost $guess
 }
 
 proc guessDomain {guess} {
 	global guessDomain
-	if [info exists guessDomain] return
+	if {[info exists guessDomain]} return
 	set guessDomain $guess
 }
 
@@ -201,7 +201,7 @@ expect	{
 		printhost $host.$domain smtp 1
 
 		# if not valid FQDN, it's likely either host or domain
-		if [string length $domain] {
+		if {[string length $domain]} {
 		    guessDomain $host.$domain
 		} else {
 		    guessHost $host
@@ -283,7 +283,7 @@ for {set i [expr $d-1]} {$i>0} {incr i -1} {
 			# if not valid FQDN, it's likely either host or domain
 			# don't bother recording host since it can't be for
 			# original addr.
-			if [string length $domain] {
+			if {[string length $domain]} {
 			    guessDomain $host.$domain
 			}
 		}
@@ -308,7 +308,7 @@ for {set i [expr $d+1]} {$i<255} {incr i} {
 			# if not valid FQDN, it's likely either host or domain
 			# don't bother recording host since it can't be for
 			# original addr.
-			if [string length $domain] {
+			if {[string length $domain]} {
 			    guessDomain $host.$domain
 			}
 		}

@@ -192,7 +192,7 @@ int key;
 #else
 			struct request_info ioctl_info;
 			if (ioctl(masters[rr],TIOCREQCHECK,&ioctl_info) < 0) {
-				exp_debuglog("ioctl error on TIOCREQCHECK: %s",Tcl_ErrnoMsg(errno));
+				exp_DiagLog("ioctl error on TIOCREQCHECK: %s",Tcl_ErrnoMsg(errno));
 				break;
 			}
 			if (ioctl_info.request == TIOCCLOSE) {
@@ -201,7 +201,7 @@ int key;
 				return(EXP_EOF);
 			}
 			if (ioctl(masters[rr], TIOCREQSET, &ioctl_info) < 0)
-				exp_debuglog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
+				expDiagLog("ioctl error on TIOCREQSET after ioctl or open on slave: %s", Tcl_ErrnoMsg(errno));
 			/* presumably, we trapped an open here */
 			goto restart;
 #endif /* HAVE_PTYTRAP */

@@ -134,7 +134,7 @@ Pan the world/author text, player list, or your own alias by holding the middle 
 proc prod {x y} {
 	global cat_spawn_id updateflag
 
-	if $updateflag {
+	if {$updateflag} {
 		show-help $x $y "I heard you, gimme a break.  I'm waiting for the xpilot server to respond..."
 	}
 	set updateflag 1
@@ -146,8 +146,7 @@ proc display {host} {
 	global world db alias max env
 
 	set w .$host
-	#if 0==[llength [info com $w]]
-	if ![winfo exists $w] {	
+	if {![winfo exists $w]} {	
 
 		# window does not exist, create it
 
@@ -203,15 +202,15 @@ proc display {host} {
 		set max($host,was) 0
 	}
 
-	if $max($host)==0 {
+	if {$max($host)==0} {
 		# put up "no players" message?
-		if $max($host,was)>0 {
+		if {$max($host,was)>0} {
 			pack $w.msg -after $w.world -fill x -side top
 			pack forget $w.world
 		}
 	} else {
 		# remove "no players" message?
-		if $max($host,was)==0 {
+		if {$max($host,was)==0} {
 			pack $w.players -after $w.world -side top
 			pack forget $w.msg
 		}
@@ -237,13 +236,13 @@ set updateflag 0		;# 1 if user pressed "update" button
 
 # look for desired alias in the .Xdefaults file
 set status [catch {exec egrep "xpilot.name:" [glob ~/.Xdefaults]} output]
-if $status==0 {
+if {$status==0} {
 	regexp "xpilot.name:\[ \t]*(\[^\r]*)" $output dummy env(USER)
 }
 
 spawn cat -u; set cat_spawn_id $spawn_id
 
-while 1 {
+while {1} {
 	global xpilot hosts
 
 	set hosts {}
@@ -256,7 +255,7 @@ while 1 {
 
 	foreach host $oldhosts {
 		# if host not in hosts
-		if -1==[lsearch $hosts $host] {
+		if {-1==[lsearch $hosts $host]} {
 			destroy .$host
 		}
 	}

@@ -43,15 +43,20 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
-#include "exp_tstamp.h"	/* remove when timestamp stuff is gone */
 
-#include "tclRegexp.h"
-#include "exp_regexp.h"
+typedef struct ThreadSpecificData {
+    Tcl_Obj *cmdObjReturn;
+    Tcl_Obj *cmdObjInterpreter;
+} ThreadSpecificData;
 
-extern char *TclGetRegError();
-extern void TclRegError();
+static Tcl_ThreadDataKey dataKey;
 
 #define INTER_OUT "interact_out"
+#define out(var,val) \
+ expDiagLog("interact: set %s(%s) ",INTER_OUT,var); \
+ expDiagLogU(expPrintify(val)); \
+ expDiagLogU("\"\r\n"); \
+ Tcl_SetVar2(interp,INTER_OUT,var,val,0);
 
 /*
  * tests if we are running this using a real tty
@@ -70,23 +75,22 @@ extern void TclRegError();
 #define real_tty_input(x) (exp_stdin_is_tty && (((x)==0) || ((x)==exp_dev_tty)))
 #endif
 
-#define real_tty_output(x) (((x)==1) || ((x)==exp_dev_tty))
-#define real_tty_input(x) (exp_stdin_is_tty && (((x)==0) || ((x)==exp_dev_tty)))
+#define real_tty_output(x) ((x->fdout == 1) || (expDevttyIs(x)))
+#define real_tty_input(x) (exp_stdin_is_tty && ((x->fdin==0) || (expDevttyIs(x))))
 
 #define new(x)	(x *)ckalloc(sizeof(x))
 
 struct action {
-	char *statement;
+	Tcl_Obj *statement;
 	int tty_reset;		/* if true, reset tty mode upon action */
 	int iread;		/* if true, reread indirects */
 	int iwrite;		/* if true, write spawn_id element */
-	int timestamp;		/* if true, generate timestamp */
 	struct action *next;	/* chain only for later for freeing */
 };
 
 struct keymap {
-	char *keys;	/* original pattern provided by user */
-	regexp *re;
+	Tcl_Obj *keys;	/* original pattern provided by user */
+	int re;		/* true if looking to match a regexp. */
 	int null;	/* true if looking to match 0 byte */
 	int case_sensitive;
 	int echo;	/* if keystrokes should be echoed */
@@ -113,6 +117,39 @@ struct input {
 	struct input *next;
 };
 
+/*
+ * Once we are handed an ExpState from the event handler, we can figure out
+ * which "struct input *" it references by using expStateToInput.  This has is
+ * populated by expCreateStateToInput.
+ */
+
+struct input *
+expStateToInput(hash,esPtr)
+    ExpState *esPtr;
+    Tcl_HashTable *hash;
+{
+    Tcl_HashEntry *entry = Tcl_FindHashEntry(hash,(char *)esPtr);
+
+    if (!entry) {
+	/* should never happen */
+	return 0;
+    }
+    return ((struct input *)Tcl_GetHashValue(entry));
+}
+
+void
+expCreateStateToInput(hash,esPtr,inp)
+    ExpState *esPtr;
+    Tcl_HashTable *hash;
+    struct input *inp;
+{
+    Tcl_HashEntry *entry;
+    int newPtr;
+
+    entry = Tcl_CreateHashEntry(hash,(char *)esPtr,&newPtr);
+    Tcl_SetHashValue(entry,(ClientData)inp);
+}
+
 static void free_input();
 static void free_keymap();
 static void free_output();
@@ -120,14 +157,14 @@ static void free_action();
 static struct action *new_action();
 static int inter_eval();
 
-/* in_keymap() accepts user keystrokes and returns one of MATCH,
+/* intMatch() accepts user keystrokes and returns one of MATCH,
 CANMATCH, or CANTMATCH.  These describe whether the keystrokes match a
 key sequence, and could or can't if more characters arrive.  The
 function assigns a matching keymap if there is a match or can-match.
 A matching keymap is assigned on can-match so we know whether to echo
 or not.
 
-in_keymap is optimized (if you can call it that) towards a small
+intMatch is optimized (if you can call it that) towards a small
 number of key mappings, but still works well for large maps, since no
 function calls are made, and we stop as soon as there is a single-char
 mismatch, and go on to the next one.  A hash table or compiled DFA
@@ -149,38 +186,53 @@ we're ready).  The other is to return can-match.
 */
 
 static int
-in_keymap(string,stringlen,keymap,km_match,match_length,skip,rm_nulls)
-char *string;
-int stringlen;
-struct keymap *keymap;		/* linked list of keymaps */
-struct keymap **km_match;	/* keymap that matches or can match */
-int *match_length;		/* # of chars that matched */
-int *skip;			/* # of chars to skip */
-int rm_nulls;			/* skip nulls if true */
+intMatch(esPtr,keymap,km_match,matchLen,skip,info)
+    ExpState *esPtr;
+    struct keymap *keymap;	/* linked list of keymaps */
+    struct keymap **km_match;	/* keymap that matches or can match */
+    int *matchLen;		/* # of bytes that matched */
+    int *skip;			/* # of chars to skip */
+    Tcl_RegExpInfo *info;
 {
-	struct keymap *km;
-	char *ks;		/* string from a keymap */
-	char *start_search;	/* where in the string to start searching */
-	char *string_end;
+    char *string;
+    struct keymap *km;
+    char *ks;		/* string from a keymap */
 
-	/* assert (*km == 0) */
+    char *start_search;	/* where in string to start searching */
+    int offset;		/* # of chars from string to start searching */
 
-	/* a shortcut that should help master output which typically */
-	/* is lengthy and has no key maps.  Otherwise it would mindlessly */
-	/* iterate on each character anyway. */
-	if (!keymap) {
-		*skip = stringlen;
-		return(EXP_CANTMATCH);
-	}
+    char *string_end;
+    int stringBytes, bytesThisChar;
+    int rm_nulls;		/* skip nulls if true */
+    Tcl_UniChar ch;
 
-	string_end = string + stringlen;
+    string = Tcl_GetStringFromObj(esPtr->buffer,&stringBytes);
 
-	/* Mark beginning of line for ^ . */
-	regbol = string;
+    /* assert (*km == 0) */
 
-/* skip over nulls - Pascal Meheut, pascal@cnam.cnam.fr 18-May-1993 */
-/*    for (start_search = string;*start_search;start_search++) {*/
-    for (start_search = string;start_search<string_end;start_search++) {
+    /* a shortcut that should help master output which typically */
+    /* is lengthy and has no key maps.  Otherwise it would mindlessly */
+    /* iterate on each character anyway. */
+    if (!keymap) {
+	*skip = stringBytes;
+	return(EXP_CANTMATCH);
+    }
+
+    rm_nulls = esPtr->rm_nulls;
+
+    string_end = string + stringBytes;
+
+    /*
+     * Maintain both a character index and a string pointer so we
+     * can easily index into either the UTF or the Unicode representations.
+     */
+
+    for (start_search = string, offset = 0;
+	 start_search < string_end;
+	 start_search += bytesThisChar, offset++) {
+
+	bytesThisChar = Tcl_UtfToUniChar(start_search, &ch);
+	
 	if (*km_match) break; /* if we've already found a CANMATCH */
 			/* don't bother starting search from positions */
 			/* further along the string */
@@ -189,104 +241,230 @@ int rm_nulls;			/* skip nulls if true */
 	    char *s;	/* current character being examined */
 
 	    if (km->null) {
-		if (*start_search == 0) {
+		if (ch == 0) {
 		    *skip = start_search-string;
-		    *match_length = 1;	/* s - start_search == 1 */
+		    *matchLen = 1;	/* s - start_search == 1 */
 		    *km_match = km;
 		    return(EXP_MATCH);
 	        }
 	    } else if (!km->re) {
+		int slen, kslen;
+		Tcl_UniChar sch, ksch;
+		
 		/* fixed string */
-		for (s = start_search,ks = km->keys ;;s++,ks++) {
-			/* if we hit the end of this map, must've matched! */
-			if (*ks == 0) {
-				*skip = start_search-string;
-				*match_length = s-start_search;
-				*km_match = km;
-				return(EXP_MATCH);
-			}
 
-			/* if we ran out of user-supplied characters, and */
-			/* still haven't matched, it might match if the user */
-			/* supplies more characters next time */
+		ks = Tcl_GetString(km->keys);
+		for (s = start_search;; s += slen, ks += kslen) {
+		    /* if we hit the end of this map, must've matched! */
+		    if (*ks == 0) {
+			*skip = start_search-string;
+			*matchLen = s-start_search;
+			*km_match = km;
+			return(EXP_MATCH);
+		    }
 
-			if (s == string_end) {
-				/* skip to next key entry, but remember */
-				/* possibility that this entry might match */
-				if (!*km_match) *km_match = km;
-				break;
-			}
+		    /* if we ran out of user-supplied characters, and */
+		    /* still haven't matched, it might match if the user */
+		    /* supplies more characters next time */
 
-			/* if this is a problem for you, use exp_parity command */
-/*			if ((*s & 0x7f) == *ks) continue;*/
-			if (*s == *ks) continue;
-			if ((*s == '\0') && rm_nulls) {
-				ks--;
-				continue;
-			}
+		    if (s == string_end) {
+			/* skip to next key entry, but remember */
+			/* possibility that this entry might match */
+			if (!*km_match) *km_match = km;
 			break;
+		    }
+
+		    slen = Tcl_UtfToUniChar(s, &sch);
+		    kslen = Tcl_UtfToUniChar(ks, &ksch);
+		    
+		    if (sch == ksch) continue;
+		    if ((sch == '\0') && rm_nulls) {
+			kslen = 0;
+			continue;
+		    }
+		    break;
 		}
 	    } else {
 		/* regexp */
-		int r;	/* regtry status */
-		regexp *prog = km->re;
+		Tcl_RegExp re;
+		int flags;
+		int result;
 
-		/* if anchored, but we're not at beginning, skip pattern */
-		if (prog->reganch) {
-			if (string != start_search) continue;
-		}
+		re = Tcl_GetRegExpFromObj(NULL, km->keys,
+			TCL_REG_ADVANCED|TCL_REG_BOSONLY);
+		flags = (offset > 0) ? TCL_REG_NOTBOL : 0;
 
-		/* known starting char - quick test 'fore lotta work */
-		if (prog->regstart) {
-			/* if this is a problem for you, use exp_parity command */
-/*			/* if ((*start_search & 0x7f) != prog->regstart) continue; */
-			if (*start_search != prog->regstart) continue;
-		}
-		r = exp_regtry(prog,start_search,match_length);
-		if (r == EXP_MATCH) {
-			*km_match = km;
-			*skip = start_search-string;
-			return(EXP_MATCH);
-		}
-		if (r == EXP_CANMATCH) {
+		result = Tcl_RegExpExecObj(NULL, re, esPtr->buffer, offset,
+			-1 /* nmatches */, flags);
+		if (result > 0) {
+		    *km_match = km;
+		    *skip = start_search-string;
+		    Tcl_RegExpGetInfo(re, info);
+		    *matchLen = Tcl_UtfAtIndex(start_search,info->matches[0].end) - start_search;
+		    return EXP_MATCH;
+		} else if (result == 0) {
+		    Tcl_RegExpGetInfo(re, info);
+
+		    /*
+		     * Check to see if there was a partial match starting
+		     * at the current character.
+		     */
+		    if (info->extendStart == 0) {
 			if (!*km_match) *km_match = km;
-		}
+		    }
+		}		    
 	    }
 	}
     }
 
-	if (*km_match) {
-		/* report a can-match */
+    if (*km_match) {
+	/* report CANMATCH for -re and -ex */
 
-		char *p;
+	/*
+	 * since canmatch is only detected after we've advanced too far,
+	 * adjust start_search back to make other computations simpler
+	 */
+	start_search--;
 
-		*skip = (start_search-string)-1;
-#if 0
-		*match_length = stringlen - *skip;
-#else
-		/*
-		 * there may be nulls in the string in which case
-		 * the pattern matchers can report CANMATCH when
-		 * the null is hit.  So find the null and compute
-		 * the length of the possible match.
-		 *
-		 * Later, after we squeeze out the nulls, we will
-		 * retry the match, but for now, go along with
-		 * calling it a CANMATCH
-		 */
-		p = start_search;
-		while (*p) {
-			p++;
-		}
-		*match_length = (p - start_search) + 1;
-		/*printf(" match_length = %d\n",*match_length);*/
-#endif
-		return(EXP_CANMATCH);
+	*skip = start_search - string;
+	*matchLen = string_end - start_search;
+	return(EXP_CANMATCH);
+    }
+    
+    *skip = start_search-string;
+    return(EXP_CANTMATCH);
+}
+
+/* put regexp result in variables */
+static void
+intRegExpMatchProcess(interp,esPtr,km,info)
+     Tcl_Interp *interp;
+     ExpState *esPtr;
+     struct keymap *km;	/* ptr for above while parsing */
+     Tcl_RegExpInfo *info;
+{
+    char name[20], value[20];
+    int i;
+
+    for (i=0;i<=info->nsubs;i++) {
+	int start, end;
+	Tcl_Obj *val;
+
+	start = info->matches[i].start;
+	if (start == -1) continue;
+	end = info->matches[i].end-1;
+
+	if (km->indices) {
+	    /* start index */
+	    sprintf(name,"%d,start",i);
+	    sprintf(value,"%d",start);
+	    out(name,value);
+		    
+	    /* end index */
+	    sprintf(name,"%d,end",i);
+	    sprintf(value,"%d",end);
+	    out(name,value);
 	}
 
-	*skip = start_search-string;
-	return(EXP_CANTMATCH);
+	/* string itself */
+	sprintf(name,"%d,string",i);
+	val = Tcl_GetRange(esPtr->buffer, start, end);
+	expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
+	expDiagLogU(expPrintifyObj(val));
+	expDiagLogU("\"\r\n");
+	Tcl_SetVar2Ex(interp,INTER_OUT,name,val,0);
+    }
 }
+
+/*
+ * echo chars
+ */ 
+static void
+intEcho(esPtr,skipBytes,matchBytes)
+    ExpState *esPtr;
+    int skipBytes;
+    int matchBytes;
+{
+    int seenBytes;	/* either printed or echoed */
+    int echoBytes;
+    int offsetBytes;
+
+    /* write is unlikely to fail, since we just read from same descriptor */
+    seenBytes = esPtr->printed + esPtr->echoed;
+    if (skipBytes >= seenBytes) {
+	echoBytes = matchBytes;
+	offsetBytes = skipBytes;
+    } else if ((matchBytes + skipBytes - seenBytes) > 0) {
+	echoBytes = matchBytes + skipBytes - seenBytes;
+	offsetBytes = seenBytes;
+    }
+
+    Tcl_WriteChars(esPtr->channel,
+		   Tcl_GetString(esPtr->buffer) + offsetBytes,
+		   echoBytes);
+
+    esPtr->echoed = matchBytes + skipBytes - esPtr->printed;
+}
+
+/*
+ * intRead() does the logical equivalent of a read() for the interact command.
+ * Returns # of bytes read or negative number (EXP_XXX) indicating unusual event.
+ */
+static int
+intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
+    Tcl_Interp *interp;
+    ExpState *esPtr;
+    int warnOnBufferFull;
+    int interruptible;
+    int key;
+{
+    char *eobOld;  /* old end of buffer */
+    int cc;
+    int size;
+    char *str;
+
+    str = Tcl_GetStringFromObj(esPtr->buffer,&size);
+    eobOld = str+size;
+
+    if (size + TCL_UTF_MAX >= esPtr->msize) {
+	/*
+	 * In theory, interact could be invoked when this situation
+	 * already exists, hence the "probably" in the warning below
+	 */
+	if (warnOnBufferFull) {
+	    expDiagLogU("WARNING: interact buffer is full, probably because your\r\n");
+	    expDiagLogU("patterns have matched all of it but require more chars\r\n");
+	    expDiagLogU("in order to complete the match.\r\n");
+	    expDiagLogU("Dumping first half of buffer in order to continue\r\n");
+	    expDiagLogU("Recommend you enlarge the buffer or fix your patterns.\r\n");
+	}
+	exp_buffer_shuffle(interp,esPtr,0,INTER_OUT,"interact");
+    }
+    if (!interruptible) {
+	cc = Tcl_ReadChars(esPtr->channel,
+		esPtr->buffer,
+		esPtr->msize - (size / TCL_UTF_MAX),
+		1 /* append */);
+    } else {
+#ifdef SIMPLE_EVENT
+	cc = intIRead(esPtr->channel,
+		esPtr->buffer,
+		esPtr->msize - (size / TCL_UTF_MAX),
+		1 /* append */);
+#endif
+    }
+
+    if (cc > 0) {
+	expDiagLog("spawn id %s sent <",esPtr->name);
+	expDiagLogU(expPrintify(eobOld));
+	expDiagLogU(">\r\n");
+
+	esPtr->key = key;
+    }
+    return cc;
+}
+
+
 
 #ifdef SIMPLE_EVENT
 
@@ -319,39 +497,62 @@ tty.  It looks like this:
 
 #include <setjmp.h>
 
+#ifdef HAVE_SIGLONGJMP
+static sigjmp_buf env;                /* for interruptable read() */
+#else
 static jmp_buf env;		/* for interruptable read() */
+#endif  /* HAVE_SIGLONGJMP */
+
 static int reading;		/* while we are reading */
 				/* really, while "env" is valid */
 static int deferred_interrupt = FALSE;	/* if signal is received, but not */
-				/* in i_read record this here, so it will */
-				/* be handled next time through i_read */
+				/* in expIRead record this here, so it will */
+				/* be handled next time through expIRead */
 
-void sigchld_handler()
+static void
+sigchld_handler()
 {
-	if (reading) longjmp(env,1);
-
-	deferred_interrupt = TRUE;
+  if (reading) {
+#ifdef HAVE_SIGLONGJMP
+     siglongjmp(env,1);
+#else
+    longjmp(env,1);
+#endif  /* HAVE_SIGLONGJMP */
+  }
+  deferred_interrupt = TRUE;
 }
 
 #define EXP_CHILD_EOF -100
 
-/* interruptable read */
+/*
+ * Name: expIRead, do an interruptable read
+ *
+ * intIRead() reads from chars from the user.
+ *
+ * It returns early if it detects the death of a proc (either the spawned
+ * process or the child (surrogate).
+ */
 static int
-i_read(fd,buffer,length)
-int fd;
-char *buffer;
-int length;
+intIRead(channel,obj,size,flags);
+Tcl_Channel channel;
+Tcl_Obj *obj;
+int size;
+int flags;
 {
-	int cc = EXP_CHILD_EOF;
+    int cc = EXP_CHILD_EOF;
 
-	if (deferred_interrupt) return(cc);
+    if (deferred_interrupt) return(cc);
 
-	if (0 == setjmp(env)) {
-		reading = TRUE;
-		cc = read(fd,buffer,length);
-	}
-	reading = FALSE;
-	return(cc);
+#ifdef HAVE_SIGLONGJMP
+    if (0 == sigsetjmp(env,1)) {
+#else
+    if (0 == setjmp(env)) {
+#endif  /* HAVE_SIGLONGJMP */
+	reading = TRUE;
+	cc = Tcl_ReadChars(channel,obj,size,flags);
+    }
+    reading = FALSE;
+    return(cc);
 }
 
 /* exit status for the child process created by cmdInteract */
@@ -359,43 +560,25 @@ int length;
 #define SPAWNED_PROCESS_DIED	-3
 
 static void
-clean_up_after_child(interp,master)
+clean_up_after_child(interp,esPtr)
 Tcl_Interp *interp;
-int master;
+ExpState *esPtr;
 {
-/* should really be recoded using the common wait code in command.c */
-	int status;
-	int pid;
-	int i;
+    expWaitOnOne(); /* wait for slave */
+    expWaitOnOne(); /* wait for child */
 
-	pid = wait(&status);	/* for slave */
-	for (i=0;i<=exp_fd_max;i++) {
-		if (exp_fs[i].pid == pid) {
-			exp_fs[i].sys_waited = TRUE;
-			exp_fs[i].wait = status;
-		}
-	}
-	pid = wait(&status);	/* for child */
-	for (i=0;i<=exp_fd_max;i++) {
-		if (exp_fs[i].pid == pid) {
-			exp_fs[i].sys_waited = TRUE;
-			exp_fs[i].wait = status;
-		}
-	}
-
-	deferred_interrupt = FALSE;
-	exp_close(interp,master);
-	master = -1;
+    deferred_interrupt = FALSE;
+    exp_close(interp,esPtr);
 }
 #endif /*SIMPLE_EVENT*/
 
 static int
-update_interact_fds(interp,fd_count,fd_to_input,fd_list,input_base,
+update_interact_fds(interp,esPtrCount,esPtrToInput,esPtrs,input_base,
 			do_indirect,config_count,real_tty_caller)
 Tcl_Interp *interp;
-int *fd_count;
-struct input ***fd_to_input;	/* map from fd's to "struct input"s */
-int **fd_list;
+int *esPtrCount;
+Tcl_HashTable **esPtrToInput;	/* map from ExpStates to "struct inputs" */
+ExpState ***esPtrs;
 struct input *input_base;
 int do_indirect;		/* if true do indirects */
 int *config_count;
@@ -403,7 +586,7 @@ int *real_tty_caller;
 {
 	struct input *inp;
 	struct output *outp;
-	struct exp_fd_list *fdp;
+	struct exp_state_list *fdp;
 	int count;
 
 	int real_tty = FALSE;
@@ -427,54 +610,53 @@ int *real_tty_caller;
 		}
 
 		/* revalidate all input descriptors */
-		for (fdp = inp->i_list->fd_list;fdp;fdp=fdp->next) {
-			count++;
-			/* have to "adjust" just in case spawn id hasn't had */
-			/* a buffer sized yet */
-			if (!exp_fd2f(interp,fdp->fd,1,1,"interact"))
-				return(TCL_ERROR);
+		for (fdp = inp->i_list->state_list;fdp;fdp=fdp->next) {
+		    count++;
+		    /* have to "adjust" just in case spawn id hasn't had */
+		    /* a buffer sized yet */
+		    if (!expStateCheck(interp,fdp->esPtr,1,1,"interact")) {
+			return(TCL_ERROR);
+		    }
 		}
 
 		/* revalidate all output descriptors */
 		for (outp = inp->output;outp;outp=outp->next) {
-			for (fdp = outp->i_list->fd_list;fdp;fdp=fdp->next) {
+			for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
 				/* make user_spawn_id point to stdout */
-				if (fdp->fd == 0) {
-					fdp->fd = 1;
-				} else if (fdp->fd == 1) {
-					/* do nothing */
-				} else if (!exp_fd2f(interp,fdp->fd,1,0,"interact"))
-					return(TCL_ERROR);
+			    if (!expStdinoutIs(fdp->esPtr)) {
+				if (!expStateCheck(interp,fdp->esPtr,1,0,"interact"))
+				    return(TCL_ERROR);
+			    }
 			}
 		}
 	}
 	if (!do_indirect) return TCL_OK;
 
-	if (*fd_to_input == 0) {
-		*fd_to_input = (struct input **)ckalloc(
-				(exp_fd_max+1) * sizeof(struct input *));
-		*fd_list = (int *)ckalloc(count * sizeof(int));
+	if (*esPtrToInput == 0) {
+	    *esPtrToInput = (Tcl_HashTable *)ckalloc(sizeof(Tcl_HashTable));
+	    *esPtrs = (ExpState **)ckalloc(count * sizeof(ExpState *));
 	} else {
-		*fd_to_input = (struct input **)ckrealloc((char *)*fd_to_input,
-				(exp_fd_max+1) * sizeof(struct input *));
-		*fd_list = (int *)ckrealloc((char *)*fd_list,count * sizeof(int));
+	    /* if hash table already exists, delete it and start over */
+	    Tcl_DeleteHashTable(*esPtrToInput);
+	    *esPtrs = (ExpState **)ckrealloc((char *)*esPtrs,count * sizeof(ExpState *));
 	}
+	Tcl_InitHashTable(*esPtrToInput,TCL_ONE_WORD_KEYS);
 
 	count = 0;
 	for (inp = input_base;inp;inp=inp->next) {
-		for (fdp = inp->i_list->fd_list;fdp;fdp=fdp->next) {
-			/* build map to translate from spawn_id to struct input */
-			(*fd_to_input)[fdp->fd] = inp;
+	    for (fdp = inp->i_list->state_list;fdp;fdp=fdp->next) {
+		/* build map to translate from spawn_id to struct input */
+		expCreateStateToInput(*esPtrToInput,fdp->esPtr,inp);
 
-			/* build input to ready() */
-			(*fd_list)[count] = fdp->fd;
+		/* build input to ready() */
+		(*esPtrs)[count] = fdp->esPtr;
 
-			if (real_tty_input(fdp->fd)) real_tty = TRUE;
+		if (real_tty_input(fdp->esPtr)) real_tty = TRUE;
 
-			count++;
-		}
+		count++;
+	    }
 	}
-	*fd_count = count;
+	*esPtrCount = count;
 
 	*real_tty_caller = real_tty; /* tell caller if we have found that */
 					/* we are using real tty */
@@ -502,978 +684,881 @@ static char interpreter_cmd[] = "interpreter";
 
 /*ARGSUSED*/
 int
-Exp_InteractCmd(clientData, interp, argc, argv)
+Exp_InteractObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	char *arg;	/* shorthand for current argv */
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    Tcl_Obj *CONST *objv_copy;	/* original, for error messages */
+    char *string;
 #ifdef SIMPLE_EVENT
-	int pid;
+    int pid;
 #endif /*SIMPLE_EVENT*/
 
-	/*declarations*/
-	int input_count;	/* count of struct input descriptors */
-	struct input **fd_to_input;	/* map from fd's to "struct input"s */
-	int *fd_list;
-	struct keymap *km;	/* ptr for above while parsing */
-/* 	extern char *tclRegexpError;	/* declared in tclInt.h */
-	int master = EXP_SPAWN_ID_BAD;
-	char *master_string = 0;/* string representation of master */
-	int need_to_close_master = FALSE;	/* if an eof is received */
+    /*declarations*/
+    int input_count;	/* count of struct input descriptors */
+
+    Tcl_HashTable *esPtrToInput = 0;	/* map from ExpState to "struct inputs" */
+    ExpState **esPtrs;
+    struct keymap *km;	/* ptr for above while parsing */
+    Tcl_RegExpInfo reInfo;
+    ExpState *u = 0;
+    ExpState *esPtr = 0;
+    Tcl_Obj *chanName = 0;
+    int need_to_close_master = FALSE;	/* if an eof is received */
 				/* we use this to defer close until later */
 
-	int next_tty_reset = FALSE;	/* if we've seen a single -reset */
-	int next_iread = FALSE;/* if we've seen a single -iread */
-	int next_iwrite = FALSE;/* if we've seen a single -iread */
-	int next_re = FALSE;	/* if we've seen a single -re */
-	int next_null = FALSE;	/* if we've seen the null keyword */
-	int next_writethru = FALSE;/*if macros should also go to proc output */
-	int next_indices = FALSE;/* if we should write indices */
-	int next_echo = FALSE;	/* if macros should be echoed */
-	int next_timestamp = FALSE; /* if we should generate a timestamp */
-/*	int next_case_sensitive = TRUE;*/
-	char **oldargv = 0;	/* save original argv here if we split it */
-	int status = TCL_OK;	/* final return value */
-	int i;			/* trusty temp */
+    int next_tty_reset = FALSE;	/* if we've seen a single -reset */
+    int next_iread = FALSE;/* if we've seen a single -iread */
+    int next_iwrite = FALSE;/* if we've seen a single -iread */
+    int next_re = FALSE;	/* if we've seen a single -re */
+    int next_null = FALSE;	/* if we've seen the null keyword */
+    int next_writethru = FALSE;/*if macros should also go to proc output */
+    int next_indices = FALSE;/* if we should write indices */
+    int next_echo = FALSE;	/* if macros should be echoed */
+    int status = TCL_OK;	/* final return value */
+    int i;			/* misc temp */
+    int size;			/* size temp */
 
-	int timeout_simple = TRUE;	/* if no or global timeout */
+    int timeout_simple = TRUE;	/* if no or global timeout */
 
-	int real_tty;		/* TRUE if we are interacting with real tty */
-	int tty_changed = FALSE;/* true if we had to change tty modes for */
+    int real_tty;		/* TRUE if we are interacting with real tty */
+    int tty_changed = FALSE;/* true if we had to change tty modes for */
 				/* interact to work (i.e., to raw, noecho) */
-	int was_raw;
-	int was_echo;
-	exp_tty tty_old;
+    int was_raw;
+    int was_echo;
+    exp_tty tty_old;
 
-	char *replace_user_by_process = 0; /* for -u flag */
+    Tcl_Obj *replace_user_by_process = 0; /* for -u flag */
 
-	struct input *input_base;
+    struct input *input_base;
 #define input_user input_base
-	struct input *input_default;
-	struct input *inp;	/* overused ptr to struct input */
-	struct output *outp;	/* overused ptr to struct output */
+    struct input *input_default;
+    struct input *inp;	/* overused ptr to struct input */
+    struct output *outp;	/* overused ptr to struct output */
 
-	int dash_input_count = 0; /* # of "-input"s seen */
-	int arbitrary_timeout;
-	int default_timeout;
-	struct action action_timeout;	/* common to all */
-	struct action action_eof;	/* common to all */
-	struct action **action_eof_ptr;	/* allow -input/ouput to */
+    int dash_input_count = 0; /* # of "-input"s seen */
+    int arbitrary_timeout;
+    int default_timeout;
+    struct action action_timeout;	/* common to all */
+    struct action action_eof;	/* common to all */
+    struct action **action_eof_ptr;	/* allow -input/ouput to */
 		/* leave their eof-action assignable by a later */
 		/* -eof */
-	struct action *action_base = 0;
-	struct keymap **end_km;
+    struct action *action_base = 0;
+    struct keymap **end_km;
 
-	int key;
-	int configure_count;	/* monitor reconfigure events */
+    int key;
+    int configure_count;	/* monitor reconfigure events */
 
-	if ((argc == 2) && exp_one_arg_braced(argv[1])) {
-		return(exp_eval_with_one_arg(clientData,interp,argv));
-	} else if ((argc == 3) && streq(argv[1],"-brace")) {
-		char *new_argv[2];
-		new_argv[0] = argv[0];
-		new_argv[1] = argv[2];
-		return(exp_eval_with_one_arg(clientData,interp,new_argv));
-	}
+    if ((objc == 2) && exp_one_arg_braced(objv[1])) {
+	return(exp_eval_with_one_arg(clientData,interp,objv));
+    } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
+	Tcl_Obj *new_objv[2];
+	new_objv[0] = objv[0];
+	new_objv[1] = objv[2];
+	return(exp_eval_with_one_arg(clientData,interp,new_objv));
+    }
 
-	argv++;
-	argc--;
+    objv_copy = objv;
 
-	default_timeout = EXP_TIME_INFINITY;
-	arbitrary_timeout = EXP_TIME_INFINITY;	/* if user specifies */
+    objv++;
+    objc--;
+
+    default_timeout = EXP_TIME_INFINITY;
+    arbitrary_timeout = EXP_TIME_INFINITY;	/* if user specifies */
 		/* a bunch of timeouts with EXP_TIME_INFINITY, this will be */
 		/* left around for us to find. */
 
-	input_user = new(struct input);
-	input_user->i_list = exp_new_i_simple(0,EXP_TEMPORARY); /* stdin by default */
-	input_user->output = 0;
-	input_user->action_eof = &action_eof;
-	input_user->timeout_nominal = EXP_TIME_INFINITY;
-	input_user->action_timeout = 0;
-	input_user->keymap = 0;
+    input_user = new(struct input);
+    input_user->i_list = exp_new_i_simple(expStdinoutGet(),EXP_TEMPORARY); /* stdin by default */
+    input_user->output = 0;
+    input_user->action_eof = &action_eof;
+    input_user->timeout_nominal = EXP_TIME_INFINITY;
+    input_user->action_timeout = 0;
+    input_user->keymap = 0;
 
-	end_km = &input_user->keymap;
-	inp = input_user;
-	action_eof_ptr = &input_user->action_eof;
+    end_km = &input_user->keymap;
+    inp = input_user;
+    action_eof_ptr = &input_user->action_eof;
 
-	input_default = new(struct input);
-	input_default->i_list = exp_new_i_simple(EXP_SPAWN_ID_BAD,EXP_TEMPORARY); /* fix up later */
-	input_default->output = 0;
-	input_default->action_eof = &action_eof;
-	input_default->timeout_nominal = EXP_TIME_INFINITY;
-	input_default->action_timeout = 0;
-	input_default->keymap = 0;
-	input_default->next = 0;		/* no one else */
-	input_user->next = input_default;
+    input_default = new(struct input);
+    input_default->i_list = exp_new_i_simple((ExpState *)0,EXP_TEMPORARY); /* fix up later */
+    input_default->output = 0;
+    input_default->action_eof = &action_eof;
+    input_default->timeout_nominal = EXP_TIME_INFINITY;
+    input_default->action_timeout = 0;
+    input_default->keymap = 0;
+    input_default->next = 0;		/* no one else */
+    input_user->next = input_default;
 
-	/* default and common -eof action */
-	action_eof.statement = return_cmd;
-	action_eof.tty_reset = FALSE;
-	action_eof.iread = FALSE;
-	action_eof.iwrite = FALSE;
-	action_eof.timestamp = FALSE;
+    /* default and common -eof action */
+    action_eof.statement = tsdPtr->cmdObjReturn;
+    action_eof.tty_reset = FALSE;
+    action_eof.iread = FALSE;
+    action_eof.iwrite = FALSE;
 
-	for (;argc>0;argc--,argv++) {
-		arg = *argv;
-		if (exp_flageq("eof",arg,3)) {
-			struct action *action;
+    /*
+     * Parse the command arguments.
+     */
+    for (;objc>0;objc--,objv++) {
+	string = Tcl_GetString(*objv);
+	if (string[0] == '-') {
+	    static char *switches[] = {
+		"--",		"-exact",	"-re",		"-input",
+		"-output",	"-u",		"-o",		"-i",
+		"-echo",	"-nobuffer",	"-indices",	"-f",
+		"-reset",	"-F",		"-iread",	"-iwrite",
+		"-eof",		"-timeout",	"-nobrace",	(char *)0
+	    };
+	    enum switches {
+		EXP_SWITCH_DASH,	EXP_SWITCH_EXACT,
+		EXP_SWITCH_REGEXP,	EXP_SWITCH_INPUT,
+		EXP_SWITCH_OUTPUT,	EXP_SWITCH_USER,
+		EXP_SWITCH_OPPOSITE,	EXP_SWITCH_SPAWN_ID,
+		EXP_SWITCH_ECHO,	EXP_SWITCH_NOBUFFER,
+		EXP_SWITCH_INDICES,	EXP_SWITCH_FAST,
+		EXP_SWITCH_RESET,	EXP_SWITCH_CAPFAST,
+		EXP_SWITCH_IREAD,	EXP_SWITCH_IWRITE,
+		EXP_SWITCH_EOF,		EXP_SWITCH_TIMEOUT,
+		EXP_SWITCH_NOBRACE
+	    };
+	    int index;
 
-			argc--;argv++;
-			*action_eof_ptr = action = new_action(&action_base);
+	    /*
+	     * Allow abbreviations of switches and report an error if we
+	     * get an invalid switch.
+	     */
 
-			action->statement = *argv;
+	    if (Tcl_GetIndexFromObj(interp, *objv, switches, "switch", 0,
+		    &index) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    switch ((enum switches) index) {
+		case EXP_SWITCH_DASH:
+		case EXP_SWITCH_EXACT:
+		    objc--;
+		    objv++;
+		    goto pattern;
+		case EXP_SWITCH_REGEXP:
+		    if (objc < 1) {
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-re pattern");
+			return(TCL_ERROR);
+		    }
+		    next_re = TRUE;
+		    objc--;
+		    objv++;
 
-			action->tty_reset = next_tty_reset;
-			next_tty_reset = FALSE;
-			action->iwrite = next_iwrite;
-			next_iwrite = FALSE;
-			action->iread = next_iread;
-			next_iread = FALSE;
-			action->timestamp = next_timestamp;
-			next_timestamp = FALSE;
-			continue;
-		} else if (exp_flageq("timeout",arg,7)) {
-			int t;
-			struct action *action;
+		    /*
+		     * Try compiling the expression so we can report
+		     * any errors now rather then when we first try to
+		     * use it.
+		     */
 
-			argc--;argv++;
-			if (argc < 1) {
-				exp_error(interp,"timeout needs time");
-				return(TCL_ERROR);
-			}
-			t = atoi(*argv);
-			argc--;argv++;
+		    if (!(Tcl_GetRegExpFromObj(interp, *objv,
+			    TCL_REG_ADVANCED|TCL_REG_BOSONLY))) {
+			return TCL_ERROR;
+		    }
+		    goto pattern;
+		case EXP_SWITCH_INPUT:
+		    dash_input_count++;
+		    if (dash_input_count == 2) {
+			inp = input_default;
+			input_user->next = input_default;
+		    } else if (dash_input_count > 2) {
+			struct input *previous_input = inp;
+			inp = new(struct input);
+			previous_input->next = inp;
+		    }
+		    inp->output = 0;
+		    inp->action_eof = &action_eof;
+		    action_eof_ptr = &inp->action_eof;
+		    inp->timeout_nominal = default_timeout;
+		    inp->action_timeout = &action_timeout;
+		    inp->keymap = 0;
+		    end_km = &inp->keymap;
+		    inp->next = 0;
+		    objc--;objv++;
+		    if (objc < 1) {
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-input spawn_id");
+			return(TCL_ERROR);
+		    }
+		    inp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
+			    EXP_TEMPORARY,inter_updateproc);
+		    break;
+		case EXP_SWITCH_OUTPUT: {
+		    struct output *tmp;
 
-			/* we need an arbitrary timeout to start */
-			/* search for lowest one later */
-			if (t != -1) arbitrary_timeout = t;
+		    /* imply a "-input" */
+		    if (dash_input_count == 0) dash_input_count = 1;
 
-			timeout_simple = FALSE;
-			action = inp->action_timeout = new_action(&action_base);
-			inp->timeout_nominal = t;
-
-			action->statement = *argv;
-
-			action->tty_reset = next_tty_reset;
-			next_tty_reset = FALSE;
-			action->iwrite = next_iwrite;
-			next_iwrite = FALSE;
-			action->iread = next_iread;
-			next_iread = FALSE;
-			action->timestamp = next_timestamp;
-			next_timestamp = FALSE;
-			continue;
-		} else if (exp_flageq("null",arg,4)) {
-			next_null = TRUE;			
-		} else if (arg[0] == '-') {
-			arg++;
-			if (exp_flageq1('-',arg)		/* "--" */
-			 || (exp_flageq("exact",arg,3))) {
-				argc--;argv++;
-			} else if (exp_flageq("regexp",arg,2)) {
-				if (argc < 1) {
-					exp_error(interp,"-re needs pattern");
-					return(TCL_ERROR);
-				}
-				next_re = TRUE;
-				argc--;
-				argv++;
-			} else if (exp_flageq("input",arg,2)) {
-				dash_input_count++;
-				if (dash_input_count == 2) {
-					inp = input_default;
-					input_user->next = input_default;
-				} else if (dash_input_count > 2) {
-					struct input *previous_input = inp;
-					inp = new(struct input);
-					previous_input->next = inp;
-				}
-				inp->output = 0;
-				inp->action_eof = &action_eof;
-				action_eof_ptr = &inp->action_eof;
-				inp->timeout_nominal = default_timeout;
-				inp->action_timeout = &action_timeout;
-				inp->keymap = 0;
-				end_km = &inp->keymap;
-				inp->next = 0;
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-input needs argument");
-					return(TCL_ERROR);
-				}
-/*				inp->spawn_id = atoi(*argv);*/
-				inp->i_list = exp_new_i_complex(interp,*argv,
-						EXP_TEMPORARY,inter_updateproc);
-				continue;
-			} else if (exp_flageq("output",arg,3)) {
-				struct output *tmp;
-
-				/* imply a "-input" */
-				if (dash_input_count == 0) dash_input_count = 1;
-
-				outp = new(struct output);
+		    outp = new(struct output);
 
 				/* link new output in front of others */
-				tmp = inp->output;
-				inp->output = outp;
-				outp->next = tmp;
+		    tmp = inp->output;
+		    inp->output = outp;
+		    outp->next = tmp;
 
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-output needs argument");
-					return(TCL_ERROR);
-				}
-				outp->i_list = exp_new_i_complex(interp,*argv,
-					EXP_TEMPORARY,inter_updateproc);
+		    objc--;objv++;
+		    if (objc < 1) {
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-output spawn_id");
+			return(TCL_ERROR);
+		    }
+		    outp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
+			    EXP_TEMPORARY,inter_updateproc);
 
-				outp->action_eof = &action_eof;
-				action_eof_ptr = &outp->action_eof;
-				continue;
-			} else if (exp_flageq1('u',arg)) {	/* treat process as user */
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-u needs argument");
-					return(TCL_ERROR);
-				}
-				replace_user_by_process = *argv;
-
-				/* imply a "-input" */
-				if (dash_input_count == 0) dash_input_count = 1;
-
-				continue;
-			} else if (exp_flageq1('o',arg)) {
-				/* apply following patterns to opposite side */
-				/* of interaction */
-
-				end_km = &input_default->keymap;
-
-				/* imply two "-input" */
-				if (dash_input_count < 2) {
-					dash_input_count = 2;
-					inp = input_default;
-					action_eof_ptr = &inp->action_eof;
-				}
-				continue;
-			} else if (exp_flageq1('i',arg)) {
-				/* substitute master */
-
-				argc--;argv++;
-/*				master = atoi(*argv);*/
-				master_string = *argv;
-				/* will be used later on */
-
-				end_km = &input_default->keymap;
-
-				/* imply two "-input" */
-				if (dash_input_count < 2) {
-					dash_input_count = 2;
-					inp = input_default;
-					action_eof_ptr = &inp->action_eof;
-				}
-				continue;
-/*			} else if (exp_flageq("nocase",arg,3)) {*/
-/*				next_case_sensitive = FALSE;*/
-/*				continue;*/
-			} else if (exp_flageq("echo",arg,4)) {
-				next_echo = TRUE;
-				continue;
-			} else if (exp_flageq("nobuffer",arg,3)) {
-				next_writethru = TRUE;
-				continue;
-			} else if (exp_flageq("indices",arg,3)) {
-				next_indices = TRUE;
-				continue;
-			} else if (exp_flageq1('f',arg)) {
-				/* leftover from "fast" days */
-				continue;
-			} else if (exp_flageq("reset",arg,5)) {
-				next_tty_reset = TRUE;
-				continue;
-			} else if (exp_flageq1('F',arg)) {
-				/* leftover from "fast" days */
-				continue;
-			} else if (exp_flageq("iread",arg,2)) {
-				next_iread = TRUE;
-				continue;
-			} else if (exp_flageq("iwrite",arg,2)) {
-				next_iwrite = TRUE;
-				continue;
-			} else if (exp_flageq("eof",arg,3)) {
-				struct action *action;
-
-				argc--;argv++;
-				debuglog("-eof is deprecated, use eof\r\n");
-				*action_eof_ptr = action = new_action(&action_base);
-				action->statement = *argv;
-				action->tty_reset = next_tty_reset;
-				next_tty_reset = FALSE;
-				action->iwrite = next_iwrite;
-				next_iwrite = FALSE;
-				action->iread = next_iread;
-				next_iread = FALSE;
-				action->timestamp = next_timestamp;
-				next_timestamp = FALSE;
-
-				continue;
-			} else if (exp_flageq("timeout",arg,7)) {
-				int t;
-				struct action *action;
-				debuglog("-timeout is deprecated, use timeout\r\n");
-
-				argc--;argv++;
-				if (argc < 1) {
-					exp_error(interp,"-timeout needs time");
-					return(TCL_ERROR);
-				}
-
-				t = atoi(*argv);
-				argc--;argv++;
-				if (t != -1)
-					arbitrary_timeout = t;
-				/* we need an arbitrary timeout to start */
-				/* search for lowest one later */
-
-#if 0
-				/* if -timeout comes before "-input", then applies */
-				/* to all descriptors, else just the current one */
-				if (dash_input_count > 0) {
-					timeout_simple = FALSE;
-					action = inp->action_timeout = 
-						new_action(&action_base);
-					inp->timeout_nominal = t;
-				} else {
-					action = &action_timeout;
-					default_timeout = t;
-				}
-#endif
-				timeout_simple = FALSE;
-				action = inp->action_timeout = new_action(&action_base);
-				inp->timeout_nominal = t;
-
-				action->statement = *argv;
-				action->tty_reset = next_tty_reset;
-				next_tty_reset = FALSE;
-				action->iwrite = next_iwrite;
-				next_iwrite = FALSE;
-				action->iread = next_iread;
-				next_iread = FALSE;
-				action->timestamp = next_timestamp;
-				next_timestamp = FALSE;
-				continue;
-			} else if (exp_flageq("timestamp",arg,2)) {
-				debuglog("-timestamp is deprecated, use exp_timestamp command\r\n");
-				next_timestamp = TRUE;
-				continue;
-			} else if (exp_flageq("nobrace",arg,7)) {
-				/* nobrace does nothing but take up space */
-				/* on the command line which prevents */
-				/* us from re-expanding any command lines */
-				/* of one argument that looks like it should */
-				/* be expanded to multiple arguments. */
-				continue;
-			}
+		    outp->action_eof = &action_eof;
+		    action_eof_ptr = &outp->action_eof;
+		    break;
 		}
+		case EXP_SWITCH_USER:
+		    objc--;objv++;
+		    if (objc < 1) {
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-u spawn_id");
+			return(TCL_ERROR);
+		    }
+		    replace_user_by_process = *objv;
 
-		/*
-		 * pick up the pattern
-		 */
+		    /* imply a "-input" */
+		    if (dash_input_count == 0) dash_input_count = 1;
+		    break;
+		case EXP_SWITCH_OPPOSITE:
+		    /* apply following patterns to opposite side */
+		    /* of interaction */
 
-		km = new(struct keymap);
+		    end_km = &input_default->keymap;
 
-		/* so that we can match in order user specified */
-		/* link to end of keymap list */
-		*end_km = km;
-		km->next = 0;
-		end_km = &km->next;
+		    /* imply two "-input" */
+		    if (dash_input_count < 2) {
+			dash_input_count = 2;
+			inp = input_default;
+			action_eof_ptr = &inp->action_eof;
+		    }
+		    break;
+		case EXP_SWITCH_SPAWN_ID:
+		    /* substitute master */
 
-		km->echo = next_echo;
-		km->writethru = next_writethru;
-		km->indices = next_indices;
-		km->action.tty_reset = next_tty_reset;
-		km->action.iwrite = next_iwrite;
-		km->action.iread = next_iread;
-		km->action.timestamp = next_timestamp;
-/*		km->case_sensitive = next_case_sensitive;*/
+		    objc--;objv++;
+		    chanName = *objv;
+		    /* will be used later on */
 
-		next_indices = next_echo = next_writethru = FALSE;
-		next_tty_reset = FALSE;
-		next_iwrite = next_iread = FALSE;
-/*		next_case_sensitive = TRUE;*/
+		    end_km = &input_default->keymap;
 
-		km->keys = *argv;
+		    /* imply two "-input" */
+		    if (dash_input_count < 2) {
+			dash_input_count = 2;
+			inp = input_default;
+			action_eof_ptr = &inp->action_eof;
+		    }
+		    break;
+		case EXP_SWITCH_ECHO:
+		    next_echo = TRUE;
+		    break;
+		case EXP_SWITCH_NOBUFFER:
+		    next_writethru = TRUE;
+		    break;
+		case EXP_SWITCH_INDICES:
+		    next_indices = TRUE;
+		    break;
+		case EXP_SWITCH_RESET:
+		    next_tty_reset = TRUE;
+		    break;
+		case EXP_SWITCH_IREAD:
+		    next_iread = TRUE;
+		    break;
+		case EXP_SWITCH_IWRITE:
+			next_iwrite= TRUE;
+		    break;
+		case EXP_SWITCH_EOF: {
+		    struct action *action;
 
-		km->null = FALSE;
-		km->re = 0;
-		if (next_re) {
-			TclRegError((char *)0);
-			if (0 == (km->re = TclRegComp(*argv))) {
-				exp_error(interp,"bad regular expression: %s",
-								TclGetRegError());
-				return(TCL_ERROR);
-			}
-			next_re = FALSE;
-		} if (next_null) {
-			km->null = TRUE;
-			next_null = FALSE;
+		    objc--;objv++;
+		    expDiagLogU("-eof is deprecated, use eof\r\n");
+		    *action_eof_ptr = action = new_action(&action_base);
+		    action->statement = *objv;
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    break;
 		}
+		case EXP_SWITCH_TIMEOUT: {
+		    int t;
+		    struct action *action;
+		    expDiagLogU("-timeout is deprecated, use timeout\r\n");
 
-		argc--;argv++;
+		    objc--;objv++;
+		    if (objc < 1) {
+			Tcl_WrongNumArgs(interp,1,objv_copy,"-timeout time");
+			return(TCL_ERROR);
+		    }
 
-		km->action.statement = *argv;
-		debuglog("defining key %s, action %s\r\n",
-		 km->keys,
-		 km->action.statement?(dprintify(km->action.statement))
-				   :interpreter_cmd);
+		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
+			return TCL_ERROR;
+		    }
+		    objc--;objv++;
+		    if (t != -1)
+			arbitrary_timeout = t;
+		    /* we need an arbitrary timeout to start */
+		    /* search for lowest one later */
 
-		/* imply a "-input" */
-		if (dash_input_count == 0) dash_input_count = 1;
-	}
+		    timeout_simple = FALSE;
+		    action = inp->action_timeout = new_action(&action_base);
+		    inp->timeout_nominal = t;
 
-	/* if the user has not supplied either "-output" for the */
-	/* default two "-input"s, fix them up here */
-
-	if (!input_user->output) {
-		struct output *o = new(struct output);
-		if (master_string == 0) {
-			if (0 == exp_update_master(interp,&master,1,1)) {
-				return(TCL_ERROR);
-			}
-			o->i_list = exp_new_i_simple(master,EXP_TEMPORARY);
-		} else {
-			o->i_list = exp_new_i_complex(interp,master_string,
-					EXP_TEMPORARY,inter_updateproc);
+		    action->statement = *objv;
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    break;
 		}
-#if 0
-		if (master == EXP_SPAWN_ID_BAD) {
-			if (0 == exp_update_master(interp,&master,1,1)) {
-				return(TCL_ERROR);
-			}
+		case EXP_SWITCH_FAST:
+		case EXP_SWITCH_CAPFAST:
+		    /* noop compatibility switches for fast mode */
+		    break;
+		case EXP_SWITCH_NOBRACE:
+		    /* nobrace does nothing but take up space */
+		    /* on the command line which prevents */
+		    /* us from re-expanding any command lines */
+		    /* of one argument that looks like it should */
+		    /* be expanded to multiple arguments. */
+		    break;
+	    }
+	    continue;
+    	} else {
+	    static char *options[] = {
+		"eof", "timeout", "null", (char *)0
+	    };
+	    enum options {
+		EXP_OPTION_EOF, EXP_OPTION_TIMEOUT, EXP_OPTION_NULL
+	    };
+	    int index;
+
+	    /*
+	     * Match keywords exactly, otherwise they are patterns.
+	     */
+
+	    if (Tcl_GetIndexFromObj(interp, *objv, options, "option",
+		    1 /* exact */, &index) != TCL_OK) {
+		Tcl_ResetResult(interp);
+		goto pattern;
+	    }
+	    switch ((enum options) index) {
+		case EXP_OPTION_EOF: {
+		    struct action *action;
+
+		    objc--;objv++;
+		    *action_eof_ptr = action = new_action(&action_base);
+
+		    action->statement = *objv;
+
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    break;
 		}
-		o->i_list = exp_new_i_simple(master,EXP_TEMPORARY);
-#endif
-		o->next = 0;	/* no one else */
-		o->action_eof = &action_eof;
-		input_user->output = o;
+		case EXP_OPTION_TIMEOUT: {
+		    int t;
+		    struct action *action;
+
+		    objc--;objv++;
+		    if (objc < 1) {
+			Tcl_WrongNumArgs(interp,1,objv_copy,"timeout time");
+			return(TCL_ERROR);
+		    }
+		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
+			return TCL_ERROR;
+		    }
+		    objc--;objv++;
+
+		    /* we need an arbitrary timeout to start */
+		    /* search for lowest one later */
+		    if (t != -1) arbitrary_timeout = t;
+
+		    timeout_simple = FALSE;
+		    action = inp->action_timeout = new_action(&action_base);
+		    inp->timeout_nominal = t;
+
+		    action->statement = *objv;
+
+		    action->tty_reset = next_tty_reset;
+		    next_tty_reset = FALSE;
+		    action->iwrite = next_iwrite;
+		    next_iwrite = FALSE;
+		    action->iread = next_iread;
+		    next_iread = FALSE;
+		    break;
+		}
+		case EXP_OPTION_NULL:
+		    next_null = TRUE;
+		    goto pattern;
+	    }
+	    continue;
 	}
-
-	if (!input_default->output) {
-		struct output *o = new(struct output);
-		o->i_list = exp_new_i_simple(1,EXP_TEMPORARY);/* stdout by default */
-		o->next = 0;	/* no one else */
-		o->action_eof = &action_eof;
-		input_default->output = o;
-	}
-
-	/* if user has given "-u" flag, substitute process for user */
-	/* in first two -inputs */
-	if (replace_user_by_process) {
-		/* through away old ones */
-		exp_free_i(interp,input_user->i_list,   inter_updateproc);
-		exp_free_i(interp,input_default->output->i_list,inter_updateproc);
-
-		/* replace with arg to -u */
-		input_user->i_list = exp_new_i_complex(interp,
-				replace_user_by_process,
-				EXP_TEMPORARY,inter_updateproc);
-		input_default->output->i_list = exp_new_i_complex(interp,
-				replace_user_by_process,
-				EXP_TEMPORARY,inter_updateproc);
-	}
-
+    
 	/*
-	 * now fix up for default spawn id
+	 * pick up the pattern
 	 */
 
-	/* user could have replaced it with an indirect, so force update */
-	if (input_default->i_list->direct == EXP_INDIRECT) {
-		exp_i_update(interp,input_default->i_list);
+	pattern:
+	km = new(struct keymap);
+
+	/* so that we can match in order user specified */
+	/* link to end of keymap list */
+	*end_km = km;
+	km->next = 0;
+	end_km = &km->next;
+
+	km->echo = next_echo;
+	km->writethru = next_writethru;
+	km->indices = next_indices;
+	km->action.tty_reset = next_tty_reset;
+	km->action.iwrite = next_iwrite;
+	km->action.iread = next_iread;
+
+	next_indices = next_echo = next_writethru = FALSE;
+	next_tty_reset = FALSE;
+	next_iwrite = next_iread = FALSE;
+
+	km->keys = *objv;
+
+	km->null = FALSE;
+	km->re = 0;
+	if (next_re) {
+	    km->re = TRUE;
+	    next_re = FALSE;
+	}
+	if (next_null) {
+	    km->null = TRUE;
+	    next_null = FALSE;
 	}
 
-	if    (input_default->i_list->fd_list
-	   && (input_default->i_list->fd_list->fd == EXP_SPAWN_ID_BAD)) {
-		if (master_string == 0) {
-			if (0 == exp_update_master(interp,&master,1,1)) {
-				return(TCL_ERROR);
-			}
-			input_default->i_list->fd_list->fd = master;
-		} else {
-			/* discard old one and install new one */
-			exp_free_i(interp,input_default->i_list,inter_updateproc);
-			input_default->i_list = exp_new_i_complex(interp,master_string,
-				EXP_TEMPORARY,inter_updateproc);
-		}
-#if 0
-		if (master == EXP_SPAWN_ID_BAD) {
-			if (0 == exp_update_master(interp,&master,1,1)) {
-				return(TCL_ERROR);
-			}
-		}
-		input_default->i_list->fd_list->fd = master;
-#endif
+	objc--;objv++;
+	if (objc >= 1) {
+	    km->action.statement = *objv;
+	} else {
+	    km->action.statement = 0;
 	}
 
-	/*
-	 * check for user attempting to interact with self
-	 * they're almost certainly just fooling around
-	 */
+	expDiagLogU("defining key ");
+	expDiagLogU(Tcl_GetString(km->keys));
+	expDiagLogU(", action ");
+	expDiagLogU(km->action.statement?expPrintify(Tcl_GetString(km->action.statement)):"interpreter");
+	expDiagLogU("\r\n");
 
-	/* user could have replaced it with an indirect, so force update */
-	if (input_user->i_list->direct == EXP_INDIRECT) {
-		exp_i_update(interp,input_user->i_list);
-	}
+	/* imply a "-input" */
+	if (dash_input_count == 0) dash_input_count = 1;
+    }
 
-	if (input_user->i_list->fd_list && input_default->i_list->fd_list
-	    && (input_user->i_list->fd_list->fd == input_default->i_list->fd_list->fd)) {
-		exp_error(interp,"cannot interact with self - set spawn_id to a spawned process");
+    /* if the user has not supplied either "-output" for the */
+    /* default two "-input"s, fix them up here */
+
+    if (!input_user->output) {
+	struct output *o = new(struct output);
+	if (!chanName) {
+	    if (!(esPtr = expStateCurrent(interp,1,1,0))) {
 		return(TCL_ERROR);
+	    }
+	    o->i_list = exp_new_i_simple(esPtr,EXP_TEMPORARY);
+	} else {
+	    o->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
+		    EXP_TEMPORARY,inter_updateproc);
 	}
+	o->next = 0;	/* no one else */
+	o->action_eof = &action_eof;
+	input_user->output = o;
+    }
 
-	fd_list = 0;
-	fd_to_input = 0;
+    if (!input_default->output) {
+	struct output *o = new(struct output);
+	o->i_list = exp_new_i_simple(expStdinoutGet(),EXP_TEMPORARY);/* stdout by default */
+	o->next = 0;	/* no one else */
+	o->action_eof = &action_eof;
+	input_default->output = o;
+    }
 
-	/***************************************************************/
-	/* all data structures are sufficiently set up that we can now */
-	/* "finish()" to terminate this procedure                      */
-	/***************************************************************/
+    /* if user has given "-u" flag, substitute process for user */
+    /* in first two -inputs */
+    if (replace_user_by_process) {
+	/* through away old ones */
+	exp_free_i(interp,input_user->i_list,   inter_updateproc);
+	exp_free_i(interp,input_default->output->i_list,inter_updateproc);
 
-	status = update_interact_fds(interp,&input_count,&fd_to_input,&fd_list,input_base,1,&configure_count,&real_tty);
-	if (status == TCL_ERROR) finish(TCL_ERROR);
+	/* replace with arg to -u */
+	input_user->i_list = exp_new_i_complex(interp,
+		Tcl_GetString(replace_user_by_process),
+		EXP_TEMPORARY,inter_updateproc);
+	input_default->output->i_list = exp_new_i_complex(interp,
+		Tcl_GetString(replace_user_by_process),
+		EXP_TEMPORARY,inter_updateproc);
+    }
 
-	if (real_tty) {
-		tty_changed = exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
+    /*
+     * now fix up for default spawn id
+     */
+
+    /* user could have replaced it with an indirect, so force update */
+    if (input_default->i_list->direct == EXP_INDIRECT) {
+	exp_i_update(interp,input_default->i_list);
+    }
+
+    if (input_default->i_list->state_list
+	    && (input_default->i_list->state_list->esPtr == EXP_SPAWN_ID_BAD)) {
+	if (!chanName) {
+	    if (!(esPtr = expStateCurrent(interp,1,1,0))) {
+		return(TCL_ERROR);
+	    }
+	    input_default->i_list->state_list->esPtr = esPtr;
+	} else {
+	    /* discard old one and install new one */
+	    exp_free_i(interp,input_default->i_list,inter_updateproc);
+	    input_default->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
+		    EXP_TEMPORARY,inter_updateproc);
 	}
+    }
 
-	for (inp = input_base,i=0;inp;inp=inp->next,i++) {
-	    /* start timers */
-	    inp->timeout_remaining = inp->timeout_nominal;
-	}
+    /*
+     * check for user attempting to interact with self
+     * they're almost certainly just fooling around
+     */
 
-	key = expect_key++;
+    /* user could have replaced it with an indirect, so force update */
+    if (input_user->i_list->direct == EXP_INDIRECT) {
+	exp_i_update(interp,input_user->i_list);
+    }
 
-	/* declare ourselves "in sync" with external view of close/indirect */
-	configure_count = exp_configure_count;
+    if (input_user->i_list->state_list && input_default->i_list->state_list
+	    && (input_user->i_list->state_list->esPtr == input_default->i_list->state_list->esPtr)) {
+	exp_error(interp,"cannot interact with self - set spawn_id to a spawned process");
+	return(TCL_ERROR);
+    }
 
+    esPtrs = 0;
+
+    /*
+     * all data structures are sufficiently set up that we can now
+     * "finish()" to terminate this procedure
+     */
+
+    status = update_interact_fds(interp,&input_count,&esPtrToInput,&esPtrs,input_base,1,&configure_count,&real_tty);
+    if (status == TCL_ERROR) finish(TCL_ERROR);
+
+    if (real_tty) {
+	tty_changed = exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
+    }
+
+    for (inp = input_base,i=0;inp;inp=inp->next,i++) {
+	/* start timers */
+	inp->timeout_remaining = inp->timeout_nominal;
+    }
+
+    key = expect_key++;
+
+    /* declare ourselves "in sync" with external view of close/indirect */
+    configure_count = exp_configure_count;
+    
 #ifndef SIMPLE_EVENT
-	/* loop waiting (in event handler) for input */
-	for (;;) {
-		int te;	/* result of Tcl_Eval */
-		struct exp_f *u;
-		int rc;	/* return code from ready.  This is further */
-			/* refined by matcher. */
-		int cc;	/* chars count from read() */
-		int m;	/* master */
-		int m_out; /* where master echoes to */
-		struct action *action = 0;
-		time_t previous_time;
-		time_t current_time;
-		int match_length, skip;
-		int change;	/* if action requires cooked mode */
-		int attempt_match = TRUE;
-		struct input *soonest_input;
-		int print;		/* # of chars to print */
-		int oldprinted;		/* old version of u->printed */
+    /* loop waiting (in event handler) for input */
+    for (;;) {
+	int te;	/* result of Tcl_Eval */
+	int rc;	/* return code from ready.  This is further refined by matcher. */
+	int cc;			/* # of chars from read() */
+	struct action *action = 0;
+	time_t previous_time;
+	time_t current_time;
+	int matchLen;	/* # of chars matched */
+	int skip;		/* # of chars not involved in match */
+	int print;		/* # of chars to print */
+	int oldprinted;		/* old version of u->printed */
+	int change;		/* if action requires cooked mode */
+	int attempt_match = TRUE;
+	struct input *soonest_input;
+	int timeout;	/* current as opposed to default_timeout */
 
-		int timeout;	/* current as opposed to default_timeout */
+	/* calculate how long to wait */
+	/* by finding shortest remaining timeout */
+	if (timeout_simple) {
+	    timeout = default_timeout;
+	} else {
+	    timeout = arbitrary_timeout;
 
-		/* calculate how long to wait */
-		/* by finding shortest remaining timeout */
-		if (timeout_simple) {
-			timeout = default_timeout;
-		} else {
-			timeout = arbitrary_timeout;
-
-			for (inp=input_base;inp;inp=inp->next) {
-				if ((inp->timeout_remaining != EXP_TIME_INFINITY) &&
-				    (inp->timeout_remaining <= timeout)) {
-					soonest_input = inp;
-					timeout = inp->timeout_remaining;
-				}
-			}
-
-			time(&previous_time);
-			/* timestamp here rather than simply saving old */
-			/* current time (after ready()) to account for */
-			/* possibility of slow actions */
-
-			/* timeout can actually be EXP_TIME_INFINITY here if user */
-			/* explicitly supplied it in a few cases (or */
-			/* the count-down code is broken) */
+	    for (inp=input_base;inp;inp=inp->next) {
+		if ((inp->timeout_remaining != EXP_TIME_INFINITY) &&
+			(inp->timeout_remaining <= timeout)) {
+		    soonest_input = inp;
+		    timeout = inp->timeout_remaining;
 		}
+	    }
 
-		/* update the world, if necessary */
-		if (configure_count != exp_configure_count) {
-			status = update_interact_fds(interp,&input_count,
-					&fd_to_input,&fd_list,input_base,1,
-					&configure_count,&real_tty);
-			if (status) finish(status);
+	    time(&previous_time);
+	    /* timestamp here rather than simply saving old */
+	    /* current time (after ready()) to account for */
+	    /* possibility of slow actions */
+	    
+	    /* timeout can actually be EXP_TIME_INFINITY here if user */
+	    /* explicitly supplied it in a few cases (or */
+	    /* the count-down code is broken) */
+	}
+
+	/* update the world, if necessary */
+	if (configure_count != exp_configure_count) {
+	    status = update_interact_fds(interp,&input_count,
+		    &esPtrToInput,&esPtrs,input_base,1,
+		    &configure_count,&real_tty);
+	    if (status) finish(status);
+	}
+
+	rc = exp_get_next_event(interp,esPtrs,input_count,&u,timeout,key);
+	if (rc == EXP_TCLERROR) return(TCL_ERROR);
+	if (rc == EXP_RECONFIGURE) continue;
+	if (rc == EXP_TIMEOUT) {
+	    if (timeout_simple) {
+		action = &action_timeout;
+		goto got_action;
+	    } else {
+		action = soonest_input->action_timeout;
+		/* arbitrarily pick first fd out of list */
+		u = soonest_input->i_list->state_list->esPtr;
+	    }
+	}
+	if (!timeout_simple) {
+	    int time_diff;
+
+	    time(&current_time);
+	    time_diff = current_time - previous_time;
+
+	    /* update all timers */
+	    for (inp=input_base;inp;inp=inp->next) {
+		if (inp->timeout_remaining != EXP_TIME_INFINITY) {
+		    inp->timeout_remaining -= time_diff;
+		    if (inp->timeout_remaining < 0)
+			inp->timeout_remaining = 0;
 		}
+	    }
+	}
 
-		rc = exp_get_next_event(interp,fd_list,input_count,&m,timeout,key);
-		if (rc == EXP_TCLERROR) return(TCL_ERROR);
+	/* at this point, we have some kind of event which can be */
+	/* immediately processed - i.e. something that doesn't block */
 
-		if (rc == EXP_RECONFIGURE) continue;
+	/* figure out who we are */
+	inp = expStateToInput(esPtrToInput,u);
 
-		if (rc == EXP_TIMEOUT) {
-			if (timeout_simple) {
-				action = &action_timeout;
-				goto got_action;
-			} else {
-				action = soonest_input->action_timeout;
-				/* arbitrarily pick first fd out of list */
-				m = soonest_input->i_list->fd_list->fd;
-			}
-		}
-		if (!timeout_simple) {
-			int time_diff;
+	/* reset timer */
+	inp->timeout_remaining = inp->timeout_nominal;
 
-			time(&current_time);
-			time_diff = current_time - previous_time;
+	switch (rc) {
+	    case EXP_DATA_NEW:
+		cc = intRead(interp,u,1,0,key);
+		if (cc > 0) break;
 
-			/* update all timers */
-			for (inp=input_base;inp;inp=inp->next) {
-				if (inp->timeout_remaining != EXP_TIME_INFINITY) {
-					inp->timeout_remaining -= time_diff;
-					if (inp->timeout_remaining < 0)
-						inp->timeout_remaining = 0;
-				}
-			}
-		}
-
-		/* at this point, we have some kind of event which can be */
-		/* immediately processed - i.e. something that doesn't block */
-
-		/* figure out who we are */
-		inp = fd_to_input[m];
-/*		u = inp->f;*/
-		u = exp_fs+m;
-
-		/* reset timer */
-		inp->timeout_remaining = inp->timeout_nominal;
-
-		switch (rc) {
-		case EXP_DATA_NEW:
-			if (u->size == u->msize) {
-			    /* In theory, interact could be invoked when this situation */
-			    /* already exists, hence the "probably" in the warning below */
-
-			    debuglog("WARNING: interact buffer is full, probably because your\r\n");
-			    debuglog("patterns have matched all of it but require more chars\r\n");
-			    debuglog("in order to complete the match.\r\n");
-			    debuglog("Dumping first half of buffer in order to continue\r\n");
-			    debuglog("Recommend you enlarge the buffer or fix your patterns.\r\n");
-			    exp_buffer_shuffle(interp,u,0,INTER_OUT,"interact");
-		        }
-			cc = read(m,	u->buffer + u->size,
-					u->msize - u->size);
-			if (cc > 0) {
-				u->key = key;
-				u->size += cc;
-				u->buffer[u->size] = '\0';
-
-				/* strip parity if requested */
-				if (u->parity == 0) {
-					/* do it from end backwards */
-					char *p = u->buffer + u->size - 1;
-					int count = cc;
-					while (count--) {
-						*p-- &= 0x7f;
-					}
-				}
-
-				/* avoid another function call if possible */
-				if (debugfile || is_debugging) {
-					debuglog("spawn id %d sent <%s>\r\n",m,
-						exp_printify(u->buffer + u->size - cc));
-				}
-				break;
-			}
-
-			rc = EXP_EOF;
-			/* Most systems have read() return 0, allowing */
-			/* control to fall thru and into this code.  On some */
-			/* systems (currently HP and new SGI), read() does */
-			/* see eof, and it must be detected earlier.  Then */
-			/* control jumps directly to this EXP_EOF label. */
-
-			/*FALLTHRU*/
-		case EXP_EOF:
-			action = inp->action_eof;
-			attempt_match = FALSE;
-			skip = u->size;
-			debuglog("interact: received eof from spawn_id %d\r\n",m);
-			/* actual close is done later so that we have a */
-			/* chance to flush out any remaining characters */
-			need_to_close_master = TRUE;
-
-#if EOF_SO
-			/* should really check for remaining chars and */
-			/* flush them but this will only happen in the */
-			/* unlikely scenario that there are partially */
-			/* matched buffered chars. */
-			/* So for now, indicate no chars to skip. */
-			skip = 0;
-			exp_close(interp,m);
-#endif
-			break;
-		case EXP_DATA_OLD:
-			cc = 0;
-			break;
-		case EXP_TIMEOUT:
-			action = inp->action_timeout;
-			attempt_match = FALSE;
-			skip = u->size;
-			break;
-		}
-
-		km = 0;
-
-		if (attempt_match) {
-			rc = in_keymap(u->buffer,u->size,inp->keymap,
-				&km,&match_length,&skip,u->rm_nulls);
-		} else {
-			attempt_match = TRUE;
-		}
-
-		/* put regexp result in variables */
-		if (km && km->re) {
-#define out(var,val)  debuglog("expect: set %s(%s) \"%s\"\r\n",INTER_OUT,var, \
-						dprintify(val)); \
-		    Tcl_SetVar2(interp,INTER_OUT,var,val,0);
-
-			char name[20], value[20];
-			regexp *re = km->re;
-			char match_char;/* place to hold char temporarily */
-					/* uprooted by a NULL */
-
-			for (i=0;i<NSUBEXP;i++) {
-				int offset;
-
-				if (re->startp[i] == 0) continue;
-
-				if (km->indices) {
-				  /* start index */
-				  sprintf(name,"%d,start",i);
-				  offset = re->startp[i]-u->buffer;
-				  sprintf(value,"%d",offset);
-				  out(name,value);
-
-				  /* end index */
-				  sprintf(name,"%d,end",i);
-				  sprintf(value,"%d",re->endp[i]-u->buffer-1);
-				  out(name,value);
-				}
-
-				/* string itself */
-				sprintf(name,"%d,string",i);
-				/* temporarily null-terminate in */
-				/* middle */
-				match_char = *re->endp[i];
-				*re->endp[i] = 0;
-				out(name,re->startp[i]);
-				*re->endp[i] = match_char;
-			}
-		}
-
+		rc = EXP_EOF;
 		/*
-		 * dispose of chars that should be skipped
-		 * i.e., chars that cannot possibly be part of a match.
+		 * FALLTHRU
+		 *
+		 * Most systems have read() return 0, allowing
+		 * control to fall thru and into this code.  On some
+		 * systems (currently HP and new SGI), read() does
+		 * see eof, and it must be detected earlier.  Then
+		 * control jumps directly to this EXP_EOF label.
 		 */
-		
-		/* "skip" is count of chars not involved in match */
-		/* "print" is count with chars involved in match */
+	    case EXP_EOF:
+		action = inp->action_eof;
+		attempt_match = FALSE;
+		skip = expSizeGet(u);
+		expDiagLog("interact: received eof from spawn_id %s\r\n",u->name);
+		/* actual close is done later so that we have a */
+		/* chance to flush out any remaining characters */
+		need_to_close_master = TRUE;
+		break;
+	    case EXP_DATA_OLD:
+		cc = 0;
+		break;
+	    case EXP_TIMEOUT:
+		action = inp->action_timeout;
+		attempt_match = FALSE;
+		skip = expSizeGet(u);
+		break;
+	}
 
-		if (km && km->writethru) {
-			print = skip + match_length;
-		} else print = skip;
+	km = 0;
 
-		/*
-		 * echo chars if appropriate
-		 */
-		if (km && km->echo) {
-			int seen;	/* either printed or echoed */
+	if (attempt_match) {
+	    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
+	    if ((rc == EXP_MATCH) && km && km->re) {
+		intRegExpMatchProcess(interp,u,km,&reInfo);
+	    }
+	} else {
+	    attempt_match = TRUE;
+	}
 
-			/* echo to stdout rather than stdin */
-			m_out = (m == 0)?1:m;
+	/*
+	 * dispose of chars that should be skipped
+	 * i.e., chars that cannot possibly be part of a match.
+	 */
+	if (km && km->writethru) {
+	    print = skip + matchLen;
+	} else print = skip;
 
-			/* write is unlikely to fail, since we just read */
-			/* from same descriptor */
-			seen = u->printed + u->echoed;
-			if (skip >= seen) {
-				write(m_out,u->buffer+skip,match_length);
-			} else if ((match_length + skip - seen) > 0) {
-				write(m_out,u->buffer+seen,match_length+skip-seen);
-			}
-			u->echoed = match_length + skip - u->printed;
-		}
+	if (km && km->echo) {
+	    intEcho(u,skip,matchLen);
+	}
+	oldprinted = u->printed;
 
-		oldprinted = u->printed;
-
-		/* If expect has left characters in buffer, it has */
-		/* already echoed them to the screen, thus we must */
-		/* prevent them being rewritten.  Unfortunately this */
-		/* gives the possibility of matching chars that have */
-		/* already been output, but we do so since the user */
-		/* could have avoided it by flushing the output */
-		/* buffers directly. */
-		if (print > u->printed) {	/* usual case */
-			int wc;	/* return code from write() */
-			for (outp = inp->output;outp;outp=outp->next) {
-			    struct exp_fd_list *fdp;
-			    for (fdp = outp->i_list->fd_list;fdp;fdp=fdp->next) {
-				int od;	/* output descriptor */
-
-				/* send to logfile if open */
-				/* and user is seeing it */
-				if (logfile && real_tty_output(fdp->fd)) {
-					fwrite(u->buffer+u->printed,1,
-					       print - u->printed,logfile);
-				}
-
-				/* send to each output descriptor */
-				od = fdp->fd;
-				/* if opened by Tcl, it may use a different */
-				/* output descriptor */
-				od = (exp_fs[od].tcl_handle?exp_fs[od].tcl_output:od);
-
-				wc = write(od,u->buffer+u->printed,
-					print - u->printed);
-				if (wc <= 0) {
-					debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
-					action = outp->action_eof;
-					change = (action && action->tty_reset);
-
-					if (change && tty_changed)
-						exp_tty_set(interp,&tty_old,was_raw,was_echo);
-					te = inter_eval(interp,action,m);
-
-					if (change && real_tty) tty_changed =
-					   exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
-					switch (te) {
-					case TCL_BREAK:
-					case TCL_CONTINUE:
-						finish(te);
-					case EXP_TCL_RETURN:
-						finish(TCL_RETURN);
-					case TCL_RETURN:
-						finish(TCL_OK);
-					case TCL_OK:
-						/* god knows what the user might */
-						/* have done to us in the way of */
-						/* closed fds, so .... */
-						action = 0;	/* reset action */
-						continue;
-					default:
-						finish(te);
-					}
-				}
-			    }
-			}
-			u->printed = print;
-		}
-
-		/* u->printed is now accurate with respect to the buffer */
-		/* However, we're about to shift the old data out of the */
-		/* buffer.  Thus, u->size, printed, and echoed must be */
-		/* updated */
-
-		/* first update size based on skip information */
-		/* then set skip to the total amount skipped */
-
-		if (rc == EXP_MATCH) {
-			action = &km->action;
-
-			skip += match_length;
-			u->size -= skip;
-
-			if (u->size) {
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
-			}
-		} else {
-			if (skip) {
-				u->size -= skip;
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
-			}
-		}
-
-#if EOF_SO
-		/* as long as buffer is still around, null terminate it */
-		if (rc != EXP_EOF) {
-			u->buffer[u->size] = '\0';
-			u->lower [u->size] = '\0';
-		}
-#else
-		u->buffer[u->size] = '\0';
-		u->lower [u->size] = '\0';
-#endif
-
-		/* now update printed based on total amount skipped */
-
-		u->printed -= skip;
-		/* if more skipped than printed (i.e., keymap encountered) */
-		/* for printed positive */
-		if (u->printed < 0) u->printed = 0;
-
-		/* if we are in the middle of a match, force the next event */
-		/* to wait for more data to arrive */
-		u->force_read = (rc == EXP_CANMATCH);
-
-		/* finally reset echoed if necessary */
-		if (rc != EXP_CANMATCH) {
-			if (skip >= oldprinted + u->echoed) u->echoed = 0;
-		}
-
-		if (rc == EXP_EOF) {
-			exp_close(interp,m);
-			need_to_close_master = FALSE;
-		}
-
-		if (action) {
-got_action:
+	/*
+	 * If expect has left characters in buffer, it has
+	 * already echoed them to the screen, thus we must
+	 * prevent them being rewritten.  Unfortunately this
+	 * gives the possibility of matching chars that have
+	 * already been output, but we do so since the user
+	 * could have avoided it by flushing the output
+	 * buffers directly.
+	 */
+	if (print > u->printed) {	/* usual case */
+	    for (outp = inp->output;outp;outp=outp->next) {
+		struct exp_state_list *fdp;
+		for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
+		    /* send to channel (and log if chan is stdout or devtty) */
+		    /*
+		     * Following should eventually be rewritten to ...WriteCharsAnd...
+		     */
+		    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
+			    Tcl_GetString(u->buffer) + u->printed,
+			    print - u->printed);
+		    if (wc <= 0) {
+			expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
+			action = outp->action_eof;
 			change = (action && action->tty_reset);
+			
 			if (change && tty_changed)
-				exp_tty_set(interp,&tty_old,was_raw,was_echo);
-
-			te = inter_eval(interp,action,m);
+			    exp_tty_set(interp,&tty_old,was_raw,was_echo);
+			te = inter_eval(interp,action,u);
 
 			if (change && real_tty) tty_changed =
-			   exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
+						    exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
 			switch (te) {
-			case TCL_BREAK:
-			case TCL_CONTINUE:
+			    case TCL_BREAK:
+			    case TCL_CONTINUE:
 				finish(te);
-			case EXP_TCL_RETURN:
+			    case EXP_TCL_RETURN:
 				finish(TCL_RETURN);
-			case TCL_RETURN:
+			    case TCL_RETURN:
 				finish(TCL_OK);
-			case TCL_OK:
+			    case TCL_OK:
 				/* god knows what the user might */
 				/* have done to us in the way of */
 				/* closed fds, so .... */
 				action = 0;	/* reset action */
 				continue;
-			default:
+			    default:
 				finish(te);
 			}
+		    }
 		}
+	    }
+	    u->printed = print;
 	}
+	
+	/* u->printed is now accurate with respect to the buffer */
+	/* However, we're about to shift the old data out of the */
+	/* buffer.  Thus size, printed, and echoed must be */
+	/* updated */
+	
+	/* first update size based on skip information */
+	/* then set skip to the total amount skipped */
+
+	size = expSizeGet(u);
+	if (rc == EXP_MATCH) {
+	    action = &km->action;
+
+	    skip += matchLen;
+	    size -= skip;
+	    if (size) {
+		string = Tcl_GetString(u->buffer);
+		memmove(string, string + skip, size);
+	    }
+	} else {
+	    string = Tcl_GetString(u->buffer);
+	    if (skip) {
+		size -= skip;
+		memcpy(string, string + skip, size);
+	    }
+	}
+	Tcl_SetObjLength(u->buffer,size);
+
+	/* now update printed based on total amount skipped */
+
+	u->printed -= skip;
+	/* if more skipped than printed (i.e., keymap encountered) */
+	/* for printed positive */
+	if (u->printed < 0) u->printed = 0;
+
+	/* if we are in the middle of a match, force the next event */
+	/* to wait for more data to arrive */
+	u->force_read = (rc == EXP_CANMATCH);
+
+	/* finally reset echoed if necessary */
+	if (rc != EXP_CANMATCH) {
+	    if (skip >= oldprinted + u->echoed) u->echoed = 0;
+	}
+
+	if (rc == EXP_EOF) {
+	    exp_close(interp,u);
+	    need_to_close_master = FALSE;
+	}
+
+	if (action) {
+got_action:
+	    change = (action && action->tty_reset);
+	    if (change && tty_changed)
+		exp_tty_set(interp,&tty_old,was_raw,was_echo);
+
+	    te = inter_eval(interp,action,u);
+
+	    if (change && real_tty) tty_changed =
+					exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
+	    switch (te) {
+		case TCL_BREAK:
+		case TCL_CONTINUE:
+		    finish(te);
+		case EXP_TCL_RETURN:
+		    finish(TCL_RETURN);
+		case TCL_RETURN:
+		    finish(TCL_OK);
+		case TCL_OK:
+		    /* god knows what the user might */
+		    /* have done to us in the way of */
+		    /* closed fds, so .... */
+		    action = 0;	/* reset action */
+		    continue;
+		default:
+		    finish(te);
+	    }
+	}
+    }
 
 #else /* SIMPLE_EVENT */
 /*	deferred_interrupt = FALSE;*/
 {
 		int te;	/* result of Tcl_Eval */
-		struct exp_f *u;
+		ExpState *u;    /*master*/
 		int rc;	/* return code from ready.  This is further */
 			/* refined by matcher. */
 		int cc;	/* chars count from read() */
-		int m;	/* master */
 		struct action *action = 0;
 		time_t previous_time;
 		time_t current_time;
-		int match_length, skip;
+		int matchLen, skip;
 		int change;	/* if action requires cooked mode */
 		int attempt_match = TRUE;
 		struct input *soonest_input;
@@ -1486,10 +1571,20 @@ got_action:
 		exp_error(interp,"fork: %s",Tcl_PosixError(interp));
 		finish(TCL_ERROR);
 	}
-	if (pid == 0) { /* child - send process output to user */
-	    exp_close(interp,0);
+	if (pid == 0) {
+	    /*
+	     * This is a new child process.
+	     * It exists only for this interact command and will go away when
+	     * the interact returns.
+	     *
+	     * The purpose of this child process is to read output from the
+	     * spawned process and send it to the user tty.
+	     * (See diagram above.)
+	     */
 
-	    m = fd_list[1];	/* get 2nd fd */
+	    exp_close(interp,expStdinoutGet());
+
+	    u = esPtrs[1];  /* get 2nd ExpState */
 	    input_count = 1;
 
 	    while (1) {
@@ -1519,7 +1614,7 @@ got_action:
 		}
 
 		/* +1 so we can look at the "other" file descriptor */
-		rc = exp_get_next_event(interp,fd_list+1,input_count,&m,timeout,key);
+		rc = exp_get_next_event(interp,esPtrs+1,input_count,&u,timeout,key);
 		if (!timeout_simple) {
 			int time_diff;
 
@@ -1540,50 +1635,28 @@ got_action:
 		/* immediately processed - i.e. something that doesn't block */
 
 		/* figure out who we are */
-		inp = fd_to_input[m];
-/*		u = inp->f;*/
-		u = exp_fs+m;
+		inp = expStateToInput(esPtrToInput,u);
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-			cc = read(m,	u->buffer + u->size,
-					u->msize - u->size);
-			if (cc > 0) {
-				u->key = key;
-				u->size += cc;
-				u->buffer[u->size] = '\0';
-
-				/* strip parity if requested */
-				if (u->parity == 0) {
-					/* do it from end backwards */
-					char *p = u->buffer + u->size - 1;
-					int count = cc;
-					while (count--) {
-						*p-- &= 0x7f;
-					}
-				}
-
-				/* avoid another function call if possible */
-				if (debugfile || is_debugging) {
-					debuglog("spawn id %d sent <%s>\r\n",m,
-						exp_printify(u->buffer + u->size - cc));
-				}
-				break;
-			}
-			/*FALLTHRU*/
-
-			/* Most systems have read() return 0, allowing */
-			/* control to fall thru and into this code.  On some */
-			/* systems (currently HP and new SGI), read() does */
-			/* see eof, and it must be detected earlier.  Then */
-			/* control jumps directly to this EXP_EOF label. */
+		    cc = intRead(interp,u,0,0,key);
+		    if (cc > 0) break;
+		    /*
+		     * FALLTHRU
+		     *
+		     * Most systems have read() return 0, allowing
+		     * control to fall thru and into this code.  On some
+		     * systems (currently HP and new SGI), read() does
+		     * see eof, and it must be detected earlier.  Then
+		     * control jumps directly to this EXP_EOF label.
+		     */
 		case EXP_EOF:
 			action = inp->action_eof;
 			attempt_match = FALSE;
-			skip = u->size;
+			skip = expSizeGet(u);
 			rc = EXP_EOF;
-			debuglog("interact: child received eof from spawn_id %d\r\n",m);
-			exp_close(interp,m);
+			expDiagLog("interact: child received eof from spawn_id %s\r\n",u->name);
+			exp_close(interp,u);
 			break;
 		case EXP_DATA_OLD:
 			cc = 0;
@@ -1593,51 +1666,12 @@ got_action:
 		km = 0;
 
 		if (attempt_match) {
-			rc = in_keymap(u->buffer,u->size,inp->keymap,
-				&km,&match_length,&skip);
+		    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
+		    if ((rc == EXP_MATCH) && km && km->re) {
+			intRegExpMatchProcess(interp,u,km,&reInfo);
+		    }
 		} else {
-			attempt_match = TRUE;
-		}
-
-		/* put regexp result in variables */
-		if (km && km->re) {
-#define INTER_OUT "interact_out"
-#define out(i,val)  debuglog("expect: set %s(%s) \"%s\"\r\n",INTER_OUT,i, \
-						dprintify(val)); \
-		    Tcl_SetVar2(interp,INTER_OUT,i,val,0);
-
-			char name[20], value[20];
-			regexp *re = km->re;
-			char match_char;/* place to hold char temporarily */
-					/* uprooted by a NULL */
-
-			for (i=0;i<NSUBEXP;i++) {
-				int offset;
-
-				if (re->startp[i] == 0) continue;
-
-				if (km->indices) {
-				  /* start index */
-				  sprintf(name,"%d,start",i);
-				  offset = re->startp[i]-u->buffer;
-				  sprintf(value,"%d",offset);
-				  out(name,value);
-
-				  /* end index */
-				  sprintf(name,"%d,end",i);
-				  sprintf(value,"%d",re->endp[i]-u->buffer-1);
-				  out(name,value);
-				}
-
-				/* string itself */
-				sprintf(name,"%d,string",i);
-				/* temporarily null-terminate in */
-				/* middle */
-				match_char = *re->endp[i];
-				*re->endp[i] = 0;
-				out(name,re->startp[i]);
-				*re->endp[i] = match_char;
-			}
+		    attempt_match = TRUE;
 		}
 
 		/* dispose of chars that should be skipped */
@@ -1646,27 +1680,12 @@ got_action:
 		/* print is with chars involved in match */
 
 		if (km && km->writethru) {
-			print = skip + match_length;
+			print = skip + matchLen;
 		} else print = skip;
 
-		/* figure out if we should echo any chars */
 		if (km && km->echo) {
-			int seen;	/* either printed or echoed */
-
-			/* echo to stdout rather than stdin */
-			if (m == 0) m = 1;
-
-			/* write is unlikely to fail, since we just read */
-			/* from same descriptor */
-			seen = u->printed + u->echoed;
-			if (skip >= seen) {
-				write(m,u->buffer+skip,match_length);
-			} else if ((match_length + skip - seen) > 0) {
-				write(m,u->buffer+seen,match_length+skip-seen);
-			}
-			u->echoed = match_length + skip - u->printed;
+		    intEcho(u,skip,matchLen);
 		}
-
 		oldprinted = u->printed;
 
 		/* If expect has left characters in buffer, it has */
@@ -1677,86 +1696,67 @@ got_action:
 		/* could have avoided it by flushing the output */
 		/* buffers directly. */
 		if (print > u->printed) {	/* usual case */
-			int wc;	/* return code from write() */
-			for (outp = inp->output;outp;outp=outp->next) {
-			    struct exp_fd_list *fdp;
-			    for (fdp = outp->i_list->fd_list;fdp;fdp=fdp->next) {
-				int od;	/* output descriptor */
+		    for (outp = inp->output;outp;outp=outp->next) {
+			struct exp_state_list *fdp;
+			for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
+			    /* send to channel (and log if chan is stdout or devtty) */
+			    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
+				    Tcl_GetString(u->buffer) + u->printed,
+				    print - u->printed);
+			    if (wc <= 0) {
+				expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
+				action = outp->action_eof;
 
-				/* send to logfile if open */
-				/* and user is seeing it */
-				if (logfile && real_tty_output(fdp->fd)) {
-					fwrite(u->buffer+u->printed,1,
-					       print - u->printed,logfile);
-				}
+				te = inter_eval(interp,action,u);
 
-				/* send to each output descriptor */
-				od = fdp->fd;
-				/* if opened by Tcl, it may use a different */
-				/* output descriptor */
-				od = (exp_fs[od].tcl_handle?exp_fs[od].tcl_output:od);
-
-				wc = write(od,u->buffer+u->printed,
-					print - u->printed);
-				if (wc <= 0) {
-					debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
-					action = outp->action_eof;
-
-					te = inter_eval(interp,action,m);
-
-					switch (te) {
-					case TCL_BREAK:
-					case TCL_CONTINUE:
-						finish(te);
-					case EXP_TCL_RETURN:
-						finish(TCL_RETURN);
-					case TCL_RETURN:
-						finish(TCL_OK);
-					case TCL_OK:
-						/* god knows what the user might */
-						/* have done to us in the way of */
-						/* closed fds, so .... */
-						action = 0;	/* reset action */
-						continue;
-					default:
-						finish(te);
-					}
+				switch (te) {
+				    case TCL_BREAK:
+				    case TCL_CONTINUE:
+					finish(te);
+				    case EXP_TCL_RETURN:
+					finish(TCL_RETURN);
+				    case TCL_RETURN:
+					finish(TCL_OK);
+				    case TCL_OK:
+					/* god knows what the user might */
+					/* have done to us in the way of */
+					/* closed fds, so .... */
+					action = 0;	/* reset action */
+					continue;
+				    default:
+					finish(te);
 				}
 			    }
 			}
-			u->printed = print;
+		    }
+		    u->printed = print;
 		}
 
 		/* u->printed is now accurate with respect to the buffer */
 		/* However, we're about to shift the old data out of the */
-		/* buffer.  Thus, u->size, printed, and echoed must be */
+		/* buffer.  Thus size, printed, and echoed must be */
 		/* updated */
 
 		/* first update size based on skip information */
 		/* then set skip to the total amount skipped */
 
-		if (rc == EXP_MATCH) {
-			action = &km->action;
+		size = expSizeGet(u);
+		if (rc =n= EXP_MATCH) {
+		    action = &km->action;
 
-			skip += match_length;
-			u->size -= skip;
-
-			if (u->size)
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
+		    skip += matchLen;
+		    size -= skip;
+		    if (size) {
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		} else {
-			if (skip) {
-				u->size -= skip;
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
-			}
+		    if (skip) {
+			size -= skip;
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		}
+		Tcl_SetObjLength(size);
 
-		/* as long as buffer is still around, null terminate it */
-		if (rc != EXP_EOF) {
-			u->buffer[u->size] = '\0';
-			u->lower [u->size] = '\0';
-		}
 		/* now update printed based on total amount skipped */
 
 		u->printed -= skip;
@@ -1774,7 +1774,7 @@ got_action:
 		}
 
 		if (action) {
-			te = inter_eval(interp,action,m);
+			te = inter_eval(interp,action,u);
 			switch (te) {
 			case TCL_BREAK:
 			case TCL_CONTINUE:
@@ -1794,18 +1794,26 @@ got_action:
 			}
 		}
 	    }
-	} else { /* parent - send user keystrokes to process */
+	} else {
+	    /*
+	     * This is the original Expect process.
+	     *
+	     * It now loops, reading keystrokes from the user tty
+	     * and sending them to the spawned process.
+	     * (See diagram above.)
+	     */
+
 #include <signal.h>
 
 #if defined(SIGCLD) && !defined(SIGCHLD)
 #define SIGCHLD SIGCLD
 #endif
-		debuglog("fork = %d\r\n",pid);
+		expDiagLog("fork = %d\r\n",pid);
 		signal(SIGCHLD,sigchld_handler);
 /*	restart:*/
 /*		tty_changed = exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);*/
 
-	    m = fd_list[0];	/* get 1st fd */
+	    u = esPtrs[0];  /* get 1st ExpState */
 	    input_count = 1;
 
 	    while (1) {
@@ -1833,7 +1841,7 @@ got_action:
 			/* the count-down code is broken) */
 		}
 
-		rc = exp_get_next_event(interp,fd_list,input_count,&m,timeout,key);
+		rc = exp_get_next_event(interp,esPtrs,input_count,&u,timeout,key);
 		if (!timeout_simple) {
 			int time_diff;
 
@@ -1854,34 +1862,12 @@ got_action:
 		/* immediately processed - i.e. something that doesn't block */
 
 		/* figure out who we are */
-		inp = fd_to_input[m];
-/*		u = inp->f;*/
-		u = exp_fs+m;
+		inp = expStateToInput(esPtrToInput,u);
 
 		switch (rc) {
 		case EXP_DATA_NEW:
-			cc = i_read(m,	u->buffer + u->size,
-					u->msize - u->size);
-			if (cc > 0) {
-				u->key = key;
-				u->size += cc;
-				u->buffer[u->size] = '\0';
-
-				/* strip parity if requested */
-				if (u->parity == 0) {
-					/* do it from end backwards */
-					char *p = u->buffer + u->size - 1;
-					int count = cc;
-					while (count--) {
-						*p-- &= 0x7f;
-					}
-				}
-
-				/* avoid another function call if possible */
-				if (debugfile || is_debugging) {
-					debuglog("spawn id %d sent <%s>\r\n",m,
-						exp_printify(u->buffer + u->size - cc));
-				}
+		        cc = intRead(interp,u,0,1,key);
+		        if (cc > 0) {
 				break;
 			} else if (cc == EXP_CHILD_EOF) {
 				/* user could potentially have two outputs in which */
@@ -1889,25 +1875,27 @@ got_action:
 				/* the likelihood of this is nil */
 				action = inp->output->action_eof;
 				attempt_match = FALSE;
-				skip = u->size;
+				skip = expSizeGet(u);
 				rc = EXP_EOF;
-				debuglog("interact: process died/eof\r\n");
-				clean_up_after_child(interp,fd_list[1]);
+				expDiagLogU("interact: process died/eof\r\n");
+				clean_up_after_child(interp,esPtrs[1]);
 				break;
 			}
-			/*FALLTHRU*/
-
-			/* Most systems have read() return 0, allowing */
-			/* control to fall thru and into this code.  On some */
-			/* systems (currently HP and new SGI), read() does */
-			/* see eof, and it must be detected earlier.  Then */
-			/* control jumps directly to this EXP_EOF label. */
+			/*
+			 * FALLTHRU
+			 *
+			 * Most systems have read() return 0, allowing
+			 * control to fall thru and into this code.  On some
+			 * systems (currently HP and new SGI), read() does
+			 * see eof, and it must be detected earlier.  Then
+			 * control jumps directly to this EXP_EOF label.
+			 */
 		case EXP_EOF:
 			action = inp->action_eof;
 			attempt_match = FALSE;
-			skip = u->size;
+			skip = expSizeGet(u);
 			rc = EXP_EOF;
-			debuglog("user sent EOF or disappeared\n\n");
+			expDiagLogU("user sent EOF or disappeared\n\n");
 			break;
 		case EXP_DATA_OLD:
 			cc = 0;
@@ -1917,46 +1905,12 @@ got_action:
 		km = 0;
 
 		if (attempt_match) {
-			rc = in_keymap(u->buffer,u->size,inp->keymap,
-				&km,&match_length,&skip);
+		    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
+		    if ((rc == EXP_MATCH) && km && km->re) {
+			intRegExpMatchProcess(interp,u,km,&reInfo);
+		    }
 		} else {
-			attempt_match = TRUE;
-		}
-
-		/* put regexp result in variables */
-		if (km && km->re) {
-			char name[20], value[20];
-			regexp *re = km->re;
-			char match_char;/* place to hold char temporarily */
-					/* uprooted by a NULL */
-
-			for (i=0;i<NSUBEXP;i++) {
-				int offset;
-
-				if (re->startp[i] == 0) continue;
-
-				if (km->indices) {
-				  /* start index */
-				  sprintf(name,"%d,start",i);
-				  offset = re->startp[i]-u->buffer;
-				  sprintf(value,"%d",offset);
-				  out(name,value);
-
-				  /* end index */
-				  sprintf(name,"%d,end",i);
-				  sprintf(value,"%d",re->endp[i]-u->buffer-1);
-				  out(name,value);
-				}
-
-				/* string itself */
-				sprintf(name,"%d,string",i);
-				/* temporarily null-terminate in */
-				/* middle */
-				match_char = *re->endp[i];
-				*re->endp[i] = 0;
-				out(name,re->startp[i]);
-				*re->endp[i] = match_char;
-			}
+		    attempt_match = TRUE;
 		}
 
 		/* dispose of chars that should be skipped */
@@ -1965,27 +1919,12 @@ got_action:
 		/* print is with chars involved in match */
 
 		if (km && km->writethru) {
-			print = skip + match_length;
+			print = skip + matchLen;
 		} else print = skip;
 
-		/* figure out if we should echo any chars */
 		if (km && km->echo) {
-			int seen;	/* either printed or echoed */
-
-			/* echo to stdout rather than stdin */
-			if (m == 0) m = 1;
-
-			/* write is unlikely to fail, since we just read */
-			/* from same descriptor */
-			seen = u->printed + u->echoed;
-			if (skip >= seen) {
-				write(m,u->buffer+skip,match_length);
-			} else if ((match_length + skip - seen) > 0) {
-				write(m,u->buffer+seen,match_length+skip-seen);
-			}
-			u->echoed = match_length + skip - u->printed;
+		    intEcho(u,skip,matchLen);
 		}
-
 		oldprinted = u->printed;
 
 		/* If expect has left characters in buffer, it has */
@@ -1996,91 +1935,72 @@ got_action:
 		/* could have avoided it by flushing the output */
 		/* buffers directly. */
 		if (print > u->printed) {	/* usual case */
-			int wc;	/* return code from write() */
-			for (outp = inp->output;outp;outp=outp->next) {
-			    struct exp_fd_list *fdp;
-			    for (fdp = outp->i_list->fd_list;fdp;fdp=fdp->next) {
-				int od;	/* output descriptor */
+		    for (outp = inp->output;outp;outp=outp->next) {
+			struct exp_state_list *fdp;
+			for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
+			    /* send to channel (and log if chan is stdout or devtty) */
+			    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
+				    Tcl_GetString(u->buffer) + u->printed,
+				    print - u->printed);
+			    if (wc <= 0) {
+				expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
+				clean_up_after_child(interp,fdp->esPtr);
+				action = outp->action_eof;
+				change = (action && action->tty_reset);
+				if (change && tty_changed)
+				    exp_tty_set(interp,&tty_old,was_raw,was_echo);
+				te = inter_eval(interp,action,u);
 
-				/* send to logfile if open */
-				/* and user is seeing it */
-				if (logfile && real_tty_output(fdp->fd)) {
-					fwrite(u->buffer+u->printed,1,
-					       print - u->printed,logfile);
-				}
-
-				/* send to each output descriptor */
-				od = fdp->fd;
-				/* if opened by Tcl, it may use a different */
-				/* output descriptor */
-				od = (exp_fs[od].tcl_handle?exp_fs[od].tcl_output:od);
-
-				wc = write(od,u->buffer+u->printed,
-					print - u->printed);
-				if (wc <= 0) {
-					debuglog("interact: write on spawn id %d failed (%s)\r\n",fdp->fd,Tcl_PosixError(interp));
-					clean_up_after_child(interp,fdp->fd);
-					action = outp->action_eof;
-					change = (action && action->tty_reset);
-					if (change && tty_changed)
-						exp_tty_set(interp,&tty_old,was_raw,was_echo);
-					te = inter_eval(interp,action,m);
-
-					if (change && real_tty) tty_changed =
-					   exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
-					switch (te) {
-					case TCL_BREAK:
-					case TCL_CONTINUE:
-						finish(te);
-					case EXP_TCL_RETURN:
-						finish(TCL_RETURN);
-					case TCL_RETURN:
-						finish(TCL_OK);
-					case TCL_OK:
-						/* god knows what the user might */
-						/* have done to us in the way of */
-						/* closed fds, so .... */
-						action = 0;	/* reset action */
-						continue;
-					default:
-						finish(te);
-					}
+				if (change && real_tty) tty_changed =
+							    exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
+				switch (te) {
+				    case TCL_BREAK:
+				    case TCL_CONTINUE:
+					finish(te);
+				    case EXP_TCL_RETURN:
+					finish(TCL_RETURN);
+				    case TCL_RETURN:
+					finish(TCL_OK);
+				    case TCL_OK:
+					/* god knows what the user might */
+					/* have done to us in the way of */
+					/* closed fds, so .... */
+					action = 0;	/* reset action */
+					continue;
+				    default:
+					finish(te);
 				}
 			    }
 			}
-			u->printed = print;
+		    }
+		    u->printed = print;
 		}
 
 		/* u->printed is now accurate with respect to the buffer */
 		/* However, we're about to shift the old data out of the */
-		/* buffer.  Thus, u->size, printed, and echoed must be */
+		/* buffer.  Thus size, printed, and echoed must be */
 		/* updated */
 
 		/* first update size based on skip information */
 		/* then set skip to the total amount skipped */
 
+		size = expSizeGet(u);
 		if (rc == EXP_MATCH) {
-			action = &km->action;
+		    action = &km->action;
 
-			skip += match_length;
-			u->size -= skip;
-
-			if (u->size)
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
+		    skip += matchLen;
+		    size -= skip;
+		    if (size) {
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		} else {
-			if (skip) {
-				u->size -= skip;
-				memcpy(u->buffer, u->buffer + skip, u->size);
-				exp_lowmemcpy(u->lower,u->buffer+ skip, u->size);
-			}
+		    if (skip) {
+			size -= skip;
+			memcpy(u->buffer, u->buffer + skip, size);
+		    }
 		}
+		Tcl_SetObjLength(size);
 
-		/* as long as buffer is still around, null terminate it */
-		if (rc != EXP_EOF) {
-			u->buffer[u->size] = '\0';
-			u->lower [u->size] = '\0';
-		}
 		/* now update printed based on total amount skipped */
 
 		u->printed -= skip;
@@ -2102,7 +2022,7 @@ got_action:
 			if (change && tty_changed)
 				exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
-			te = inter_eval(interp,action,m);
+			te = inter_eval(interp,action,u);
 
 			if (change && real_tty) tty_changed =
 			   exp_tty_raw_noecho(interp,&tty_old,&was_raw,&was_echo);
@@ -2131,55 +2051,44 @@ got_action:
 
  done:
 #ifdef SIMPLE_EVENT
-	/* force child to exit upon eof from master */
-	if (pid == 0) {
-		exit(SPAWNED_PROCESS_DIED);
-	}
+    /* force child to exit upon eof from master */
+    if (pid == 0) {
+	exit(SPAWNED_PROCESS_DIED);
+    }
 #endif /* SIMPLE_EVENT */
 
-	if (need_to_close_master) exp_close(interp,master);
+    if (need_to_close_master) exp_close(interp,u);
 
-	if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
-	if (oldargv) ckfree((char *)argv);
-	if (fd_list) ckfree((char *)fd_list);
-	if (fd_to_input) ckfree((char *)fd_to_input);
-	free_input(interp,input_base);
-	free_action(action_base);
+    if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
+    if (esPtrs) ckfree((char *)esPtrs);
+    if (esPtrToInput) Tcl_DeleteHashTable(esPtrToInput);
+    free_input(interp,input_base);
+    free_action(action_base);
 
-	return(status);
+    return(status);
 }
 
 /* version of Tcl_Eval for interact */ 
 static int
-inter_eval(interp,action,spawn_id)
+inter_eval(interp,action,esPtr)
 Tcl_Interp *interp;
 struct action *action;
-int spawn_id;
+ExpState *esPtr;
 {
-	int status;
-	char value[20];
+    int status;
 
-	/* deprecated */
-	if (action->timestamp) {
-		time_t current_time;
-		time(&current_time);
-		exp_timestamp(interp,&current_time,INTER_OUT);
-	}
-	/* deprecated */
+    if (action->iwrite) {
+	out("spawn_id",esPtr->name);
+    }
 
-	if (action->iwrite) {
-		sprintf(value,"%d",spawn_id);
-		out("spawn_id",value);
-	}
+    if (action->statement) {
+	status = Tcl_EvalObjEx(interp,action->statement,0);
+    } else {
+	expStdoutLogU("\r\n",1);
+	status = exp_interpreter(interp,(Tcl_Obj *)0);
+    }
 
-	if (action->statement) {
-		status = Tcl_Eval(interp,action->statement);
-	} else {
-		exp_nflog("\r\n",1);
-		status = exp_interpreter(interp);
-	}
-
-	return status;
+    return status;
 }
 
 static void
@@ -2244,13 +2153,23 @@ struct output *o;
 	ckfree((char *)o);
 }
 
+
 static struct exp_cmd_data cmd_data[]  = {
-{"interact",	exp_proc(Exp_InteractCmd),	0,	0},
+{"interact",	Exp_InteractObjCmd,	0,	0,	0},
 {0}};
 
 void
 exp_init_interact_cmds(interp)
 Tcl_Interp *interp;
 {
-	exp_create_commands(interp,cmd_data);
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    exp_create_commands(interp,cmd_data);
+
+    tsdPtr->cmdObjReturn = Tcl_NewStringObj("return",6);
+    Tcl_IncrRefCount(tsdPtr->cmdObjReturn);
+#if 0
+    tsdPtr->cmdObjInterpreter = Tcl_NewStringObj("interpreter",11);
+    Tcl_IncrRefCount(tsdPtr->cmdObjInterpreter);
+#endif
 }

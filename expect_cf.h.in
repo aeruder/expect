@@ -5,6 +5,7 @@
 #define __EXPECT_CF_H__
 
 #undef NO_STDLIB_H		/* Tcl requires this name */
+#undef NO_UNION_WAIT
 #undef HAVE_STDARG_H
 #undef HAVE_VARARGS_H
 #undef HAVE_STROPTS_H
@@ -26,6 +27,7 @@
 #undef pid_t
 #undef RETSIGTYPE
 #undef TIME_WITH_SYS_TIME	/* ok to include both time.h and sys/time.h */
+#undef SETPGRP_VOID		/* if setpgrp takes 0 args */
 
 /*
  * This section is for compile macros needed by
@@ -41,6 +43,7 @@
 #undef HAVE_STRFTIME
 #undef HAVE_MEMMOVE
 #undef HAVE_TIMEZONE		/* timezone() a la Pyramid */
+#undef HAVE_SIGLONGJMP
 #undef HAVE_STRCHR
 
 #ifndef HAVE_STRCHR
