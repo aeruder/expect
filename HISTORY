@@ -3,6 +3,9 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.net> reported segfaults from reading
+		nulls.  Due to code rewrite in 5.30->5.31 transition.
+
 5/14/00 5.32.0	New version for timing with Ajuba TclPro 1.4.  This new version
 		of Expect has no new features or behaviors but a lot has been
 		fixed since 5.31.0.

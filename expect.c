@@ -1536,8 +1536,60 @@ expParityStrip(obj,offsetBytes)
 }
 #endif /*OBSOLETE*/
 
-/* Strip UTF-encoded nulls from object, beginning at offset */
+/* This function is only used when debugging.  It checks when a string's
+   internal UTF is sane and whether an offset into the string appears to
+   be at a UTF boundary.
+*/
 static void
+expValid(obj,offset)
+     Tcl_Obj *obj;
+     int offset;
+{
+  char *s, *end;
+  int len;
+
+  s = Tcl_GetStringFromObj(obj,&len);
+
+  if (offset > len) {
+    printf("offset (%d) > length (%d)\n",offset,len);
+    fflush(stdout);
+    abort();
+  }
+
+  /* first test for null terminator */
+  end = s + len;
+  if (*end != '\0') {
+    printf("obj lacks null terminator\n");
+    fflush(stdout);
+    abort();
+  }
+
+  /* check for valid UTF sequence */
+  while (*s) {
+    Tcl_UniChar uc;
+
+    s += Tcl_UtfToUniChar(s,&uc);
+    if (s > end) {
+      printf("UTF out of sync with terminator\n");
+      fflush(stdout);
+      abort();
+    }
+  }
+  s += offset;
+  while (*s) {
+    Tcl_UniChar uc;
+
+    s += Tcl_UtfToUniChar(s,&uc);
+    if (s > end) {
+      printf("UTF from offset out of sync with terminator\n");
+      fflush(stdout);
+      abort();
+    }
+  }
+}
+
+/* Strip UTF-encoded nulls from object, beginning at offset */
+static int
 expNullStrip(obj,offsetBytes)
     Tcl_Obj *obj;
     int offsetBytes;
@@ -1545,6 +1597,7 @@ expNullStrip(obj,offsetBytes)
     char *src, *src2;
     char *dest;
     Tcl_UniChar uc;
+    int newsize;       /* size of obj after all nulls removed */
 
     src2 = src = dest = Tcl_GetString(obj) + offsetBytes;
 
@@ -1554,7 +1607,9 @@ expNullStrip(obj,offsetBytes)
 	    dest += Tcl_UniCharToUtf(uc,dest);
 	}
     }
-    Tcl_SetObjLength(obj,offsetBytes + (dest - src2));
+    newsize = offsetBytes + (dest - src2);
+    Tcl_SetObjLength(obj,newsize);
+    return newsize;
 }
 
 /* returns # of bytes read or (non-positive) error of form EXP_XXX */
@@ -1727,7 +1782,7 @@ int key;
 	 * such strings.  Doing it here lets them be sent to the screen, just
 	 * in case they are involved in formatting operations
 	 */
-	if (esPtr->rm_nulls) expNullStrip(esPtr->buffer,esPtr->printed);
+	if (esPtr->rm_nulls) size = expNullStrip(esPtr->buffer,esPtr->printed);
 	esPtr->printed = size; /* count'm even if not logging */
     }
     return(cc);
