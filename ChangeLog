@@ -1,3 +1,10 @@
+2003-02-17  Andreas Kupries  <andreask@activestate.com>
+
+	* configure.in: Removed the check of configure against
+	  configure.in and Makefile.in. It is a hassle to deal with when
+	  trying to build straight from CVS, making unsupervised automatic
+	  builds difficult
+
 2003-02-14  Andreas Kupries  <andreask@activestate.com>
 
 	* configure.in:   Made expect aware of tcl stubs. Derived from the
