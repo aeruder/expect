@@ -1085,7 +1085,7 @@ EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $TCL_LD_SEARCH_FLAGS"
 # do test ourselves.  Ugh.  
 #
 if test "x$TCL_SHLIB_LD_LIBS" = "x" ; then
-	EXP_SHLIB_LD_LIBS=""
+	EXP_SHLIB_LD_LIBS="$LIBS"
 else
 	# seems a little strange to build in Tcl's build-lib, but
 	# that's what Tk does.
