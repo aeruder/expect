@@ -18,6 +18,8 @@ int argc;
 char *argv[];
 {
 	int rc = 0;
+	char buffer [30];
+
 	Tcl_Interp *interp = Tcl_CreateInterp();
 	Tcl_FindExecutable(argv[0]);
 
@@ -43,7 +45,11 @@ char *argv[];
 
 	/* assert(exp_cmdlinecmds != 0) */
 
-	Tcl_Exit(rc);
+	/* SF #439042 -- Allow overide of "exit" by user / script
+	 */
+
+	sprintf(buffer, "exit %d", rc);
+	Tcl_Eval(interp, buffer); 
 	/*NOTREACHED*/
 	return 0;		/* Needed only to prevent compiler warning. */
 }

@@ -156,7 +156,13 @@ int *was_raw, *was_echo;
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
 		expErrorLog("ioctl(raw): %s\r\n",Tcl_PosixError(interp));
-		Tcl_Exit(1);
+
+		/* SF #439042 -- Allow overide of "exit" by user / script
+		 */
+		{
+		  char buffer [] = "exit 1";
+		  Tcl_Eval(interp, buffer); 
+		}
 	}
 
 	exp_ioctled_devtty = TRUE;
@@ -185,7 +191,13 @@ int *was_raw, *was_echo;
 
 	if (exp_tty_set_simple(&tty_current) == -1) {
 		expErrorLog("ioctl(noraw): %s\r\n",Tcl_PosixError(interp));
-		Tcl_Exit(1);
+
+		/* SF #439042 -- Allow overide of "exit" by user / script
+		 */
+		{
+		  char buffer [] = "exit 1";
+		  Tcl_Eval(interp, buffer); 
+		}
 	}
 	exp_ioctled_devtty = TRUE;
 
@@ -201,7 +213,13 @@ int echo;
 {
 	if (exp_tty_set_simple(tty) == -1) {
 		expErrorLog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
-		Tcl_Exit(1);
+
+		/* SF #439042 -- Allow overide of "exit" by user / script
+		 */
+		{
+		  char buffer [] = "exit 1";
+		  Tcl_Eval(interp, buffer); 
+		}
 	}
 	is_raw = raw;
 	is_noecho = !echo;
@@ -656,7 +674,13 @@ char **argv;
 	        if (ioctl(exp_dev_tty, TCGETS, &tty_current) == -1) {
 #endif
 			expErrorLog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
-			Tcl_Exit(1);
+
+			/* SF #439042 -- Allow overide of "exit" by user / script
+			 */
+			{
+			  char buffer [] = "exit 1";
+			  Tcl_Eval(interp, buffer); 
+			}
 		}
 		if (cooked) {
 			/* find out user's new defn of 'cooked' */

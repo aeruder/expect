@@ -271,7 +271,13 @@ Tk_Init2(interp)
 	if (print_version) {
 	    extern char exp_version[];
 	    printf ("expectk version %s\n", exp_version);
-	    Tcl_Exit(0);
+
+	    /* SF #439042 -- Allow overide of "exit" by user / script
+	     */
+	    {
+	      char buffer [] = "exit 0";
+	      Tcl_Eval(interp, buffer); 
+	    }
 	}
 
 	alist = Tcl_Merge(argc, argv);

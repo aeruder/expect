@@ -65,8 +65,12 @@ static void
 usage(interp)
 Tcl_Interp *interp;
 {
+  char buffer [] = "exit 1";
   expErrorLog("usage: expect [-div] [-c cmds] [[-f] cmdfile] [args]\r\n");
-  Tcl_Exit(1);
+
+  /* SF #439042 -- Allow overide of "exit" by user / script
+   */
+  Tcl_Eval(interp, buffer); 
 }
 
 /* this clumsiness because pty routines don't know Tcl definitions */
@@ -452,7 +456,13 @@ char **argv;
 	}
 	expErrorLog("%s: requires Expect version %s (but using %s)\r\n",
 		exp_argv0,user_version,exp_version);
-	Tcl_Exit(1);
+
+	/* SF #439042 -- Allow overide of "exit" by user / script
+	 */
+	{
+	  char buffer [] = "exit 1";
+	  Tcl_Eval(interp, buffer); 
+	}
 	/*NOTREACHED*/
 }
 
@@ -627,7 +637,13 @@ char **argv;
 			exp_tcl_debugger_available = TRUE;
 			if (Tcl_GetInt(interp,optarg,&rc) != TCL_OK) {
 			    expErrorLog("%s: -D argument must be 0 or 1\r\n",exp_argv0);
-			    Tcl_Exit(1);
+
+			    /* SF #439042 -- Allow overide of "exit" by user / script
+			     */
+			    {
+			      char buffer [] = "exit 1";
+			      Tcl_Eval(interp, buffer); 
+			    }
 			}
 
 			/* set up trap handler before Dbg_On so user does */
@@ -657,7 +673,13 @@ char **argv;
 			break;
 		case 'v':
 			printf("expect version %s\n", exp_version);
-			Tcl_Exit(0);
+
+			/* SF #439042 -- Allow overide of "exit" by user / script
+			 */
+			{
+			  char buffer [] = "exit 0";
+			  Tcl_Eval(interp, buffer); 
+			}
 			break;
 		default: usage(interp);
 		}
@@ -714,7 +736,13 @@ char **argv;
 						msg = Tcl_ErrnoMsg(errno);
 					}
 					expErrorLog("%s: %s\r\n",exp_cmdfilename,msg);
-					Tcl_Exit(1);
+
+					/* SF #439042 -- Allow overide of "exit" by user / script
+					 */
+					{
+					  char buffer [] = "exit 1";
+					  Tcl_Eval(interp, buffer); 
+					}
 				}
 			}
 		} else if (!exp_cmdlinecmds) {
@@ -778,7 +806,12 @@ int sys_rc;
 			expErrorLogU(interp->result);
 			expErrorLogU("\r\n");
 		    }
-		    Tcl_Exit(1);
+		    /* SF #439042 -- Allow overide of "exit" by user / script
+		     */
+		    {
+		      char buffer [] = "exit 1";
+		      Tcl_Eval(interp, buffer); 
+		    }
 		}
 		close(fd);
 	    }
@@ -801,7 +834,12 @@ int sys_rc;
 			    expErrorLogU(interp->result);
 			    expErrorLogU("\r\n");
 			}
-			Tcl_Exit(1);
+			/* SF #439042 -- Allow overide of "exit" by user / script
+			 */
+			{
+			  char buffer [] = "exit 1";
+			  Tcl_Eval(interp, buffer); 
+			}
 		    }
 		    close(fd);
 	        }
