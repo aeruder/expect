@@ -370,7 +370,7 @@ intRegExpMatchProcess(interp,esPtr,km,info,offset)
 	/* string itself */
 	sprintf(name,"%d,string",i);
 	val = Tcl_GetRange(esPtr->buffer, start, end);
-	expDiagLog("expect_background: set %s(%s) \"",INTER_OUT,name);
+	expDiagLog("interact: set %s(%s) \"",INTER_OUT,name);
 	expDiagLogU(expPrintifyObj(val));
 	expDiagLogU("\"\r\n");
 	Tcl_SetVar2Ex(interp,INTER_OUT,name,val,0);
@@ -742,6 +742,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     struct output *outp;	/* overused ptr to struct output */
 
     int dash_input_count = 0; /* # of "-input"s seen */
+    int dash_o_count = 0; /* # of "-o"s seen */
     int arbitrary_timeout;
     int default_timeout;
     struct action action_timeout;	/* common to all */
@@ -933,11 +934,17 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    end_km = &input_default->keymap;
 
+		    if (dash_o_count > 0) {
+		      exp_error(interp,"cannot use -o more than once");
+		      return TCL_ERROR;
+		    }
+		    dash_o_count++;
+
 		    /* imply two "-input" */
 		    if (dash_input_count < 2) {
-			dash_input_count = 2;
-			inp = input_default;
-			action_eof_ptr = &inp->action_eof;
+		      dash_input_count = 2;
+		      inp = input_default;
+		      action_eof_ptr = &inp->action_eof;
 		    }
 		    break;
 		case EXP_SWITCH_SPAWN_ID:
@@ -1751,7 +1758,7 @@ got_action:
 		/* then set skip to the total amount skipped */
 
 		size = expSizeGet(u);
-		if (rc =n= EXP_MATCH) {
+		if (rc == EXP_MATCH) {
 		    action = &km->action;
 
 		    skip += matchLen;

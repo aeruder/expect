@@ -1,4 +1,30 @@
-2004-02-25  Andreas Kupries  <andreask@pliers.activestate.com>
+2004-05-19  Andreas Kupries  <andreask@activestate.com>
+
+	* Merged changes from the official version 5.41 of expect into the
+	  SF sources. See details below.
+
+	  --------------------
+	  Simon Taylor <simon@unisolve.com.xau> provided fix for interact
+	  -o which was completely broken by 5.40.1.
+
+	  Added scroll support to official tkterm.  Copied all fixes
+	  from/to term_expect to/from tkterm.
+
+	  Kiran Madabhushi <maskiran@hotmail.xcom> encountered interact
+	  diagnostics incorrectly pointing to expect_background.  Also,
+	  found multiple -o flags behaving unexpectedly.  Added diag.
+
+	  Kristoffer Eriksson <ske@pkmab.xse> noted typo in SIMPLE code in
+	  exp_inter.c.  However, this is extremely unlikely to affect any
+	  machines.
+
+	  Reinhard Max <max@suse.xcom> noted that "make test" failed when
+	  run in the background.  The log testcase was testing the
+	  send_tty command.  Added code in both Expect and in the test to
+	  handle this.
+	  --------------------
+
+2004-02-25  Andreas Kupries  <andreask@activestate.com>
 	
 	* Merged changes from the official version 5.40 of expect into the
 	  SF sources. See details below. Partially already done (Rich
@@ -193,7 +219,7 @@
 	  <morty@sanctuary.arbutus.md.us>. The bugfix itself was provided
 	  by Don Libes.
 
-2002-10-09  Andreas Kupries  <andreask@pliers.activestate.com>
+2002-10-09  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_command.c (Exp_SpawnCmd): Tcl_GetChannelHandle expected a
 	  ClientData*, but got an int*. sizeof(int) != sizeof(ClientData)

@@ -303,8 +303,8 @@ proc initLate {} {}      ;# anything that must be done late in initialization
 # sanity checking
 ######################################################################
 
-set versionString 1.6
-set versionDate "2002/08/16"
+set versionString 1.7
+set versionDate "2004/04/09"
 
 package require Tcl
 package require Tk
@@ -886,8 +886,13 @@ proc help {} {
     if {[catch {open $script} fid]} {
 	.help.text insert end "Could not open help file: $script"
     } else {
-	# discard first line to get to actual help
-	gets $fid
+	# skip to the beginning of the actual help (starts with "NAME")
+	while {-1 != [gets $fid buf]} {
+	    if {1 == [regexp "NAME" $buf]} {
+		.help.text insert end "\n NAME\n"
+		break
+	    }
+	}
 	
 	while {-1 != [gets $fid buf]} {
 	    if {0 == [regexp "^#(.?)(.*)" $buf X key buf]} break

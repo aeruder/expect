@@ -1,4 +1,4 @@
-#!../expectk -f
+#!/depot/path/expectk
 
 # Name: tknewsbiff
 # Author: Don Libes

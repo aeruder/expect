@@ -18,7 +18,9 @@ test logfile-1.1 {basic logfile} {
     send "via send"
     send_user "via send_user"
     send_error "via send_stdout"
-    send_tty "via send_tty"
+    if {[info exists ::tty_spawn_id]} {
+	    send_tty "via send_tty"
+    }
     send_log "via send_log"
     log_file
     set fid [open $filename]
@@ -26,7 +28,8 @@ test logfile-1.1 {basic logfile} {
     close $fid
     file delete -force $filename
     # verify everything but "send" is logged
-    regexp "via send_uservia send_stdoutvia send_ttyvia send_log" $buffer
+
+    regexp "via send_uservia send_stdout.*via send_log" $buffer
 } {1}
 
 cleanupTests

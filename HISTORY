@@ -3,6 +3,25 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+4/20/04	5.41.0	Simon Taylor <simon@unisolve.com.xau> provided fix for
+		interact -o which was completely broken by 5.40.1.
+
+4/6/04	5.40.1	Added scroll support to official tkterm.  Copied all fixes
+		from/to term_expect to/from tkterm.
+
+		Kiran Madabhushi <maskiran@hotmail.xcom> encountered interact
+		diagnostics incorrectly pointing to expect_background.  Also,
+		found multiple -o flags behaving unexpectedly.  Added diag.
+
+		Kristoffer Eriksson <ske@pkmab.xse> noted typo in SIMPLE code
+		in exp_inter.c.  However, this is extremely unlikely to affect
+		any machines.
+
+		Reinhard Max <max@suse.xcom> noted that "make test" failed when
+		run in the background.  The log testcase was testing the
+		send_tty command.  Added code in both Expect and in the test
+		to handle this.
+
 1/30/04	5.40.0	Eric Raymond <esr@snark.thyrsus.xcom> provided troff-related
 		fixes for the expect, lib, and dislocate man pages.
 

@@ -1909,8 +1909,13 @@ getString:
 
     if (clientData == &sendCD_user) esPtr = tsdPtr->stdinout;
     else if (clientData == &sendCD_error) esPtr = tsdPtr->stderrX;
-    else if (clientData == &sendCD_tty) esPtr = tsdPtr->devtty;
-    else if (!chanName) {
+    else if (clientData == &sendCD_tty) {
+      esPtr = tsdPtr->devtty;
+      if (!esPtr) {
+	exp_error(interp,"send_tty: cannot send to controlling terminal in an environment when there is no controlling terminal to send to!");
+	return TCL_ERROR;
+      }
+    } else if (!chanName) {
 	/* we want to check if it is open */
 	/* but since stdin could be closed, we have to first */
 	/* get the fd and then convert it from 0 to 1 if necessary */
