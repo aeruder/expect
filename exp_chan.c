@@ -1,5 +1,5 @@
 /* 
- * tclUnixChan.c
+ * exp_chan.c
  *
  *	Channel driver for Expect channels.
  *      Based on UNIX File channel from TclUnixChan.c
@@ -34,6 +34,8 @@
 #include "exp_command.h"
 #include "exp_log.h"
 
+static int		ExpBlockModeProc _ANSI_ARGS_((ClientData instanceData,
+			    int mode));
 static int		ExpCloseProc _ANSI_ARGS_((ClientData instanceData,
 			    Tcl_Interp *interp));
 static int		ExpInputProc _ANSI_ARGS_((ClientData instanceData,
@@ -52,8 +54,7 @@ static int		ExpGetHandleProc _ANSI_ARGS_((ClientData instanceData,
 
 Tcl_ChannelType expChannelType = {
     "exp",				/* Type name. */
-    /* Expect channels are always blocking */
-    NULL,				/* Set blocking/nonblocking mode.*/
+    ExpBlockModeProc,			/* Set blocking/nonblocking mode.*/
     ExpCloseProc,			/* Close proc. */
     ExpInputProc,			/* Input proc. */
     ExpOutputProc,			/* Output proc. */
@@ -79,6 +80,58 @@ typedef struct ThreadSpecificData {
 
 static Tcl_ThreadDataKey dataKey;
 
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ExpBlockModeProc --
+ *
+ *	Helper procedure to set blocking and nonblocking modes on a
+ *	file based channel. Invoked by generic IO level code.
+ *
+ * Results:
+ *	0 if successful, errno when failed.
+ *
+ * Side effects:
+ *	Sets the device into blocking or non-blocking mode.
+ *
+ *----------------------------------------------------------------------
+ */
+
+	/* ARGSUSED */
+static int
+ExpBlockModeProc(instanceData, mode)
+    ClientData instanceData;		/* Exp state. */
+    int mode;				/* The mode to set. Can be one of
+					 * TCL_MODE_BLOCKING or
+					 * TCL_MODE_NONBLOCKING. */
+{
+    ExpState *esPtr = (ExpState *) instanceData;
+    int curStatus;
+
+#ifndef USE_FIONBIO
+    curStatus = fcntl(esPtr->fdin, F_GETFL);
+    if (mode == TCL_MODE_BLOCKING) {
+	curStatus &= (~(O_NONBLOCK));
+    } else {
+	curStatus |= O_NONBLOCK;
+    }
+    if (fcntl(esPtr->fdin, F_SETFL, curStatus) < 0) {
+	return errno;
+    }
+    curStatus = fcntl(esPtr->fdin, F_GETFL);
+#else /* USE_FIONBIO */
+    if (mode == TCL_MODE_BLOCKING) {
+	curStatus = 0;
+    } else {
+	curStatus = 1;
+    }
+    if (ioctl(esPtr->fdin, (int) FIONBIO, &curStatus) < 0) {
+	return errno;
+    }
+#endif /* !USE_FIONBIO */
+    return 0;
+}
 
 /*
  *----------------------------------------------------------------------

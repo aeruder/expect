@@ -1,3 +1,21 @@
+2004-06-14  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_chan.c: Integrated the block mode proc I got by mail from
+	  Don Libes into the channel driver. This fixes an error with
+	  expect hanging on some input if the situation is just
+	  right^Hwrong. Basically if the buffers in driver, Tcl IO core
+	  and Expect itself are aligned just so it can cause Expect to
+	  block in all call to the OS for more data even if all the data
+	  it needs is in ts buffers. Because the driver is blocking and
+	  the Tcl core was told that it can run in non-blocking mode. with
+	  the block mode proc in place the driver knows that it should be
+	  non-blocking and is able to tell this to the OS as well. The
+	  call to the OS still happens, but is not blocking anymore, and
+	  so the problem is gone.
+
+	  A number of incompat changes in the Tcl IO core to work around
+	  this problem in Expect will be removed now.
+
 2004-06-03  Andreas Kupries  <andreask@activestate.com>
 
 	* aclocal.m4 (TCLHDIRDASHI): Extended with path to unix headers as
