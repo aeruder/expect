@@ -10,7 +10,7 @@ AC_INIT(expect.h)
 # note when updating version numbers here, also update pkgIndex.in (see
 # comments in Makefile)
 EXP_MAJOR_VERSION=5
-EXP_MINOR_VERSION=41
+EXP_MINOR_VERSION=42
 EXP_MICRO_VERSION=0
 EXP_VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 EXP_VERSION_NODOTS=$EXP_MAJOR_VERSION$EXP_MINOR_VERSION
@@ -193,6 +193,15 @@ else
   iunix=0
 fi
 
+AC_MSG_CHECKING([stty to use])
+if test -r /usr/local/bin/stty ; then
+  STTY_BIN=/usr/local/bin/stty
+else
+  STTY_BIN=/bin/stty
+fi
+AC_MSG_RESULT($STTY_BIN)
+AC_DEFINE(STTY_BIN)
+
 AC_MSG_CHECKING([if stty reads stdout])
 
 # On some systems stty can't be run in the background (svr4) or get it
@@ -228,7 +237,7 @@ fi
 
 # if we still don't know, test
 if test x"${stty_reads_stdout}" = x"" ; then
-  /bin/stty > /dev/null 2> /dev/null
+  $STTY_BIN > /dev/null 2> /dev/null
   if test $? -ne 0 ; then
     stty_reads_stdout=1
   else
@@ -1256,6 +1265,7 @@ AC_SUBST(EVENT_ABLE)
 AC_SUBST(SETUID)
 AC_SUBST(UNSHARED_RANLIB)
 AC_SUBST(DEFAULT_STTY_ARGS)
+AC_SUBST(STTY_BIN)
 AC_OUTPUT([Makefile \
 	pkgIndex],
 	chmod +x ${srcdir}/install-sh ${srcdir}/mkinstalldirs)

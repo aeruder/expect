@@ -400,7 +400,7 @@ intEcho(esPtr,skipBytes,matchBytes)
 	offsetBytes = seenBytes;
     }
 
-    Tcl_WriteChars(esPtr->channel,
+    (void) expWriteChars(esPtr,
 		   Tcl_GetString(esPtr->buffer) + offsetBytes,
 		   echoBytes);
 
@@ -569,7 +569,9 @@ ExpState *esPtr;
     expWaitOnOne(); /* wait for child */
 
     deferred_interrupt = FALSE;
+    if (esPtr->close_on_eof) {
     exp_close(interp,esPtr);
+}
 }
 #endif /*SIMPLE_EVENT*/
 
@@ -1452,7 +1454,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
 			    Tcl_GetString(u->buffer) + u->printed,
 			    print - u->printed);
-		    if (wc <= 0) {
+		    if (wc < 0) {
 			expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
 			action = outp->action_eof;
 			change = (action && action->tty_reset);
@@ -1530,7 +1532,9 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	}
 
 	if (rc == EXP_EOF) {
+	  if (u->close_on_eof) {
 	    exp_close(interp,u);
+	  }
 	    need_to_close_master = FALSE;
 	}
 
@@ -1720,7 +1724,7 @@ got_action:
 			    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
 				    Tcl_GetString(u->buffer) + u->printed,
 				    print - u->printed);
-			    if (wc <= 0) {
+			    if (wc < 0) {
 				expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
 				action = outp->action_eof;
 
@@ -1959,7 +1963,7 @@ got_action:
 			    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
 				    Tcl_GetString(u->buffer) + u->printed,
 				    print - u->printed);
-			    if (wc <= 0) {
+			    if (wc < 0) {
 				expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
 				clean_up_after_child(interp,fdp->esPtr);
 				action = outp->action_eof;
@@ -2074,7 +2078,7 @@ got_action:
     }
 #endif /* SIMPLE_EVENT */
 
-    if (need_to_close_master) exp_close(interp,u);
+    if (need_to_close_master && u->close_on_eof) exp_close(interp,u);
 
     if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
     if (esPtrs) ckfree((char *)esPtrs);

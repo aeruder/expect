@@ -285,7 +285,8 @@ CPPFLAGS = -I. -I$(srcdir) $(TCLHDIRDASHI) $(TKHDIRDASHI) $(X11_CFLAGS) \
 		-DSCRIPTDIR=\"$(SCRIPTDIR)\" \
 		-DEXECSCRIPTDIR=\"$(EXECSCRIPTDIR)\" \
 		-DTCL_DEBUGGER \
-		-DUSE_NON_CONST
+		-DUSE_NON_CONST \
+		-DSTTY_BIN=\"@STTY_BIN@\"
 
 # Flags to pass to cc (i.e. add to the end of the CLDFLAGS line below).
 # Note that setting one will not set others automatically.  Set all that

@@ -207,7 +207,7 @@ char *name;		/* name of pty */
 	old = signal(SIGCHLD, SIG_DFL);
 	switch (pid = fork()) {
 	case 0: /* child */
-		exec_stty("/bin/stty","/bin/stty",s);
+	  exec_stty(STTY_BIN,STTY_BIN,s);
 		break;
 	case -1: /* fail */
 	default: /* parent */
@@ -264,9 +264,9 @@ char *name;		/* name of pty */
 	RETSIGTYPE (*old)();	/* save old sigalarm handler */
 
 #ifdef STTY_READS_STDOUT
-	sprintf(buf,"/bin/stty %s > %s",s,name);
+	sprintf(buf,"%s %s > %s",STTY_BIN,s,name);
 #else
-	sprintf(buf,"/bin/stty %s < %s",s,name);
+	sprintf(buf,"%s %s < %s",STTY_BIN,s,name);
 #endif
 	old = signal(SIGCHLD, SIG_DFL);
 	system(buf);

@@ -270,7 +270,7 @@ Requires Expect 5.36.0 or later.
 Requires Tk 8.3.3 or later.
 
 .SH VERSION
-1.5
+This man page describes version 1.8 of multixterm.
 
 The latest version of multixterm is available from
 http://expect.nist.gov/example/multixterm . However, if your version

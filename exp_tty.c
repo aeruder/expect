@@ -315,7 +315,6 @@ int *len;	/* current and new length of s */
 
 /* this stupidity because Tcl needs commands in writable space */
 static char exec_cmd[] = "exec";
-static char stty_cmd[] = "/bin/stty";
 
 static int		/* returns TCL_whatever */
 exec_stty(interp,argc,argv,devtty)
@@ -331,7 +330,8 @@ int devtty;		/* if true, redirect to /dev/tty */
 	Tcl_Obj *cmdObj = Tcl_NewStringObj("",0);
 	Tcl_IncrRefCount(cmdObj);
 
-	Tcl_AppendStringsToObj(cmdObj,"exec /bin/stty",(char *)0);
+	Tcl_AppendStringsToObj(cmdObj,"exec ",(char *)0);
+	Tcl_AppendStringsToObj(cmdObj,STTY_BIN,(char *)0);
 	for (i=1;i<argc;i++) {
 	    Tcl_AppendStringsToObj(cmdObj," ",argv[i],(char *)0);
 	}

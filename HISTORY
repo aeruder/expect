@@ -3,6 +3,35 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+7/6/04	5.42b0	Releasing as beta because nonblocking mode is a big change in
+		the code.
+
+		Alexander Doktorovich <alexander.doktorovich@ericsson.xcom>
+		wanted to use Expect as a filter.  This is possible but 'too
+		hard'.  To make it easier, added close_on_eof command to
+		control whether expect/interact automatically close the
+		channel on eof.  This should simplify/enable other scripts.
+
+		Kurt Heberlein <kurth@3pardata.xcom> noted that Expect would
+		hang.  Andreas tracked it down to a change in Tcl such that
+		when Tcl had data left in its buffers, it would check for more
+		data rather than returning what it had to Expect first.  If
+		no data was forthcoming than Tcl would hang because the pty
+		driver runs in blocked mode.  Recoded to use nonblocking mode.
+
+		Yi Luo <yluo@brocade.xcom> noted that multixterm xterms were
+		reporting the parent's X window ids (via the WINDOWID env
+		variable) instead of the new ones.
+
+		Dick Van Deun <dirk@dinf.vub.ac.xbe> noted that kibitz expects
+		to find write in /bin but it is in /usr/bin on Slackware.
+		Seems safe to drop the prefix.
+
+		Steve Lee <steve@tuxsoft.xcom> noted that building Expect
+		failed on Linux when built from scratch because stty ends up
+		in /usr/local/bin rather than the assumed /bin.  Added code to
+		support this.
+
 4/20/04	5.41.0	Simon Taylor <simon@unisolve.com.xau> provided fix for
 		interact -o which was completely broken by 5.40.1.
 

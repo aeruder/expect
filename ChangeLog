@@ -1,3 +1,36 @@
+2004-07-15  Andreas Kupries  <andreask@activestate.com>
+
+	* Merged changes from the official version 5.42b0 of expect into
+	  the SF sources. See details below.
+
+	  --------------------
+	  Alexander Doktorovich <alexander.doktorovich@ericsson.xcom>
+	  wanted to use Expect as a filter.  This is possible but 'too
+	  hard'.  To make it easier, added close_on_eof command to control
+	  whether expect/interact automatically close the channel on eof.
+	  This should simplify/enable other scripts.
+
+	  Kurt Heberlein <kurth@3pardata.xcom> noted that Expect would
+	  hang. Andreas tracked it down to a change in Tcl such that when
+	  Tcl had data left in its buffers, it would check for more data
+	  rather than returning what it had to Expect first.  If no data
+	  was forthcoming than Tcl would hang because the pty driver runs
+	  in blocked mode.  Recoded to use nonblocking mode.
+
+	  Yi Luo <yluo@brocade.xcom> noted that multixterm xterms were
+	  reporting the parent's X window ids (via the WINDOWID env
+	  variable) instead of the new ones.
+
+	  Dick Van Deun <dirk@dinf.vub.ac.xbe> noted that kibitz expects
+	  to find write in /bin but it is in /usr/bin on Slackware.  Seems
+	  safe to drop the prefix.
+
+	  Steve Lee <steve@tuxsoft.xcom> noted that building Expect failed
+	  on Linux when built from scratch because stty ends up in
+	  /usr/local/bin rather than the assumed /bin.  Added code to
+	  support this.
+	  --------------------
+
 2004-06-14  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_chan.c: Integrated the block mode proc I got by mail from

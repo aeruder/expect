@@ -87,7 +87,7 @@ expWriteBytesAndLogIfTtyU(esPtr,buf,lenBytes)
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (esPtr->valid)
-	wc = Tcl_WriteChars(esPtr->channel,buf,lenBytes);
+	wc = expWriteChars(esPtr,buf,lenBytes);
 
     if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevttyIs(esPtr))) {
 	Tcl_WriteChars(tsdPtr->logChannel,buf,lenBytes);
@@ -139,7 +139,7 @@ expLogInteractionU(esPtr,buf)
     if (tsdPtr->logUser && (!expStdinoutIs(esPtr)) && (!expDevttyIs(esPtr))) {
 	ExpState *stdinout = expStdinoutGet();
 	if (stdinout->valid) {
-	    Tcl_WriteChars(stdinout->channel,buf,-1);
+	    (void) expWriteChars(stdinout,buf,-1);
 	}
     }
     expDiagWriteChars(buf,-1);

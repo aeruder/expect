@@ -23,6 +23,8 @@
 # include <unistd.h>
 #endif
 
+#include <errno.h>
+
 #include	"tclInt.h"	/* Internal definitions for Tcl. */
 
 #include "tcl.h"
@@ -80,8 +82,7 @@ typedef struct ThreadSpecificData {
 
 static Tcl_ThreadDataKey dataKey;
 
-
-/*
+/*
  *----------------------------------------------------------------------
  *
  * ExpBlockModeProc --
@@ -108,14 +109,18 @@ ExpBlockModeProc(instanceData, mode)
 {
     ExpState *esPtr = (ExpState *) instanceData;
     int curStatus;
+    /*printf("ExpBlockModeProc(%d)\n",mode);
+      printf("fdin = %d\n",esPtr->fdin);*/
 
 #ifndef USE_FIONBIO
     curStatus = fcntl(esPtr->fdin, F_GETFL);
+    /*printf("curStatus = %d\n",curStatus);*/
     if (mode == TCL_MODE_BLOCKING) {
 	curStatus &= (~(O_NONBLOCK));
     } else {
 	curStatus |= O_NONBLOCK;
     }
+    /*printf("new curStatus %d\n",curStatus);*/
     if (fcntl(esPtr->fdin, F_SETFL, curStatus) < 0) {
 	return errno;
     }
@@ -132,7 +137,6 @@ ExpBlockModeProc(instanceData, mode)
 #endif /* !USE_FIONBIO */
     return 0;
 }
-
 /*
  *----------------------------------------------------------------------
  *
@@ -421,6 +425,22 @@ expSizeZero(esPtr)
     return (len == 0);
 }
 
+/* return 0 for success or negative for failure */
+int
+expWriteChars(esPtr,buffer,lenBytes)
+     ExpState *esPtr;
+     char *buffer;
+     int lenBytes;
+{
+  int rc;
+ retry:
+  rc = Tcl_WriteChars(esPtr->channel,buffer,lenBytes);
+  if ((rc == -1) && (errno == EAGAIN)) goto retry;
+
+  /* just return 0 rather than positive byte counts */
+  return ((rc > 0) ? 0 : rc);
+}
+
 void
 expStateFree(esPtr)
     ExpState *esPtr;
@@ -587,6 +607,7 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->echoed = 0;
     esPtr->rm_nulls = exp_default_rm_nulls;
     esPtr->parity = exp_default_parity;
+    esPtr->close_on_eof = exp_default_close_on_eof;
     esPtr->key = expect_key++;
     esPtr->force_read = FALSE;
     esPtr->fg_armed = FALSE;

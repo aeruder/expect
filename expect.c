@@ -47,6 +47,7 @@ int exp_default_match_max =	2000;
 #define INIT_EXPECT_TIMEOUT	10	/* seconds */
 int exp_default_parity =	TRUE;
 int exp_default_rm_nulls =	TRUE;
+int exp_default_close_on_eof =  TRUE;
 
 /* user variable names */
 #define EXPECT_TIMEOUT		"timeout"
@@ -1754,7 +1755,9 @@ int key;
 	    } else {
 		exp_error(interp,"i_read(spawn_id fd=%d): %s",esPtr->fdin,
 			Tcl_PosixError(interp));
+		if (esPtr->close_on_eof) {
 		exp_close(interp,esPtr);
+	    }
 	    }
 	    return(EXP_TCLERROR);
 	    /* was goto error; */
@@ -2240,8 +2243,10 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    /* exp_close() deletes all background bodies */
 	    /* so save eof body temporarily */
 	    if (body) Tcl_IncrRefCount(body);
+	    if (esPtr->close_on_eof) {
 	    exp_close(interp,esPtr);
 	}
+    }
     }
 
     if (body) {
@@ -2892,6 +2897,75 @@ char **argv;
     return(TCL_OK);
 }
 
+/*ARGSUSED*/
+int
+Exp_CloseOnEofCmd(clientData,interp,argc,argv)
+ClientData clientData;
+Tcl_Interp *interp;
+int argc;
+char **argv;
+{
+    int close_on_eof;
+    ExpState *esPtr = 0;
+    char *chanName = 0;
+    int Default = FALSE;
+
+    argc--; argv++;
+
+    for (;argc>0;argc--,argv++) {
+	if (streq(*argv,"-d")) {
+	    Default = TRUE;
+	} else if (streq(*argv,"-i")) {
+	    argc--;argv++;
+	    if (argc < 1) {
+		exp_error(interp,"-i needs argument");
+		return(TCL_ERROR);
+	    }
+	    chanName = *argv;
+	} else break;
+    }
+
+    if (Default && chanName) {
+	exp_error(interp,"cannot do -d and -i at the same time");
+	return(TCL_ERROR);
+    }
+
+    if (!Default) {
+	if (!chanName) {
+	    if (!(esPtr = expStateCurrent(interp,0,0,0))) {
+		return(TCL_ERROR);
+	    }
+	} else {
+	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"close_on_eof"))) {
+		return(TCL_ERROR);
+	    }
+	}
+    }
+
+    if (argc == 0) {
+	if (Default) {
+	    close_on_eof = exp_default_close_on_eof;
+	} else {
+	    close_on_eof = esPtr->close_on_eof;
+	}
+	sprintf(interp->result,"%d",close_on_eof);
+	return(TCL_OK);
+    }
+
+    if (argc > 1) {
+	exp_error(interp,"too many arguments");
+	return(TCL_OK);
+    }
+
+    /* all that's left is to set the close_on_eof */
+    close_on_eof = atoi(argv[0]);
+
+    if (Default) exp_default_close_on_eof = close_on_eof;
+    else esPtr->close_on_eof = close_on_eof;
+
+    return(TCL_OK);
+}
+
 #if DEBUG_PERM_ECASES
 /* This big chunk of code is just for debugging the permanent */
 /* expect cases */
@@ -2990,6 +3064,7 @@ cmd_data[]  = {
 {"match_max",	exp_proc(Exp_MatchMaxCmd),	0,	0},
 {"remove_nulls",exp_proc(Exp_RemoveNullsCmd),	0,	0},
 {"parity",	exp_proc(Exp_ParityCmd),	0,	0},
+{"close_on_eof",exp_proc(Exp_CloseOnEofCmd),	0,	0},
 {"timestamp",	exp_proc(Exp_TimestampCmd),	0,	0},
 {0}};
 

@@ -303,8 +303,8 @@ proc initLate {} {}      ;# anything that must be done late in initialization
 # sanity checking
 ######################################################################
 
-set versionString 1.7
-set versionDate "2004/04/09"
+set versionString 1.8
+set versionDate "2004/06/29"
 
 package require Tcl
 package require Tk
@@ -486,21 +486,11 @@ proc xtermStart {cmd name} {
     verbose "starting new xterm running $cmd with name $name"
 
     ######################################################################
-    # start the new process
-    ######################################################################
-    set pid [eval spawn -noecho $cmd]
-    verbose "$cmd: pid = $pid, spawn_id = $spawn_id"
-    set sidCmd $spawn_id
-    lappend ::activeList $sidCmd
-    set ::activeArray($sidCmd) 1
-
-    ######################################################################
-    # start the new xterm
+    # create pty for xterm
     ######################################################################
     set pid [spawn -noecho -pty]
     verbose "spawn -pty: pid = $pid, spawn_id = $spawn_id"
     set sidXterm $spawn_id
-    set ::xtermSid($sidCmd) $spawn_id
     stty raw -echo < $spawn_out(slave,name)
 
     regexp ".*(.)(.)" $spawn_out(slave,name) dummy c1 c2
@@ -509,7 +499,7 @@ proc xtermStart {cmd name} {
     }
 
     ######################################################################
-    # make sure xterm name is unique
+    # prepare to start xterm by making sure xterm name is unique
     # X doesn't care but active menu won't make sense unless names are unique
     ######################################################################
     set unique 1
@@ -540,19 +530,40 @@ proc xtermStart {cmd name} {
 	verbose "new name: $name"
     }
 
-    set ::names($sidCmd) $name
-
-    set pid [eval exec xterm -name [list $name] -S$c1$c2$spawn_out(slave,fd) $::xtermArgs &]
-    verbose "xterm: pid = $pid"
-    set ::xtermPid($sidCmd) $pid
+    ######################################################################
+    # start new xterm
+    ######################################################################
+    set xtermpid [eval exec xterm -name [list $name] -S$c1$c2$spawn_out(slave,fd) $::xtermArgs &]
+    verbose "xterm: pid = $xtermpid"
     close -slave
 
-    # xterm first sends back window id, discard
+    # xterm first sends back window id, save in environment so it can be
+    # passed on to the new process
     log_user 0
     expect {
 	eof {wait;return}
-	\n
+	-re (.*)\n {
+	    # convert hex to decimal
+	    # note quotes must be used here to avoid diagnostic from expr
+	    set ::env(WINDOWID) [expr "0x$expect_out(1,string)"]
+	}
     }
+
+    ######################################################################
+    # start new process
+    ######################################################################
+    set pid [eval spawn -noecho $cmd]
+    verbose "$cmd: pid = $pid, spawn_id = $spawn_id"
+    set sidCmd $spawn_id
+    lappend ::activeList $sidCmd
+    set ::activeArray($sidCmd) 1
+
+    ######################################################################
+    # link everything back to spawn id of new process
+    ######################################################################
+    set ::xtermSid($sidCmd) $sidXterm
+    set ::names($sidCmd)    $name
+    set ::xtermPid($sidCmd) $xtermpid
 
     ######################################################################
     # connect proc output to xterm output

@@ -322,6 +322,10 @@ ExpState *esPtr;
     if (0 == expStateCheck(interp,esPtr,1,0,"close")) return TCL_ERROR;
     esPtr->open = FALSE;
 
+    /* restore blocking for some shells that would otherwise be */
+    /* surprised finding stdio or /dev/tty nonblocking */
+    (void) Tcl_SetChannelOption(interp,esPtr->channel,"-blocking","on");
+
     /*
      * Ignore close errors from ptys.  Ptys on some systems return errors for
      * no evident reason.  Anyway, receiving an error upon pty-close doesn't
@@ -1294,18 +1298,6 @@ char **argv;
 	return(exp_dsleep(interp,(double)atof(*argv)));
 }
 
-/* if this works, exact_write should disappear and function should
-   call Tcl_WriteChars directly */
-static int
-exact_write(esPtr,buffer,rembytes) /* INTL */
-ExpState *esPtr;
-char *buffer;
-int rembytes;
-{
-    Tcl_WriteChars(esPtr->channel,buffer,rembytes);
-    return(0);
-}
-
 struct slow_arg {
     int size;
     double time;
@@ -1365,7 +1357,7 @@ struct slow_arg *arg;
 		}
 		bytelen = p-buffer;
 
-		if (0 > exact_write(esPtr,buffer,bytelen)) return(-1);
+		if (0 > expWriteChars(esPtr,buffer,bytelen)) return(-1);
 		rembytes -= bytelen;
 		buffer += bytelen;
 
@@ -1488,7 +1480,7 @@ struct human_arg *arg;
 	    if (wc > 0) return wc;
 	}
 
-	wc = Tcl_WriteChars(esPtr->channel, sp, size);
+	wc = expWriteChars(esPtr, sp, size);
 	if (0 > wc) return(wc);
     }
     return(0);
@@ -1961,7 +1953,7 @@ getString:
 
 	switch (send_style) {
 	    case SEND_STYLE_PLAIN:
-		rc = exact_write(esPtr,string,len);
+		rc = expWriteChars(esPtr,string,len);
 		break;
 	    case SEND_STYLE_SLOW:
 		rc = slow_write(interp,esPtr,string,len,&slow_args);
@@ -1971,11 +1963,9 @@ getString:
 		break;
 	    case SEND_STYLE_ZERO:
 		for (;zeros>0;zeros--) {
-		    rc = Tcl_WriteChars(esPtr->channel,
-			    NULL_STRING, NULL_LENGTH);
+		  rc = expWriteChars(esPtr,NULL_STRING,NULL_LENGTH);
 		}
 		/* catching error on last write is sufficient */
-		rc = ((rc==1) ? 0 : -1);   /* normal is 1 not 0 */
 		break;
 	    case SEND_STYLE_BREAK:
 		exp_tty_break(interp,esPtr->fdout);

@@ -27,6 +27,7 @@ EXTERN char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
 EXTERN int exp_default_match_max;
 EXTERN int exp_default_parity;
 EXTERN int exp_default_rm_nulls;
+EXTERN int exp_default_close_on_eof;
 
 EXTERN int		exp_one_arg_braced _ANSI_ARGS_((Tcl_Obj *));
 EXTERN int		exp_eval_with_one_arg _ANSI_ARGS_((ClientData,
@@ -110,6 +111,7 @@ typedef struct ExpState {
     int registered;	/* if channel registered */
     WAIT_STATUS_TYPE wait;	/* raw status from wait() */
     int parity;	        /* if parity should be preserved */
+    int close_on_eof;   /* if channel should be closed automatically on eof */
     int key;	        /* unique id that identifies what command instance */
                         /* last touched this buffer */
     int force_read;	/* force read to occur (even if buffer already has */
@@ -188,6 +190,7 @@ extern Tcl_ChannelType expChannelType;
 #define EXP_INDIRECT	2
 
 EXTERN void		expAdjust _ANSI_ARGS_((ExpState *));
+EXTERN int		expWriteChars _ANSI_ARGS_((ExpState *,char *,int));
 EXTERN void		exp_buffer_shuffle _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,char *,char *));
 EXTERN int		exp_close _ANSI_ARGS_((Tcl_Interp *,ExpState *));
 EXTERN void		exp_close_all _ANSI_ARGS_((Tcl_Interp *));

@@ -352,7 +352,7 @@ if {$local_io} {
     # can't use exec since write insists on being run from a tty!
     set rc [catch {
 		   system echo "Can we talk?  Run: \"kibitz -$pid\"" | \
-			/bin/write $user $tty
+			write $user $tty
 		}
 	]
     if {$rc} {rmfifos;abort}

@@ -129,9 +129,10 @@ ClientData clientData;
 	if (!exp_disconnected
 	    && !exp_forked
 	    && (exp_dev_tty != -1)
-	    && isatty(exp_dev_tty)
-	    && exp_ioctled_devtty) {
+	    && isatty(exp_dev_tty)) {
+	  if (exp_ioctled_devtty) {
 		exp_tty_set(interp,&exp_tty_original,exp_dev_tty,0);
+	  }
 	}
 	/* all other files either don't need to be flushed or will be
 	   implicitly closed at exit.  Spawned processes are free to continue
