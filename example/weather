@@ -8,6 +8,12 @@
 # argument is the National Weather Service designation for an area
 # I.e., WBC = Washington DC (oh yeah, that's obvious)
 
+# Notes from Larry Virden <lvirden@yahoo.com> about the new host,
+# rainmaker.wunderground.com: "[the] new site requires the
+# machine doing the request be located in reverse dns lookup
+# or it refuses to provide data."  This appears to be a blind error
+# condition on the part of rainmaker.
+
 exp_version -exit 5.0
 
 if {$argc>0} {set code $argv} else {set code "WBC"}
