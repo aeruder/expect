@@ -57,6 +57,11 @@ flag defines the minimum number of uppercase alphabetic characters that must be 
 The default is 2.
 
 The
+.B \-s
+flag defines the minimum number of special characters that must be in the password.
+The default is 1.
+
+The
 .B \-p
 flag names a program to set the password.
 By default, /etc/yppasswd is used if present, otherwise /bin/passwd is used.
