@@ -1637,7 +1637,7 @@ Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 
 	i = exp_new_i();
 
-	i->direct = (isExpChannelName(arg)?EXP_DIRECT:EXP_INDIRECT);
+	i->direct = (isExpChannelName(arg) || (0 == strcmp(arg, EXP_SPAWN_ID_ANY_LIT))?EXP_DIRECT:EXP_INDIRECT);
 #if OBSOLETE
 	i->direct = (isdigit(arg[0]) || (arg[0] == '-'))?EXP_DIRECT:EXP_INDIRECT;
 #endif
@@ -1701,7 +1701,7 @@ struct exp_i *i;
     if (Tcl_SplitList(NULL, p, &argc, &argv) != TCL_OK) goto error;
 
     for (j = 0; j < argc; j++) {
-        esPtr = expStateFromChannelName(interp,argv[j],1,0,0,"");
+        esPtr = expStateFromChannelName(interp,argv[j],1,0,1,"");
 	if (!esPtr) goto error;
 	exp_i_add_state(i,esPtr);
     }

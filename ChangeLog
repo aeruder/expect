@@ -1,3 +1,12 @@
+2003-06-16  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_command.c: Applied patch provided on c.l.t., by Don Libes
+	  <libes@nist.gov> in response to a bug report by Dirk Petera
+	  <dirkpetera@yahoo.com> in same place. See thread reference
+	  below:
+
+	  http://groups.google.ca/groups?threadm=4791f5a6.0305250619.1a660299%40posting.google.com
+
 2003-05-08  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_clib.c (expectv): Applied patch provided on c.l.t., by Don
