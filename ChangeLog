@@ -1,3 +1,8 @@
+2002-03-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* Merged fix for SF Bug #418892 into the HEAD. (The source of the
+	  patch is "expect-sf418892-sf439042-branch").
+
 2002-02-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* expect.c: Applied patch by Don Libes fixing improper
