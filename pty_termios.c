@@ -27,7 +27,11 @@ would appreciate credit if you use this file or parts of it.
 */
 extern char *TclGetRegError();
 
-
+/* Linux systems can be configured to have both.  I don't know which is */
+/* better, let's try PTMX */
+#if defined(HAVE_OPENPTY) && defined(HAVE_PTMX)
+#undef HAVE_OPENPTY
+#endif
 
 #if defined(HAVE_PTYM) && defined(HAVE_PTMX)
 /*

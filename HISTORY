@@ -3,6 +3,10 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
+		to compile Linux (2.2.5) so that it recognized both openpty
+		and ptmx leading to conflicts.  I arbitrarily chose ptmx.
+
 4/1/99	5.30.0  Martin Forssen <maf@crt.se> provided fix to allow configure
 		to start with LDFLAGS from environment.
 
