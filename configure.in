@@ -103,7 +103,14 @@ dnl AC_TIME_WITH_SYS_TIME
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
 
-EXP_CFLAGS="-g $TCL_EXTRA_CFLAGS"
+AC_ARG_ENABLE(symbols,
+	[  --enable-symbols   allow use of symbols if available],
+	[enable_symbols=$enableval], [enable_symbols=no])
+if test "$enable_symbols" = "no"; then
+  EXP_CFLAGS="$TCL_EXTRA_CFLAGS"
+else
+  EXP_CFLAGS="-g $TCL_EXTRA_CFLAGS"
+fi
 case "${host}" in
  # Use -g on all systems but Linux where it upsets the dynamic X libraries.
   i[[3456]]86-*-linux*)	EXP_CFLAGS="" ;;
