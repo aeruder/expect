@@ -2263,6 +2263,8 @@ exp_background_channelhandler(clientData,mask) /* INTL */
 ClientData clientData;
 int mask;
 {
+  char backup[EXP_CHANNELNAMELEN+1]; /* backup copy of esPtr channel name! */
+
     ExpState *esPtr;
     Tcl_Interp *interp;
     int cc;			/* number of bytes returned in a single read */
@@ -2274,6 +2276,10 @@ int mask;
 
     /* restore our environment */
     esPtr = (ExpState *)clientData;
+
+    /* backup just in case someone zaps esPtr in the middle of our work! */
+    strcpy(backup,esPtr->name); 
+
     interp = esPtr->bg_interp;
 
     /* temporarily prevent this handler from being invoked again */
@@ -2357,6 +2363,13 @@ do_more_data:
      * exitWhenBgStatusUnblocked will be 1 and we should disable the channel
      * handler and release the esPtr.
      */
+
+    /* First check that the esPtr is even still valid! */
+    /* This ought to be sufficient. */
+    if (0 == Tcl_GetChannel(interp,backup,(int *)0)) {
+      expDiagLog("expect channel %s lost in background handler\n",backup);
+      return;
+    }
 
     if ((!esPtr->freeWhenBgHandlerUnblocked) && (esPtr->bg_status == blocked)) {
 	if (0 != (cc = expSizeGet(esPtr))) {

@@ -3,6 +3,11 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+4/8/02	5.36.0	Made first cut at multixterm, a replacement for crlogin.
+
+		Fixed bug in background handler.  If an action waited on the
+		same spawn id, esPtr would become invalidated.
+
 		Ryan Schmidt <rschmidt@mac.com> noted configure didn't
 		recognize MacOS X.  Downloaded new config.guess.
 
