@@ -3,6 +3,8 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Larry Virden noted that configure checked for threads twice.
+
 2/19/00 5.31.4	Omer Azmon <oazmon@telsoft-solutions.com> note errors in
 		pty_termios.c in exp_pty_test that caused problems during
 		pty testing.

@@ -575,6 +575,9 @@ AC_DEFUN(SC_ENABLE_THREADS, [
     AC_ARG_ENABLE(threads, [  --enable-threads        build with threads (not supported)],
 	[tcl_ok=$enableval], [tcl_ok=no])
 
+    if test "$tcl_ok" = "yes"; then
+	  AC_MSG_WARN([Expect is not fully thread-enabled.  Although significant work has been done towards that goal, it is not complete.  Continue compiling at your own risk.])
+    fi
 #    if test "$tcl_ok" = "yes"; then
 #	AC_MSG_RESULT(yes)
 #	TCL_THREADS=1

@@ -1106,13 +1106,6 @@ AC_ARG_ENABLE(gcc,
 	[  --enable-gcc        allow use of gcc if available],
 	[enable_gcc=$enableval], [enable_gcc=no])
 
-AC_ARG_ENABLE(threads,
-	[  --enable-threads        build with threads],
-	[enable_threads=$enableval], [enable_threads=no])
-if test "$enable_threads=yes"; then
-  AC_MSG_WARN([Expect is not fully thread-enabled.  Although significant work has been done towards that goal, it is not complete.  Continue compiling at your own risk.])
-fi
-
 # Following comment stolen from Tcl's configure.in:
 #   Note:  in the following variable, it's important to use the absolute
 #   path name of the Tcl directory rather than "..":  this is because
