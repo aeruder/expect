@@ -282,6 +282,10 @@ Tcl_Obj *eofObj;
 	if (outChannel) {
 	    Tcl_Flush(outChannel);
 	}
+	if (!esPtr->open) {
+	  code = EXP_EOF;
+	  goto eof;
+	}
 
 	/* force terminal state */
 	tty_changed = exp_tty_cooked_echo(interp,&tty_old,&was_raw,&was_echo);
@@ -320,6 +324,7 @@ Tcl_Obj *eofObj;
 	    if ((code == 0) && Tcl_Eof(inChannel) && !gotPartial) code = EXP_EOF;
 	}
 
+    eof:
 	if (code == EXP_EOF) {
 	    if (eofObj) {
 		code = Tcl_EvalObjEx(interp,eofObj,0);

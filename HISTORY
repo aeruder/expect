@@ -3,8 +3,17 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-		istvan.nadas@epfl.ch reported "spawn cat;exp_open" failed.  Uninited
-		variable.
+		Susan Muston <smuston@crosskeys.com> noted that exp_wait with
+		no spawned processes exited immediately which is different
+		than 5.29 behavior which reported "no children".  This new
+		behavior was evidentally a gratuitous change during the channel
+		driver addition.  Backed out.  At the same time, neither
+		behavior matches documentation - doc should be fixed and
+		improved except I'm not sure if the behavior should yet
+		be something else (depending if stdin closed or not).
+
+		istvan.nadas@epfl.ch reported "spawn cat;exp_open" failed.
+		Uninited variable.
 
 		Scriptics reported memory leak.  Was bug in parse_expect_args.
 

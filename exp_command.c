@@ -2655,14 +2655,11 @@ char **argv;
     esPtr->sys_waited = TRUE;
     esPtr->user_waited = TRUE;
 
-    /* If user hasn't already called close, do so on their behalf.
-     * Check before calling exp_close since it will write over the
-     * result that we've already written! */
-
-    if (esPtr->open) exp_close(interp,esPtr);
-
-    if (esPtr->registered) {
+    /* if user has already called close, forget about this entry entirely */
+    if (!esPtr->open) {
+      if (esPtr->registered) {
 	Tcl_UnregisterChannel(interp,esPtr->channel);
+      }
     }
 
     return ((result == -1)?TCL_ERROR:TCL_OK);
