@@ -12,6 +12,8 @@ Date	Version	Description
 		generically invoke "expect" from the users PATH instead
 		of hardwiring the platform-specific expect pathname.
 
+		TclPro 1.4 released with 5.32.2 bundled.
+
 7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.net> reported segfaults from reading
 		nulls.  Due to code rewrite in 5.30->5.31 transition.
 
