@@ -3,6 +3,11 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+2/25/02 5.35.0	Joe Eggleston <joe@arbor.net> noted bug in full_buffer test.
+		The test hadn't been I18'd properly and was testing chars
+		instead of bytes.  Also fixed diagnostics so it printed when
+		it was testing full buffer even if there wasn't one.
+
 2/7/02	5.34.1	Bruce Hartweg <brhartweg@bigfoot.com> noted that direct spawn
 		ids were not being tested so something like "expect -i exp9999"
 		would dump core.  Evidentally a bug from the 5.31 transition.
