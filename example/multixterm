@@ -11,7 +11,7 @@
 #		   [-xn "xterm names"]
 #		   [-xv] (enable verbose mode)
 #		   [-xh] or [-x?] (help)
-#		   [user-defined-args...]
+#		   [xterm names or user-defined args...]
 #
 # DESCRIPTION
 #	Multixterm creates multiple xterms that can be driven together
@@ -68,17 +68,17 @@
 #	make them easy to remember, all the multixterm flags begin
 #	with -x.
 #
-#	If any arguments do not match any of the flags above, the
-#	remainder of the command line is left in the argv variable for
-#	user processing in the .multixtermrc file.  The .multixtermrc
-#	file should reset argv to the empty string when done to
-#	indicate all the arguments have been consumed.
+#	If any arguments do not match the flags above, the remainder
+#	of the command line is made available for user processing.  By
+#	default, the remainder is used as a list of xterm names in the
+#	style of -xn. The default behavior may be changed using the
+#	.multixtermrc file (see DOT FILE below).
 #
 # EXAMPLE COMMAND LINE ARGUMENTS
 #	The following command line starts up two xterms using ssh to
 #	the hosts bud and dexter.
 #
-#		multixterm -xc "ssh %n" -xn "bud dexter"
+#		multixterm -xc "ssh %n" bud dexter
 #
 # FILES
 #	Command files may be used to drive or initialize multixterm.
@@ -90,19 +90,19 @@
 #
 #	Files are written in Tcl and may change any variables or
 #	invoke any procedures.  The primary variables of interest are
-#	'cmd' which identifies the command (see -xc) and 'nameList'
-#	which is a list of names (see -xn).  The procedure
-#	xtermStartAll, starts xterms for each name in the list.  Other
-#	variables and procedures may be discovered by examining
-#	multixterm itself.
+#	'xtermCmd' which identifies the command (see -xc) and
+#	'xtermNames' which is a list of names (see -xn).  The
+#	procedure xtermStartAll, starts xterms for each name in the
+#	list.  Other variables and procedures may be discovered by
+#	examining multixterm itself.
 #
 # EXAMPLE FILE
 #	The following file does the same thing as the earlier example
 #	command line:
 #
 #		# start two xterms connected to bud and dexter
-#		set cmd "ssh %n"
-#		set nameList {bud dexter}
+#		set xtermCmd "ssh %n"
+#		set xtermNames {bud dexter}
 #		xtermStartAll
 #
 # DOT FILE
@@ -112,18 +112,34 @@
 #	called implicitly, similar to the way that it is implicit in
 #	the command line use of -xn.
 #
-#	Commands from multixterm are evaluated early in the
+#	The following example .multixtermrc file makes every xterm run
+#	ssh to the hosts named on the command line.
+#
+#		set xtermCmd "ssh %n"
+#
+#	Then multixterm could be called simply:
+#
+#		multixterm bud dexter
+#
+#	If any command-line argument does not match a multixterm flag,
+#	the remainder of the command line is made available to
+#	.multixtermrc in the argv variable.  If argv is non-empty when
+#	.multixtermrc returns, it is assigned to xtermNames unless
+#	xtermNames is non-empty in which case, the content of argv is
+#	ignored.
+#
+#	Commands from .multixtermrc are evaluated early in the
 #	initialization of multixterm.  Anything that must be done late
 #	in the initialization (such as adding additional bindings to
 #	the user interface) may be done by putting the commands inside
-#	a procedure called "lateInit".
+#	a procedure called "initLate".
 #
 # MENUS
 #	Except as otherwise noted, the menus are self-explanatory.
 #	Some of the menus have dashed lines as the first entry.
 #	Clicking on the dashed lines will "tear off" the menus.
 #
-# USAGE SUGGESTIONS
+# USAGE SUGGESTION - ALIASES AND COMMAND FILES
 #	Aliases may be used to store lengthy command-line invocations.
 #	Command files can be also be used to store such invocations
 #	as well as providing a convenient way to share configurations.
@@ -139,9 +155,11 @@
 #	    xtermSend "a particularly long string"
 #
 #	The File menu (torn-off) makes canned sequences particularly
-#	convenient.  Especially common interactions could even be
-#	bound to a mouse button.
+#	convenient.  Interactions could also be bound to a mouse
+#	button, keystroke, or added to a menu via the .multixtermrc
+#	file.
 #
+# USAGE SUGGESTION - HANDLING MANY XTERMS BY TILING
 #	The following .multixtermrc causes tiny xterms to tile across
 #	and down the screen.  (You may have to adjust the parameters
 #	for your screen.)  This can be very helpful when dealing with
@@ -164,24 +182,32 @@
 #	        }
 #	    }
 #
-#	The xtermArgs in the code above is the variable corresponding
-#	to the -xa argument.
+#	The xtermArgs variable in the code above is the variable
+#	corresponding to the -xa argument.
 #
-#	The following .multixtermrc causes causes xterms running ssh
-#	to be started for each host named in the command line.
+# USAGE SUGGESTION - SELECTING HOSTS BY NICKNAME
+#	The following .multixtermrc shows an example of changing the
+#	default handling of the arguments from hostnames to a filename
+#	containing hostnames:
 #
-#	   set cmd "ssh %n"
-#	   set nameList $argv
-#	   set argv {}
+#		set xtermNames [exec cat $argv]
 #
-#	With that .multixtermrc file, multixterm can then be called
-#	this way:
+#	The following is a variation, retrieving the host names from
+#	the yp database:
 #
-#	   multixterm bud dexter
+#		set xtermNames [exec ypcat $argv]
 #
-#	Many other effects are possible.  For example, an argument
-#	could be used to select a set of hosts (such as a cluster
-#	name).
+#	The following hardcodes two sets of hosts, so that you can
+#	call multixterm with either "cluster1" or "cluster2":
+#
+#		switch $argv {
+#		    cluster1 {
+#			set xtermNames "bud dexter"
+#		    }
+#		    cluster2 {
+#			set xtermNames "frank hotdog weiner"
+#		    }
+#		}
 #
 # COMPARE/CONTRAST
 #	It is worth comparing multixterm to xkibitz.  Multixterm
@@ -238,19 +264,19 @@ set palette       #d8d8ff   ;# lavender
 set colorTyping   green
 set colorFocusIn  aquamarine
 
-set cmd           $env(SHELL)
+set xtermNames    {}
+set xtermCmd      $env(SHELL)
+set xtermArgs     ""
 set cmdDir	  ~/lib/multixterm
 set inputLabel    "stdin window"
-set xtermArgs     ""
-set nameList      {}
 
-set fileMenuMax   30    ;# max number of files shown in File menu
-set tearoffMenuMin 2    ;# min number of files needed to enable the File
-			;# menu to be torn off
+set fileMenuMax   30     ;# max number of files shown in File menu
+set tearoffMenuMin 2     ;# min number of files needed to enable the File
+			 ;# menu to be torn off
 
-proc lateInit {} {}     ;# anything that must be done late in initialization
-			;# such as adding/modifying bindings, may be done by
-			;# redefining this
+proc initLate {} {}      ;# anything that must be done late in initialization
+			 ;# such as adding/modifying bindings, may be done by
+			 ;# redefining this
 
 ######################################################################
 # end of user-settable things
@@ -260,8 +286,8 @@ proc lateInit {} {}     ;# anything that must be done late in initialization
 # sanity checking
 ######################################################################
 
-set versionString 1.2
-set versionDate "2002/04/15"
+set versionString 1.3
+set versionDate "2002/04/16"
 
 package require Tcl
 package require Tk
@@ -286,8 +312,7 @@ if {$tk_version < 8.3} {
 }
 
 ######################################################################
-# process args - this has to be done first to get things like -xv
-#      before anything else is done.
+# process args - has to be done first to get things like -xv working ASAP
 ######################################################################
 
 # set up verbose mechanism early
@@ -336,19 +361,19 @@ proc xtermUsage {{msg {}}} {
 	[-xf "file"]
 	[-xn "xterm names"]
 	[-xv] (enable verbose mode)
-	[-xh] or [-x?] (help)}
+	[-xh] or [-x?] (help)
+	[xterm names or user-defined args...]}
     exit
 }
 
-
 while {[llength $argv]} {
     set flag [lindex $argv 0]
-    switch -- $flag -x? -- -xh {
+    switch -- $flag -x? - -xh {
 	xtermUsage
     } -xc {
-	arg_read1 cmd -xc
+	arg_read1 xtermCmd -xc
     } -xn {
-	arg_read1 nameList -xn
+	arg_read1 xtermNames -xn
     } -xa {
 	arg_read1 xtermArgs -xa
     } -xf {
@@ -402,7 +427,8 @@ proc openFile {{fn {}}} {
 	if {[string match $fn ""]} return
     }
     uplevel #0 source [list $fn]
-    verbose "set nameList $::nameList"
+    verbose "xtermNames = \"$::xtermNames\""
+    verbose "xtermCmd = $::xtermCmd"
 }
 
 if {[file exists $rcFile]} {
@@ -412,7 +438,9 @@ if {[file exists $rcFile]} {
 }
 
 if {![string equal "" $argv]} {
-    xtermUsage "extra arguments unexpected: $argv"
+    if {[string equal $xtermNames ""]} {
+	set xtermNames $argv
+    }
 }
 
 ######################################################################
@@ -673,8 +701,8 @@ menu .m.e.active -tearoff 1 -title "multixterm active"
 # for consistency, though, it should be enabled
 
 entry  .input -textvar inputLabel -justify center -state disabled
-entry  .cmd   -textvar cmd
-button .exec  -text "new xterm" -command {xtermStart $cmd $cmd}
+entry  .cmd   -textvar xtermCmd
+button .exec  -text "new xterm" -command {xtermStart $xtermCmd $xtermCmd}
 
 grid .input -sticky ewns
 grid .cmd   -sticky ew
@@ -683,7 +711,7 @@ grid .exec  -sticky ew -ipadx 3 -ipady 3
 grid columnconfigure . 0 -weight 1
 grid    rowconfigure . 0 -weight 1  ;# let input window only expand
 
-bind .cmd   <Return>        {xtermStart $cmd $cmd}
+bind .cmd   <Return>        {xtermStart $xtermCmd $xtermCmd}
 
 # send all keypresses to xterm 
 bind .input <KeyPress>         {xtermSend %A ; break}
@@ -834,16 +862,15 @@ trap exit SIGINT
 # start any xterms requested
 ######################################################################
 proc xtermStartAll {} {
-    verbose "nameList = $::nameList"
-    foreach n $::nameList {
-	regsub -all "%n" $::cmd $n cmdOut
+    verbose "xtermNames = \"$::xtermNames\""
+    foreach n $::xtermNames {
+	regsub -all "%n" $::xtermCmd $n cmdOut
 	xtermStart $cmdOut $n
     }
-    set ::nameList {}
+    set ::xtermNames {}
 }
 
-# late user initialization
-lateInit
+initLate
 
 # now that xtermStartAll and its accompanying support has been set up
 # run it to start anything defined by rc file or command-line args.
