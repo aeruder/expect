@@ -1,3 +1,8 @@
+2002-06-17  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* exp_main_tk.c: #ifdef'd definition of "matherr". This hack is
+	  not required for 8.4 anymore. But still for 8.3.
+
 2002-03-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* exp_main_sub.c: Fixed typo in merge of #459646. Thanks to Hemang Lavana.

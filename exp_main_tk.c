@@ -39,6 +39,8 @@ static char sccsid[] = "@(#) tkAppInit.c 1.19 95/12/23 17:09:24";
 #include "expect_tcl.h"
 #include "tcldbg.h"
 
+#if (TCL_MAJOR_VERSION < 8) || ((TCL_MAJOR_VERSION == 8) && (TCL_MINOR_VERSION < 4))
+/* This is now version dependent. In 8.4+ this is erroneous */
 /*
  * The following variable is a special hack that is needed in order for
  * Sun shared libraries to be used for Tcl.
@@ -46,6 +48,7 @@ static char sccsid[] = "@(#) tkAppInit.c 1.19 95/12/23 17:09:24";
 
 extern int matherr();
 int *tclDummyMathPtr = (int *) matherr;
+#endif
 
 #ifdef TK_TEST
 EXTERN int		Tktest_Init _ANSI_ARGS_((Tcl_Interp *interp));
