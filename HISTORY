@@ -3,6 +3,12 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+4/1/99	5.30.0  Martin Forssen <maf@crt.se> provided fix to allow configure
+		to start with LDFLAGS from environment.
+
+		Paul Tazzyman <Paul.Tazzyman@one.at> noted that log_file didn't
+		check for logging twice without turning off logging first.
+
 		Ben <spy@calvin.iconoclasm.org> provided updated host for
 		weather example.
 
@@ -290,7 +296,7 @@ Date	Version	Description
 		a constant which in the regexp code, which Expect didn't see
 		because it provides its own defn for interact.  Alas, the one
 		thing Expect reuses from Tcl was where the change was.  This
-		should really be fixed so Expect doesn't rely on Expect in this
+		should really be fixed so Expect doesn't rely on Tcl in this
 		way, but there's no point in putting in a lot of work on regexp
 		when we're anticipating a new one soon anyway.
 

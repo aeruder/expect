@@ -500,6 +500,19 @@ LIBS=$EXP_LIBS
 # End of library/func checking
 ######################################################################
 
+# Hand patches to library/func checking.
+
+dnl From: Michael Kuhl <mkuhl@legato.com>
+dnl To get expect to compile on a Sequent NUMA-Q running DYNIX/ptx v4.4.2.
+AC_MSG_CHECKING([if running Sequent running SVR4])
+if test "$host_alias" = "i386-sequent-sysv4" ; then
+ EXP_AND_TCL_LIBS="-lnsl -lsocket -lm"
+ dnl if there's something similar required for Tk, no one's told me!
+ AC_MSG_RESULT(yes)
+else
+ AC_MSG_RESULT(no)
+fi
+
 ######################################################################
 #
 # Look for various header files
@@ -699,7 +712,7 @@ else
   AC_MSG_RESULT(no)
 fi
 
-EXP_LDFLAGS=
+EXP_LDFLAGS="$LDFLAGS"
 
 AC_MSG_CHECKING([if on NeXT])
 if test -r /NextApps ; then

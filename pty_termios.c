@@ -375,7 +375,7 @@ getptymaster()
 	} else if (grantpt(master)) {
 		static char buf[500];
 		exp_pty_error = buf;
-		sprintf(exp_pty_error,"grantpt(%d) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.");
+		sprintf(exp_pty_error,"grantpt(%d (%s)) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", errno, Tcl_ErrnoMsg(errno));
 		close(master);
 		return(-1);
 	}
@@ -620,18 +620,18 @@ char *stty_args;
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
 		if (ioctl (slave, I_PUSH, "ldterm")) {
-			debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",Tcl_ErrnoMsg(errno));
+			debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 #else
 #if defined(HAVE_PTMX)
 	if (ioctl(slave, I_PUSH, "ptem")) {
-		debuglog("ioctl(%s,I_PUSH,\"ptem\") = %s\n",Tcl_ErrnoMsg(errno));
+		debuglog("ioctl(%s,I_PUSH,\"ptem\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ldterm")) {
-		debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",Tcl_ErrnoMsg(errno));
+		debuglog("ioctl(%s,I_PUSH,\"ldterm\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 	if (ioctl(slave, I_PUSH, "ttcompat")) {
-		debuglog("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",Tcl_ErrnoMsg(errno));
+		debuglog("ioctl(%s,I_PUSH,\"ttcompat\") = %s\n",slave,Tcl_ErrnoMsg(errno));
 	}
 #endif
 #endif
