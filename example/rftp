@@ -309,7 +309,7 @@ if [file readable ~/.rftprc] {source ~/.rftprc}
 set first_time 1
 
 if $argc>1 {
-	send_user "usage: rftp [host]
+	send_user "usage: rftp [host]"
 	exit
 }
 
