@@ -1343,13 +1343,25 @@ struct slow_arg *arg;
 {
 	int rc;
 
+	char *p = buffer;
 	while (rembytes > 0) {
-		int len;
+		int bytelen;
+		int charlen;
+		char *p;
+		int i;
 		
-		len = (arg->size<rembytes?arg->size:rembytes);
-		if (0 > exact_write(esPtr,buffer,len)) return(-1);
-		rembytes -= arg->size;
-		buffer += arg->size;
+		p = buffer;
+		charlen = (arg->size<rembytes?arg->size:rembytes);
+
+		/* count out the right number of UTF8 chars */
+		for (i=0;i<charlen;i++) {
+		  p = Tcl_UtfNext(p);
+		}
+		bytelen = p-buffer;
+
+		if (0 > exact_write(esPtr,buffer,bytelen)) return(-1);
+		rembytes -= bytelen;
+		buffer += bytelen;
 
 		/* skip sleep after last write */
 		if (rembytes > 0) {
