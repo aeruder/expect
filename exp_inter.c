@@ -337,11 +337,12 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 
 /* put regexp result in variables */
 static void
-intRegExpMatchProcess(interp,esPtr,km,info)
+intRegExpMatchProcess(interp,esPtr,km,info,offset)
      Tcl_Interp *interp;
      ExpState *esPtr;
      struct keymap *km;	/* ptr for above while parsing */
      Tcl_RegExpInfo *info;
+     int offset;
 {
     char name[20], value[20];
     int i;
@@ -350,9 +351,9 @@ intRegExpMatchProcess(interp,esPtr,km,info)
 	int start, end;
 	Tcl_Obj *val;
 
-	start = info->matches[i].start;
+	start = info->matches[i].start + offset;
 	if (start == -1) continue;
-	end = info->matches[i].end-1;
+	end = (info->matches[i].end-1) + offset;
 
 	if (km->indices) {
 	    /* start index */
@@ -1396,7 +1397,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	if (attempt_match) {
 	    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
 	    if ((rc == EXP_MATCH) && km && km->re) {
-		intRegExpMatchProcess(interp,u,km,&reInfo);
+		intRegExpMatchProcess(interp,u,km,&reInfo,skip);
 	    }
 	} else {
 	    attempt_match = TRUE;

@@ -1,3 +1,11 @@
+2001-12-05  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* exp_inter.c: Applied patch posted by Don libes to c.l.t. on his
+	  behalf to keep the SF repository in sync with his changes. Don's
+	  notes: I obviously missed the fact that although
+	  "Tcl_RegExpExecObj" supports offsets, they aren't delivered to
+	  "Tcl_RegExpGetInfo".
+
 2001-09-12  David Gravereaux <davygrvy@pobox.com>
 
 	* 'telco-tec-win32-branch' branch created.
