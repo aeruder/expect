@@ -47,6 +47,7 @@ Entries marked with "a" live in the Expect archive (see above).
 		if changed.
    a	mirror_dir - mirror a directory from another ftp site, copying only
 		files which have changed.
+   m	multixterm - drive several xterms simultaneously.
    m	mkpasswd - generates good passwords, optionally runs passwd with them.
    a	mx - return any MX records for the given host.
    a	noidle - run a shell which avoids being 'autologged out'.

@@ -3,6 +3,10 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+4/16/02 5.37.2	Multixterm couldn't find man page all the time.
+
+4/16/02 5.37.1	Made multixterm handle user-supplied args.
+
 4/15/02 5.37.0	Added multixterm to example directory.
 
 4/8/02	5.36.1	Backed out CONST qualifiers.  Too much trouble with older

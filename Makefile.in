@@ -751,7 +751,19 @@ install-html:	FAQ.html homepage.html
 	cp homepage.html $(WEBDIR)/index.html
 	cp FAQ.html $(WEBDIR)
 #	cp FAQ.src $(WEBDIR)
+
+
+
 #	cp FAQ.tcl $(WEBDIR)
+
+# HTMLize man pages for examples and push them out to the web server
+example-man-pages:
+	-for i in $(SCRIPT_MANPAGE_LIST) ; do \
+	  if [ -f $(srcdir)/example/$$i.man ] ; then \
+	    rman -f HTML $(srcdir)/example/$$i.man > $(srcdir)/example/$$i.man.html ; \
+	    cp $(srcdir)/example/$$i.man.html $(FTPDIR)/example ; \
+	  else true; fi ; \
+	done
 
 # add recursive support to the build process.
 subdir_do: force

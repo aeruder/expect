@@ -185,6 +185,18 @@
 #	The xtermArgs variable in the code above is the variable
 #	corresponding to the -xa argument.
 #
+#	xterms can be also be created directly.  The following command
+#	file creates three xterms overlapped horizontally:
+#
+#	    set xPos 0
+#
+#	    foreach name {bud dexter hotdog} {
+#	        set ::xtermArgs "-geometry 80x12+$xPos+0 -font 6x10"
+#	        set ::xtermNames $name
+#	        xtermStartAll
+#	        incr xPos 300
+#	    }
+#
 # USAGE SUGGESTION - SELECTING HOSTS BY NICKNAME
 #	The following .multixtermrc shows an example of changing the
 #	default handling of the arguments from hostnames to a filename
@@ -243,6 +255,11 @@
 #
 # VERSION
 #!	$::versionString
+#	The latest version of multixterm is available from
+#	http://expect.nist.gov/example/multixterm . However, if your
+#	version of Expect and Tk are too old (see REQUIREMENTS above)
+#	you should download a new version of expect from
+#	http://expect.nist.gov
 #
 # DATE
 #!	$::versionDate
@@ -286,8 +303,8 @@ proc initLate {} {}      ;# anything that must be done late in initialization
 # sanity checking
 ######################################################################
 
-set versionString 1.3
-set versionDate "2002/04/16"
+set versionString 1.5
+set versionDate "2002/04/30"
 
 package require Tcl
 package require Tk
@@ -301,8 +318,7 @@ proc exit1 {msg} {
 exp_version -exit 5.36
 
 proc tkBad {} {
-    exit1 "multixterm requires Tk 8.3.3 or later but you are using\
-	Tk $::tk_patchLevel."
+    exit1 "requires Tk 8.3.3 or later but you are using	Tk $::tk_patchLevel."
 }
 
 if {$tk_version < 8.3} {
@@ -352,7 +368,7 @@ proc arg_read1 {var args} {
 
 proc xtermUsage {{msg {}}} {
     if {![string equal $msg ""]} {
-	puts stderr "multixtermrc: $msg"
+	puts "multixtermrc: $msg"
     }
     puts {usage: multixterm [flags] ... where flags are:
 	[-xa "xterm args"]
@@ -553,11 +569,11 @@ proc xtermStart {cmd name} {
 
     .m.e entryconfig Active -state normal
     .m.e.active add checkbutton -label $name -variable activeArray($sidCmd) \
-	-command [list toggle $sidCmd]
+	-command [list xtermActiveUpdate $sidCmd]
     set ::activeArray($sidCmd) 1
 }
 
-proc toggle {sid} {
+proc xtermActiveUpdate {sid} {
     if {$::activeArray($sid)} {
 	verbose "activating $sid"
     } else {
@@ -578,6 +594,31 @@ proc activeListUpdate {} {
 # make a string safe to go through regexp
 proc safe {s} {
     string map {{[} {\[} {*} {\*} {+} {\+} {^} {\^} {$} {\\$}} $s
+}
+
+# utility to map xterm name to spawn id
+# multixterm doesn't use this but a user might want to
+proc xtermGet {name} {
+    foreach sid [array names ::names] {
+	if {[string equal $name $::names($sid)]} {
+	    return $sid
+	}
+    }
+    error "no such term with name: $name"
+}
+
+# utility to activate an xterm
+# multixterm doesn't use this but a user might want to
+proc xtermActivate {sid} {
+    set ::activeArray($sid) 1
+    xtermActiveUpdate $sid
+}
+
+# utility to deactivate an xterm
+# multixterm doesn't use this but a user might want to
+proc xtermDeactivate {sid} {
+    set ::activeArray($sid) 0
+    xtermActiveUpdate $sid
 }
 
 ######################################################################
@@ -791,7 +832,7 @@ proc help {} {
     grid rowconfigure    .help 0 -weight 1
     grid columnconfigure .help 1 -weight 1
 
-    set script [auto_execok ::scriptName]
+    set script [auto_execok $::scriptName]
     if {[llength $script] == 0} {
 	set script /depot/tcl/bin/multixterm     ;# fallback
     }

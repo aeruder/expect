@@ -180,11 +180,11 @@ large numbers of xterms.
         global xPos yPos
         set ::xtermArgs "-geometry 80x12+$xPos+$yPos \-font 6x10"
         if {$xPos} {
-	    set xPos 0
-	    incr yPos 145
-	    if {$yPos > 800} {set yPos 0}
+            set xPos 0
+            incr yPos 145
+            if {$yPos > 800} {set yPos 0}
         } else {
-	    set xPos 500
+            set xPos 500
         }
     }
 .fi
@@ -192,6 +192,20 @@ large numbers of xterms.
 The xtermArgs variable in the code above is the variable corresponding
 to the \-xa argument.
 
+xterms can be also be created directly.  The following command file
+creates three xterms overlapped
+horizontally:
+.nf
+
+    set xPos 0
+    foreach name {bud dexter hotdog} {
+        set ::xtermArgs "-geometry 80x12+$xPos+0 \-font 6x10"
+        set ::xtermNames $name
+        xtermStartAll
+        incr xPos 300
+    }
+
+.fi
 .SH "USAGE SUGGESTION \- SELECTING HOSTS BY NICKNAME"
 The following .multixtermrc shows an example of changing the
 default handling of the arguments from hostnames to a filename
@@ -209,13 +223,13 @@ call multixterm with either "cluster1" or "cluster2":
 .nf
 
 	switch $argv {
-	    cluster1 {
-		set xtermNames "bud dexter"
-	    }
-	    cluster2 {
-		set xtermNames "frank hotdog weiner"
-	    }
-	}
+            cluster1 {
+                set xtermNames "bud dexter"
+            }
+            cluster2 {
+                set xtermNames "frank hotdog weiner"
+            }
+        }
 
 .fi
 
@@ -256,10 +270,15 @@ Requires Expect 5.36.0 or later.
 Requires Tk 8.3.3 or later.
 
 .SH VERSION
-1.3
+1.5
+
+The latest version of multixterm is available from
+http://expect.nist.gov/example/multixterm . However, if your version
+of Expect and Tk are too old (see REQUIREMENTS above) you should
+download a new version of expect from http://expect.nist.gov
 
 .SH DATE
-April 16, 2002
+April 30, 2002
 
 .SH AUTHOR
 Don Libes <don@libes.com>
