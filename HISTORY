@@ -3,6 +3,10 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+2/7/02	5.34.1	Bruce Hartweg <brhartweg@bigfoot.com> noted that direct spawn
+		ids were not being tested so something like "expect -i exp9999"
+		would dump core.  Evidentally a bug from the 5.31 transition.
+
 12/20/01 5.34.0	Don Porter <don.porter@nist.gov> provided package-related
 		fixes for test suite.
 

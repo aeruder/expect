@@ -2412,6 +2412,12 @@ both strategies:
 
 .fi
 
+trap \-code will not work with any command that sits in Tcl's event
+loop, such as sleep.  The problem is that in the event loop, Tcl
+discards the return codes from async event handlers.  A workaround is
+to set a flag in the trap code.  Then check the flag immediately after
+the command (i.e., sleep).
+
 .SH EXPECT HINTS
 There are a couple of things about
 .B Expect
