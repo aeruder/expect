@@ -9,7 +9,7 @@ dialogue with other interactive programs.  It is briefly described by
 its man page, expect(1).  This directory contains the source and man
 page for Expect.
 
-This is Expect 5.31 for Tcl 8.2 and Tk 8.2 (and Tcl and Tk 8.3).
+This is Expect 5.32 for Tcl 8.2 and Tk 8.2 (and Tcl and Tk 8.3).
 Significant changes and other news can be found in the NEWS file.
 
 The Expect home page is: http://expect.nist.gov
@@ -224,7 +224,7 @@ separately.  Tcl may be retrieved as tcl.tar.Z in the same way as
 described above for Expect.  When new releases of Tcl appear, I will
 try to check them out for Expect as soon as possible.  If you would
 like to get the newest Tcl release without waiting, ftp it from
-ftp.smli.com (directory pub/tcl).
+ftp.scriptics.com (directory pub/tcl).
 
 Expect may also be built using the Tk library, a Tcl interface to the
 X Window System.  Tk is available in the same way as Tcl.

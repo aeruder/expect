@@ -3,6 +3,16 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+8/7/00	5.32.0	TclPro 1.4 is finally getting out the door.  The configure
+		version has never advanced beyond 5.32.0 as far as I
+		can tell.  
+
+		Brent Welch <welch@ajubasolutions.com> changed the fix1line
+		install script so that "autoexpect" and other scripts that
+		get installed into the platform-independent bin directory
+		generically invoke "expect" from the users PATH instead
+		of hardwiring the platform-specific expect pathname.
+
 7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.net> reported segfaults from reading
 		nulls.  Due to code rewrite in 5.30->5.31 transition.
 

@@ -3,6 +3,19 @@ This file is the NEWS file from the Expect distribution.
 ======================================================================
 ======================================================================
 
+Date: 08/01/00
+
+** SUMMARY
+
+Expect 5.32 is being released in conjuction with Tcl 8.3.2.
+This is a fairly minor update with no feature changes but with
+a number of useful bug fixes in the way expects uses the new
+regular expression engine and the UTF-8 features of Tcl.
+Details are in the HISTORY and ChangeLog files.
+
+======================================================================
+======================================================================
+
 Date: 10/22/99
 
 ** SUMMARY
