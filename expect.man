@@ -451,14 +451,18 @@ Spawned processes that continue to run will be inherited by init.
 .B exit
 is implicitly executed if the end of the script is reached.
 .TP
-.B exp_continue
+\fBexp_continue\fR [-continue_timer]
 The command
 .B exp_continue
 allows
 .B expect
 itself to continue
-executing rather than returning as it normally would.
-(See
+executing rather than returning as it normally would. By
+default
+.B exp_continue
+resets the timeout timer. The
+.I -continue_timer
+flag prevents timer from being restarted. (See
 .B expect
 for more information.)
 .TP
