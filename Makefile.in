@@ -378,6 +378,7 @@ expectk.tc: exp_main_tk.o $(OFILES)
 	proof $(CC) $(XCFLAGS) @TCL_LD_FLAGS@ -o expectk.tc $(OFILES) exp_main_tk.o $(TKLIB) $(TCLLIB) $(X11_LD_FLAGS) $(EXP_AND_TK_LIBS) 
 	$(SETUID) expectk.tc
 
+expect-unshared-lib-file :: $(EXP_UNSHARED_LIB_FILE)
 $(EXP_UNSHARED_LIB_FILE): $(OFILES)
 	-rm -f $(EXP_UNSHARED_LIB_FILE)
 	$(AR) $(ARFLAGS) $(EXP_UNSHARED_LIB_FILE) $(OFILES)
@@ -387,6 +388,7 @@ $(EXP_UNSHARED_LIB_FILE): $(OFILES)
 # but there's no way to write a rule that says shared/XYZ.o should
 # depend on XYZ.c in a different directory (except by writing the
 # rule out for each file, sigh).
+expect-shared-lib-file :: $(EXP_SHARED_LIB_FILE)
 $(EXP_SHARED_LIB_FILE): $(OFILES)
 	-rm -f $(EXP_SHARED_LIB_FILE)
 	@TCL_SHLIB_LD@ -o $(EXP_SHARED_LIB_FILE) $(SHARED_OFILES) @EXP_LD_SEARCH_FLAGS@ @EXP_SHLIB_LD_LIBS@
