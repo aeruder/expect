@@ -1,3 +1,11 @@
+2002-09-25  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* configure: regen'ed
+	* configure.in: use tcl_libdir in EXP_LIB_SPEC instead of
+	${INSTALL_ROOT}${exec_prefix}/lib (steffen)
+
+	* exp_main_tk.c (Tk_Init2): don't call XSynchronize on OS X.
+
 2002-08-08  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 	
 	* Merged changes from the official version 5.38 of expect into the

@@ -354,9 +354,11 @@ Tk_Init2(interp)
 	goto done;
     }
     Tcl_ResetResult(interp);
+#ifndef MAC_OSX_TK
     if (synchronize) {
 	XSynchronize(Tk_Display(Tk_MainWindow(interp)), True);
     }
+#endif
 
     /*
      * Set the geometry of the main window, if requested.  Put the

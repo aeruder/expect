@@ -1132,7 +1132,7 @@ if test $ac_cv_sys_long_file_names = no; then
 fi
 
 EXP_BUILD_LIB_SPEC="-L`pwd` -lexpect${EXP_LIB_VERSION}${DBGX}"
-EXP_LIB_SPEC="-L\${INSTALL_ROOT}\${exec_prefix}/lib -lexpect${EXP_LIB_VERSION}${DBGX}"
+EXP_LIB_SPEC="-L\${tcl_libdir} -lexpect${EXP_LIB_VERSION}${DBGX}"
 EXP_UNSHARED_LIB_FILE=libexpect${EXP_LIB_VERSION}${DBGX}.a
 
 # The TCL_SHARED_LIB_SUFFIX macro below relies on the DBGX macro,
