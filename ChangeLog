@@ -1,3 +1,10 @@
+2003-02-14  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_chan.c (exp_close_all): Save the nextPtr in a local variable
+	  before calling 'exp_close' as 'expStateFree' can be called from
+	  it under some circumstances, possibly causing the memory
+	  allocator to smash the value in 'esPtr'.
+
 2003-02-03  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_log.c (expLogChannelOpen): Fixed the bug reported on

@@ -395,11 +395,13 @@ Tcl_Interp *interp;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     ExpState *esPtr;
+    ExpState *esNextPtr;
 
     /* no need to keep things in sync (i.e., tsdPtr, count) since we could only
        be doing this if we're exiting.  Just close everything down. */
 
-    for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
+    for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esNextPtr) {
+        esNextPtr = esPtr->nextPtr;
 	exp_close(interp,esPtr);
     }
 }
