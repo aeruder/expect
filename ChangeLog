@@ -1,5 +1,12 @@
 2002-03-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
+ 	* exp_log.c (expStdoutLogU): Merged fix for SF Bug #513382 into
+	  the HEAD (The source of the patch is "expect-sf418892-sf439042-branch").
+
+	  Use Tcl_WriteChars/Tcl_Flush instead of 'fwrite' for tcl 8.1 and
+	  beyond to enforce correct conversion of the internal UTF/8 into
+	  the external representation.
+
 	* Merged fix for SF Bug #459646 into the HEAD (The source of the
 	  patch is "expect-sf418892-sf439042-branch").
 

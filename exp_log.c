@@ -188,7 +188,14 @@ int force_stdout;	/* override value of logUser */
     length = strlen(buf);
     expDiagWriteBytes(buf,length);
     if (tsdPtr->logAll || (LOGUSER && tsdPtr->logChannel)) Tcl_WriteChars(tsdPtr->logChannel,bigbuf,-1);
-    if (LOGUSER) fwrite(buf,1,length,stdout);
+    if (LOGUSER) {
+#if (TCL_MAJOR_VERSION > 8) || ((TCL_MAJOR_VERSION == 8) && (TCL_MINOR_VERSION >= 1))
+      Tcl_WriteChars (Tcl_GetStdChannel (TCL_STDOUT), buf, length);
+      Tcl_Flush      (Tcl_GetStdChannel (TCL_STDOUT));
+#else
+      fwrite(buf,1,length,stdout);
+#endif
+    }
 }
 
 /* send to log if open */
