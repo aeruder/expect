@@ -1,3 +1,9 @@
+2005-03-07  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* exp_tty.c (Exp_SttyCmd): fix from Libes that controlling
+	terminal check example (book p372) by restricting set of
+	exp_ioctled_devtty variable.
+
 2005-02-15  Andreas Kupries <andreask@activestate.com>
 
 	* Merged changes from the official versions 5.42.1 and 5.43.0 of

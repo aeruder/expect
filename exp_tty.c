@@ -387,7 +387,6 @@ char **argv;
 	int cooked = FALSE;
 	int was_raw, was_echo;
 
-
 	char **redirect;	/* location of "<" */
 	char *infile = 0;
 	int fd;			/* (slave) fd of infile */
@@ -423,33 +422,36 @@ char **argv;
 		was_raw = exp_israw();
 		was_echo = exp_isecho();
 
-		exp_ioctled_devtty = TRUE;
-
 		for (argv=argv0+1;*argv;argv++) {
 			if (streq(*argv,"raw") ||
 			    streq(*argv,"-cooked")) {
 				exp_tty_raw(1);
 				saw_known_stty_arg = TRUE;
 				no_args = FALSE;
+				exp_ioctled_devtty = TRUE;
 			} else if (streq(*argv,"-raw") ||
 				   streq(*argv,"cooked")) {
 				cooked = TRUE;
 				exp_tty_raw(-1);
 				saw_known_stty_arg = TRUE;
 				no_args = FALSE;
+				exp_ioctled_devtty = TRUE;
 			} else if (streq(*argv,"echo")) {
 				exp_tty_echo(1);
 				saw_known_stty_arg = TRUE;
 				no_args = FALSE;
+				exp_ioctled_devtty = TRUE;
 			} else if (streq(*argv,"-echo")) {
 				exp_tty_echo(-1);
 				saw_known_stty_arg = TRUE;
 				no_args = FALSE;
+				exp_ioctled_devtty = TRUE;
 			} else if (streq(*argv,"rows")) {
 				if (*(argv+1)) {
 					exp_win_rows_set(*(argv+1));
 					argv++;
 					no_args = FALSE;
+					exp_ioctled_devtty = TRUE;
 				} else {
 					exp_win_rows_get(interp->result);
 					return TCL_OK;
@@ -459,6 +461,7 @@ char **argv;
 					exp_win_columns_set(*(argv+1));
 					argv++;
 					no_args = FALSE;
+					exp_ioctled_devtty = TRUE;
 				} else {
 					exp_win_columns_get(interp->result);
 					return TCL_OK;
@@ -469,6 +472,10 @@ char **argv;
 		}
 		/* if any unknown args, let real stty try */
 		if (saw_unknown_stty_arg || no_args) {
+			if (saw_unknown_stty_arg) {
+			    exp_ioctled_devtty = TRUE;
+			}
+
 			/* let real stty try */
 			rc = exec_stty(interp,argc,argv0,1);
 
