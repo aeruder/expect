@@ -1304,6 +1304,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	int attempt_match = TRUE;
 	struct input *soonest_input;
 	int timeout;	/* current as opposed to default_timeout */
+	Tcl_Time temp_time;
 
 	/* calculate how long to wait */
 	/* by finding shortest remaining timeout */
@@ -1320,7 +1321,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		}
 	    }
 
-	    time(&previous_time);
+	    Tcl_GetTime (&temp_time);
+	    previous_time = temp_time.sec;
 	    /* timestamp here rather than simply saving old */
 	    /* current time (after ready()) to account for */
 	    /* possibility of slow actions */
@@ -1354,7 +1356,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	if (!timeout_simple) {
 	    int time_diff;
 
-	    time(&current_time);
+	    Tcl_GetTime (&temp_time);
+	    current_time = temp_time.sec;
 	    time_diff = current_time - previous_time;
 
 	    /* update all timers */
@@ -1624,7 +1627,8 @@ got_action:
 					timeout = inp->timeout_remaining;
 			}
 
-			time(&previous_time);
+			Tcl_GetTime (&temp_time);
+			previous_time = temp_time.sec;
 			/* timestamp here rather than simply saving old */
 			/* current time (after ready()) to account for */
 			/* possibility of slow actions */
@@ -1639,7 +1643,8 @@ got_action:
 		if (!timeout_simple) {
 			int time_diff;
 
-			time(&current_time);
+			Tcl_GetTime (&temp_time);
+			current_time = temp_time.sec;
 			time_diff = current_time - previous_time;
 
 			/* update all timers */
@@ -1852,7 +1857,8 @@ got_action:
 					timeout = inp->timeout_remaining;
 			}
 
-			time(&previous_time);
+			Tcl_GetTime (&temp_time);
+			previous_time = temp_time.sec;
 			/* timestamp here rather than simply saving old */
 			/* current time (after ready()) to account for */
 			/* possibility of slow actions */
@@ -1866,7 +1872,8 @@ got_action:
 		if (!timeout_simple) {
 			int time_diff;
 
-			time(&current_time);
+			Tcl_GetTime (&temp_time);
+			current_time = temp_time.sec;
 			time_diff = current_time - previous_time;
 
 			/* update all timers */

@@ -236,6 +236,7 @@ ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
 	    sleep(1);
 	    expDiagLogU("write() failed to write anything - will sleep(1) and retry...\n");
 	} else if (written < 0) {
+	    if (errno == EAGAIN) continue;
 	    *errorCodePtr = errno;
 	    return -1;
 	}

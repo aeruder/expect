@@ -2426,6 +2426,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     int timeout;		/* seconds */
     int remtime;		/* remaining time in timeout */
     int reset_timer;		/* should timer be reset after continue? */
+    Tcl_Time temp_time;
 
     if ((objc == 2) && exp_one_arg_braced(objv[1])) {
 	return(exp_eval_with_one_arg(clientData,interp,objv));
@@ -2436,7 +2437,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	return(exp_eval_with_one_arg(clientData,interp,new_objv));
     }
 
-    time(&start_time_total);
+    Tcl_GetTime (&temp_time);
+    start_time_total = temp_time.sec;
     start_time = start_time_total;
     reset_timer = TRUE;
     
@@ -2488,7 +2490,10 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
   restart:
     if (first_time) first_time = 0;
-    else time(&start_time);
+    else {
+        Tcl_GetTime (&temp_time);
+	start_time = temp_time.sec;
+    }
 
     if (eg.timeout_specified_by_flag) {
 	timeout = eg.timeout;
@@ -2514,7 +2519,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     if (timeout != EXP_TIME_INFINITY) {
 	/* if exp_continue -continue_timer, do not update end_time */
 	if (reset_timer) {
-	    time(&current_time);
+	    Tcl_GetTime (&temp_time);
+	    current_time = temp_time.sec;
 	    end_time = current_time + timeout;
 	} else {
 	    reset_timer = TRUE;
@@ -2575,7 +2581,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	esPtr->force_read = TRUE;
 
 	if (timeout != EXP_TIME_INFINITY) {
-	    time(&current_time);
+	    Tcl_GetTime (&temp_time);
+	    current_time = temp_time.sec;
 	    remtime = end_time - current_time;
 	}
     }

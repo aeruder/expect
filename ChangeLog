@@ -1,3 +1,20 @@
+2005-01-21  Andreas Kupries <andreask@activestate.com>
+
+	* exp_inter.c: Changed all uses of 'time(3)' to Tcl_GetTime. IOW
+	* expect.c:    go through the abstract core API instead of
+	               directly acessing OS time. This makes the code
+	               dependent on Tcl 8.4, as Tcl_GetTime was not public
+	               before. See TIP #73 for its introduction into the
+	               public API. As for the reason behind _this_ change
+	               see TIP #233. Our change here now causes Expect to
+	               be automatically in sync with any virtualization
+	               set up in the core.
+
+2004-08-19  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_chan.c (ExpOutputProc): Added code posted by Don on
+	  c.l.t. to handle interrupted system calls (EAGAIN).
+
 2004-07-15  Andreas Kupries  <andreask@activestate.com>
 
 	* Merged changes from the official version 5.42b0 of expect into
