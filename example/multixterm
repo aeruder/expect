@@ -11,6 +11,7 @@
 #		   [-xn "xterm names"]
 #		   [-xv] (enable verbose mode)
 #		   [-xh] or [-x?] (help)
+#		   [user-defined-args...]
 #
 # DESCRIPTION
 #	Multixterm creates multiple xterms that can be driven together
@@ -66,6 +67,12 @@
 #	-name).  There are so many of them that to avoid colliding and
 #	make them easy to remember, all the multixterm flags begin
 #	with -x.
+#
+#	If any arguments do not match any of the flags above, the
+#	remainder of the command line is left in the argv variable for
+#	user processing in the .multixtermrc file.  The .multixtermrc
+#	file should reset argv to the empty string when done to
+#	indicate all the arguments have been consumed.
 #
 # EXAMPLE COMMAND LINE ARGUMENTS
 #	The following command line starts up two xterms using ssh to
@@ -160,6 +167,22 @@
 #	The xtermArgs in the code above is the variable corresponding
 #	to the -xa argument.
 #
+#	The following .multixtermrc causes causes xterms running ssh
+#	to be started for each host named in the command line.
+#
+#	   set cmd "ssh %n"
+#	   set nameList $argv
+#	   set argv {}
+#
+#	With that .multixtermrc file, multixterm can then be called
+#	this way:
+#
+#	   multixterm bud dexter
+#
+#	Many other effects are possible.  For example, an argument
+#	could be used to select a set of hosts (such as a cluster
+#	name).
+#
 # COMPARE/CONTRAST
 #	It is worth comparing multixterm to xkibitz.  Multixterm
 #	connects a separate process to each xterm.  xkibitz connects
@@ -237,7 +260,7 @@ proc lateInit {} {}     ;# anything that must be done late in initialization
 # sanity checking
 ######################################################################
 
-set versionString 1.1
+set versionString 1.2
 set versionDate "2002/04/15"
 
 package require Tcl
@@ -302,7 +325,7 @@ proc arg_read1 {var args} {
     set argv [lrange $argv 2 end]
 }
 
-proc usage {{msg {}}} {
+proc xtermUsage {{msg {}}} {
     if {![string equal $msg ""]} {
 	puts stderr "multixtermrc: $msg"
     }
@@ -317,10 +340,11 @@ proc usage {{msg {}}} {
     exit
 }
 
+
 while {[llength $argv]} {
     set flag [lindex $argv 0]
     switch -- $flag -x? -- -xh {
-	usage
+	xtermUsage
     } -xc {
 	arg_read1 cmd -xc
     } -xn {
@@ -342,8 +366,8 @@ while {[llength $argv]} {
 	set verbose 1
 	puts "main: verbose on"
     } default {
-	usage "extra arguments ignored: $argv"
-	break
+	verbose "remaining args: $argv"
+	break	;# let user handle remaining args later
     }
 }
 
@@ -385,6 +409,10 @@ if {[file exists $rcFile]} {
     openFile $rcFile
 } else {
     verbose "$rcFile: not found"
+}
+
+if {![string equal "" $argv]} {
+    xtermUsage "extra arguments unexpected: $argv"
 }
 
 ######################################################################

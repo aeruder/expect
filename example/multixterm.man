@@ -75,6 +75,12 @@ All the usual X and wish flags are supported (i.e., \-display,
 make them easy to remember, all the multixterm flags begin
 with \-x.
 
+If any arguments do not match any of the flags above, the remainder of
+the command line is left in the argv variable for user processing in
+the .multixtermrc file.  The .multixtermrc file should reset argv to
+the empty string when done to indicate all the arguments have been
+consumed.
+
 .SH EXAMPLE COMMAND LINE ARGUMENTS
 The following command line starts up two xterms using ssh to
 the hosts bud and dexter.
@@ -172,6 +178,21 @@ large numbers of xterms.
 The xtermArgs in the code above is the variable corresponding
 to the \-xa argument.
 
+The following .multixtermrc causes causes xterms running ssh to be
+started for each host named in the command line.
+.nf
+
+   set nameList $argv
+   set argv {}
+
+.fi
+With that initialization, multixterm can then be called this way:
+
+   multixterm bud dexter
+
+Many other effects are possible.  For example, an argument could be
+used to select a set of hosts (such as a cluster name).
+
 .SH COMPARE/CONTRAST
 It is worth comparing multixterm to xkibitz.  Multixterm
 connects a separate process to each xterm.  xkibitz connects
@@ -208,7 +229,7 @@ Requires Expect 5.36.0 or later.
 Requires Tk 8.3.3 or later.
 
 .SH VERSION
-1.1
+1.2
 
 .SH DATE
 April 15, 2002
