@@ -1,3 +1,7 @@
+2001-09-12  David Gravereaux <davygrvy@pobox.com>
+
+	* 'telco-tec-win32-branch' branch created.
+
 2001-08-01  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* Dbg.c (Dbg_On): fixed handling of stepping. [Bug: #446412]
