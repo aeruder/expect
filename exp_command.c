@@ -2952,7 +2952,7 @@ int argc;
 char **argv;
 {
     ExpState *esPtr;
-    char *chanName;
+    char *chanName = 0;
     int newfd;
     int leaveopen = FALSE;
     Tcl_Channel channel;

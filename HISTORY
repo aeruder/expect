@@ -3,6 +3,9 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		istvan.nadas@epfl.ch reported "spawn cat;exp_open" failed.  Uninited
+		variable.
+
 		Scriptics reported memory leak.  Was bug in parse_expect_args.
 
 		"Michael P. Reilly" <arcege@shore.net> noted clib was hanging
