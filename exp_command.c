@@ -894,6 +894,8 @@ when trapping, see below in child half of fork */
 	close(sync_fds[1]);
 	close(sync2_fds[0]);
 	close(sync2_fds[1]);
+	exp_error(interp,"too many programs spawned?  could not create pipe: %s",Tcl_PosixError(interp));
+	goto parent_error;
     }
 
     if ((pid = fork()) == -1) {
@@ -962,7 +964,8 @@ when trapping, see below in child half of fork */
 		    child_errno = 0;
 		    break;
 		default:
-		    /* child's exec failed; err contains exec's errno  */
+	      /* child's exec failed; child_errno contains exec's errno */
+	      close(status_pipe[0]);
 		    waitpid(pid, NULL, 0);
 		    /* in order to get Tcl to set errorcode, we must */
 		    /* hand set errno */

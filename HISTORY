@@ -3,6 +3,19 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+1/30/04	5.40.0	Eric Raymond <esr@snark.thyrsus.xcom> provided troff-related
+		fixes for the expect, lib, and dislocate man pages.
+
+		Rich Kennedy <rickenne@cisco.xcom> noted a bug having to do
+		with our caching of whether we have registered a filehandler.
+		This broke when Tcl was setting a handler on the same file.
+
+		Ken Pizzini <ken.pizzini@explicate.xorg> provided patch for
+		leak in spawn error handling.
+
+	 	Pete Lancashire <plancashire@columbia.xcom> noted autopasswd
+		example broke on Solaris which capitalized prompts.
+
 7/31/03 5.39.0	Poorva Gupta <poorva@cup.hp.xcom> noted that grantpt/unlockpt
 		order was backward.  Strange that this was never a prob before!
 

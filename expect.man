@@ -11,6 +11,7 @@ expect \- programmed dialogue with interactive programs, Version 5
 .I cmds
 ]
 [
+[
 .BR \- [ f | b ]
 ]
 .I cmdfile

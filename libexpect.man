@@ -1,6 +1,6 @@
 .TH LIBEXPECT 3 "12 December 1991"
 .SH NAME
-libexpect \- programmed dialogue with interactive programs \- C functions
+libexpect \- programmed dialogue library with interactive programs
 .SH DESCRIPTION
 This library contains functions that allow Expect to be used as
 a Tcl extension or to be used directly from C or C++ (without Tcl).

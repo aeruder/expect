@@ -117,8 +117,14 @@ typedef struct ExpState {
     int notified;	/* If Tcl_NotifyChannel has been called and we */
 		        /* have not yet read from the channel. */
     int notifiedMask;	/* Mask reported when notified. */
-    int fg_armed;	/* If Tk_CreateFileHandler is active for responding */
-                        /* to foreground events */	   
+
+    int fg_armed;	/* If we have requested Tk_CreateFileHandler to be */
+			/* responding to foreground events.  Note that */
+		        /* other handlers can have stolen it away so this */
+			/* doesn't necessarily mean the handler is set.  */
+			/* However, if fg_armed is 0, then the handlers */
+			/* definitely needs to be set.  The significance of */
+			/* this flag is so we can remember to turn it off. */
 #ifdef HAVE_PTYTRAP
     char *slave_name;   /* Full name of slave, i.e., /dev/ttyp0 */
 #endif /* HAVE_PTYTRAP */

@@ -58,7 +58,7 @@ To send the numbers 1 to 100 in response to the prompt "next #", say:
 
      for {set i 0} {$i<100} {incr i} {
          expect -i $in "next #"
-         send -i $out "$i\r"
+         send -i $out "$i\\r"
      }
 .fi
 

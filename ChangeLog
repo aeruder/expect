@@ -1,3 +1,24 @@
+2004-02-25  Andreas Kupries  <andreask@pliers.activestate.com>
+	
+	* Merged changes from the official version 5.40 of expect into the
+	  SF sources. See details below. Partially already done (Rich
+	  Kennedy's patch).
+
+	  --------------------
+	  Eric Raymond <esr@snark.thyrsus.xcom> provided troff-related
+	  fixes for the expect, lib, and dislocate man pages.
+
+	  Rich Kennedy <rickenne@cisco.xcom> noted a bug having to do
+	  with our caching of whether we have registered a filehandler.
+	  This broke when Tcl was setting a handler on the same file.
+
+	  Ken Pizzini <ken.pizzini@explicate.xorg> provided patch for
+	  leak in spawn error handling.
+
+	  Pete Lancashire <plancashire@columbia.xcom> noted autopasswd
+	  example broke on Solaris which capitalized prompts.
+	  --------------------
+
 2003-10-20  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_event.c (exp_get_next_event): Applied a patch made by Don
