@@ -781,6 +781,7 @@ when trapping, see below in child half of fork */
 	 */
 	int mode;
 	int rfd, wfd;
+	ClientData rfdc, wfdc;
 	
 	if (echo) {
 	    expStdoutLogU(argv0,0);
@@ -789,19 +790,22 @@ when trapping, see below in child half of fork */
 	if (!(channel = Tcl_GetChannel(interp,chanName,&mode))) {
 	    return TCL_ERROR;
 	}
+
 	if (!mode) {
 	    exp_error(interp,"channel is neither readable nor writable");
 	    return TCL_ERROR;
 	}
 	if (mode & TCL_READABLE) {
-	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_READABLE, (ClientData) &rfd)) {
+	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_READABLE, (ClientData*) &rfdc)) {
 		return TCL_ERROR;
 	    }
+	    rfd = (int) rfdc;
 	}
 	if (mode & TCL_WRITABLE) {
-	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_WRITABLE, (ClientData) &wfd)) {
+	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_WRITABLE, (ClientData*) &wfdc)) {
 		return TCL_ERROR;
-	    }    
+	    }
+	    wfd = (int) wfdc;
 	}
 	master = ((mode & TCL_READABLE)?rfd:wfd);
 

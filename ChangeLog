@@ -1,3 +1,12 @@
+2002-10-09  Andreas Kupries  <andreask@pliers.activestate.com>
+
+	* exp_command.c (Exp_SpawnCmd): Tcl_GetChannelHandle expected a
+	  ClientData*, but got an int*. sizeof(int) != sizeof(ClientData)
+	  on 64bit platforms. Crashed the command on a PA-RISC 2.0 machine
+	  with --enable-64bit set. Fix: Use temp. variables of type
+	  ClientData to retrieve the fd's, and copy this into the actual
+	  variables, with a cast to int.
+
 2002-09-25  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* configure: regen'ed
