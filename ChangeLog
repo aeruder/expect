@@ -1,3 +1,7 @@
+2001-08-01  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* Dbg.c (Dbg_On): fixed handling of stepping. [Bug: #446412]
+
 2000-04-26  Rob Savoye  <rob@welcomehome.org>
 
 	* pty_termios.h: Only include stropts.h if it exists, rather than

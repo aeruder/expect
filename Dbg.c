@@ -6,6 +6,8 @@ Design and implementation of this program was paid for by U.S. tax
 dollars.  Therefore it is public domain.  However, the author and NIST
 would appreciate credit if this program or parts of it are used.
 
+ RCS: @(#) $Id$
+
 */
 
 #include <stdio.h>
@@ -1298,11 +1300,12 @@ int immediate;		/* if true, stop immediately */
 {
 	if (!debugger_active) init_debugger(interp);
 
-	/* intuitively, it would seem natural to initialize the
-	debugger with the step command.  However, it's too late at
-	this point.  It must be done before the command reader
-	(whatever it is) has gotten control. */
-	/* debug_cmd = step;*/
+	/* Initialize debugger in single-step mode.
+	 *
+	 * Note: if the command reader is already active, it's too late
+	 * which is why we also statically initialize debug_cmd to step.
+	 */
+	debug_cmd = step; 
 	step_count = 1;
 
 	if (immediate) {
