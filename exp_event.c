@@ -258,7 +258,6 @@ int key;
 	/* make sure that all fds that should be armed are */
 	for (i=0;i<n;i++) {
 	    esPtr = esPtrs[i];
-	    if (!esPtr->fg_armed) {
 		/*printf("CreateChannelHandler: %s\r\n",esPtr->name);*/
 		Tcl_CreateChannelHandler(
 					 esPtr->channel,
@@ -266,7 +265,6 @@ int key;
 					 exp_channelhandler,
 					 (ClientData)esPtr);
 		esPtr->fg_armed = TRUE;
-	    }
 	}
 
 	Tcl_DoOneEvent(0);	/* do any event */

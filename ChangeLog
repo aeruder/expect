@@ -1,3 +1,51 @@
+2003-10-20  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_event.c (exp_get_next_event): Applied a patch made by Don
+	  Libes in response to a bug report posted to news:comp.lang.tcl
+	  by Rich Kennedy <rickenne@cisco.com>. Patch was posted to c.l.t
+	  too.
+
+	  > Subject: Re: 2nd interact does not grab stdin
+	  > Date: 17 Oct 2003 15:33:38 -0400
+	  > From: Don Libes <libes@nist.gov>
+	  > Organization: National Institute of Standards and Technology
+	  > Newsgroups: comp.lang.tcl
+	  > References: <3F86D6F8.E535CBDE@cisco.com>
+
+	  > It's a bug - some overaggressive caching regarding stdin.  A fix
+	  > appears below.  (You should also be able to avoid the problem by
+	  > replacing the gets with expect_user.)
+
+	  > Don
+
+	  > Rich Kennedy <rickenne@cisco.com> writes:
+
+	  > > Hi,
+	  > > 
+	  > >  The following little expect script gets in trouble with second
+	  > >  'interact' statement. The 'less' program does not get stdin
+	  > >  so it doesn't respond to typed characters...
+	  > > 
+	  > >  Is there something that must be done after the 1st interact to
+	  > >  allow the second to work correctly? (Note, you have to run
+	  > >  as a script because it works correctly if you type the commands
+	  > >  interactively to expect)
+	  > > 
+	  > > 	#!/usr/local/bin/expect
+	  > > 
+	  > > 	gets stdin a
+	  > > 	spawn less file1
+	  > > 	interact
+	  > >  	wait
+	  > > 	gets stdin junk 
+	  > > 	spawn less file2
+	  > > 	interact
+	  > >         wait
+	  > > 
+	  > >  Thanks
+	  > > 
+	  > > Rich Kennedy
+
 2003-09-05  Andreas Kupries  <andreask@activestate.com>
 	
 	* Merged changes from the official version 5.39 of expect into the
