@@ -783,7 +783,7 @@ Normally, the matched output is discarded from Expect's internal buffers.
 This may be prevented by prefixing a pattern with the
 .B \-notransfer
 flag.  This flag is especially useful in experimenting (and can be
-abbreviated to "-n" for convenience while experimenting).
+abbreviated to "-not" for convenience while experimenting).
 
 The spawn id associated with the matching output (or eof or
 full_buffer) is stored in
