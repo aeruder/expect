@@ -374,9 +374,7 @@ Tcl_Obj *CONST objv[];
 
 	/* objv[1] is the list of signals - crack it open */
 	if (TCL_OK != Tcl_ListObjGetElements(interp,objv[1],&n,&list)) {
-		expErrorLogU(Tcl_GetStringResult(interp));
-		expErrorLogU("\r\n");
-		goto usage_error;
+	  return TCL_ERROR;
 	}
 
 	for (i=0;i<n;i++) {
@@ -474,8 +472,6 @@ int oldcode;
 		expDiagLogU(trap->action);
 		expDiagLogU("\r\n");
 		if (0 != strcmp(Tcl_GetStringResult(interp),"")) {
-			expErrorLogU(interp->result);
-			expErrorLogU("\r\n");
 
 			/*
 			 * Check errorinfo and see if it contains -nostack.

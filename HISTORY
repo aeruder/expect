@@ -3,6 +3,8 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Signal handler sometimes sent error to stderr inappropriately.
+
 4/27/00 5.31.7	Rob Savoye fixed Debian ptys and properly checking of libpt.
 
 3/8/00  5.31.6	Petrus Vloet <petrus.vloet@siemens.at> noted that Expect
