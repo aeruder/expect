@@ -177,6 +177,7 @@ char *cmd;		/* command about to be executed */
 struct breakpoint *bp;	/* breakpoint to test */
 {
     if (bp->re) {
+        int found = 0;
 	Tcl_Obj *cmdObj;
 	Tcl_RegExp re = Tcl_GetRegExpFromObj(NULL, bp->pat,
 		TCL_REG_ADVANCED);
@@ -185,8 +186,10 @@ struct breakpoint *bp;	/* breakpoint to test */
 	if (Tcl_RegExpExecObj(NULL, re, cmdObj, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */) > 0) {
 	    save_re_matches(interp, re, cmdObj);
+	    found = 1;
 	}
 	Tcl_DecrRefCount(cmdObj);
+	if (!found) return 0;
     } else if (bp->pat) {
 	if (0 == Tcl_StringMatch(cmd,
 		Tcl_GetString(bp->pat))) return 0;

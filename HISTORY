@@ -3,6 +3,10 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Chang Li <changl@neatware.com> noted that debugger's bp cmd
+		broke on every command.  Was a bug in breakpoint_trace from
+		when we installed the new regexp engine.
+
 		Jonathan Kamens fixed printf formats in several pty diags.
 
 		rm_nulls -d was set to wrong value.
