@@ -594,16 +594,7 @@ char **argv;
 
 	Tcl_Eval(interp,sigexit_init_default);
 
-	/*
-	 * [#418892]. The '+' character in front of every other option
-         * declaration causes 'GNU getopt' to deactivate its
-         * non-standard behaviour and switch to POSIX. Other
-         * implementations of 'getopt' might recognize the option '-+'
-         * because of this, but the following switch will catch this
-         * and generate a usage message.
-	 */
-
-	while ((c = getopt(argc, argv, "+b:c:dD:f:inN-v")) != EOF) {
+	while ((c = getopt(argc, argv, "b:c:dD:f:inN-v")) != EOF) {
 		switch(c) {
 		case '-':
 			/* getopt already handles -- internally, however */
@@ -679,20 +670,6 @@ char **argv;
 		if (!exp_cmdfilename && (optind < argc)) {
 			exp_cmdfilename = argv[optind];
 			optind++;
-
-			/*
-			 * [#418892]. Skip a "--" found immediately
-			 * behind the name of the script to
-			 * execute. Don't try this if there are no
-			 * arguments behind the "--" anymore. All
-			 * other appearances of "--" are handled by
-			 * the "getopt"-loop above.
-			 */
-
-			if ((optind < argc) &&
-			    (0 == strcmp ("--", argv[optind]))) {
-			    optind++;
-			}
 		}
 
 		if (exp_cmdfilename) {
