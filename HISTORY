@@ -3,6 +3,14 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+4/27/00 5.31.7	Rob Savoye fixed Debian ptys and properly checking of libpt.
+
+3/8/00  5.31.6	Petrus Vloet <petrus.vloet@siemens.at> noted that Expect
+		installed tclRegexp.h which included regex.h which of course
+		misbehaves when it reads the system's version.  This is new
+		since 8.0.  Since I need to revise the Clib anyway (which
+		is what this install was for), I'll back this out for now.
+
 3/6/00	5.31.5	Larry Virden noted that configure checked for threads twice.
 
 2/19/00 5.31.4	Omer Azmon <oazmon@telsoft-solutions.com> note errors in

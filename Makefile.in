@@ -432,7 +432,8 @@ install-binaries: expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
 	$(INSTALL_DATA) $(srcdir)/expect_comm.h $(includedir)
 # force installation of Tcl's private regexp definition - we simply have to
 # make it public in order for people to use Expect's C lib.
-	$(INSTALL_DATA) $(TCLHDIR)/tclRegexp.h $(includedir)
+# hmm - no longer appropriate for Tcl 8.2+ - work on better solution?
+#	$(INSTALL_DATA) $(TCLHDIR)/tclRegexp.h $(includedir)
 # install Debugger's public include file (just in case it's not there)
 	$(INSTALL_DATA) $(srcdir)/tcldbg.h $(includedir)
 # some people don't install Tcl, sigh
@@ -666,7 +667,8 @@ tar:	expect-$(VERSION).tar
 	mv expect-$(VERSION).tar expect.tar
 
 # make a release and install it on ftp server
-ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz
+# update web page to reflect new version
+ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz install-html
 	cp expect-$(VERSION).tar.Z $(FTPDIR)/expect.tar.Z
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/expect.tar.gz
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/

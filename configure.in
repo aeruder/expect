@@ -11,7 +11,7 @@ AC_INIT(expect.h)
 # comments in Makefile)
 EXP_MAJOR_VERSION=5
 EXP_MINOR_VERSION=31
-EXP_MICRO_VERSION=5
+EXP_MICRO_VERSION=7
 EXP_VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 EXP_VERSION_NODOTS=$EXP_MAJOR_VERSION$EXP_MINOR_VERSION
 EXP_VERSION_FULL=$EXP_VERSION.$EXP_MICRO_VERSION
@@ -561,7 +561,9 @@ dnl AC_CHECK_HEADER(stdarg.h, AC_DEFINE(HAVE_STDARG_H))
 
 AC_CHECK_HEADER(varargs.h, AC_DEFINE(HAVE_VARARGS_H))
 AC_CHECK_HEADER(unistd.h, AC_DEFINE(HAVE_UNISTD_H))
-AC_CHECK_HEADER(sys/stropts.h, AC_DEFINE(HAVE_STROPTS_H))
+# If no stropts.h, then the svr4 implementation is broken.
+# At least it is on my Debian "potato" system. - Rob Savoye
+AC_CHECK_HEADER(sys/stropts.h, AC_DEFINE(HAVE_STROPTS_H), svr4_ptys_broken=1)
 AC_CHECK_HEADER(sys/sysconfig.h, AC_DEFINE(HAVE_SYSCONF_H))
 AC_CHECK_HEADER(sys/fcntl.h, AC_DEFINE(HAVE_SYS_FCNTL_H))
 AC_CHECK_HEADER(sys/select.h, AC_DEFINE(HAVE_SYS_SELECT_H))
@@ -864,10 +866,11 @@ if test -r /dev/ptmx -a "x$svr4_ptys_broken" = x ; then
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_PTMX)
   # aargg. Some systems need libpt.a to use /dev/ptmx
-  AC_CHECK_FUNC(ptsname, , LIBS="${LIBS} -lpt")
+  AC_CHECK_LIB(pt, libpts="-lpt", libpts="")
+  AC_CHECK_FUNC(ptsname, , LIBS="${LIBS} $libpts")
   # I've never seen Tcl or Tk include -lpt so don't bother with explicit test
-  AC_CHECK_FUNC(ptsname, , EXP_AND_TCL_LIBS="${EXP_AND_TCL_LIBS} -lpt")
-  AC_CHECK_FUNC(ptsname, , EXP_AND_TK_LIBS="${EXP_AND_TK_LIBS} -lpt")
+  AC_CHECK_FUNC(ptsname, , EXP_AND_TCL_LIBS="${EXP_AND_TCL_LIBS} $libpts")
+  AC_CHECK_FUNC(ptsname, , EXP_AND_TK_LIBS="${EXP_AND_TK_LIBS} $libpts")
 else
   AC_MSG_RESULT(no)
 fi

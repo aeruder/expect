@@ -1,3 +1,12 @@
+2000-04-26  Rob Savoye  <rob@welcomehome.org>
+
+	* pty_termios.h: Only include stropts.h if it exists, rather than
+	deciding it exists based on HAVE_PTMX.
+	* configure.in: Make sure libpt exists, rather than blindly using
+	it for all our configure tests, which then all fail. Also assume
+	our svr4 style ptys are broken, if /dev/ptmx exists, but stropts.h
+	doesn't exist.
+	
 1999-08-31  Jennifer Hom  <jenn@scriptics.com>
 
 	* Makefile.in: Changed test target to source tests/all.tcl instead

@@ -79,7 +79,7 @@ with openpty which supports 4000 while ptmx supports 60. */
 #  include <sys/strpty.h>
 #endif
 
-#ifdef HAVE_PTMX
+#if defined(HAVE_PTMX) && defined(HAVE_STROPTS_H)
 #  include <sys/stropts.h>
 #endif
 
