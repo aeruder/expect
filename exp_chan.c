@@ -66,7 +66,6 @@ Tcl_ChannelType expChannelType = {
     ExpWatchProc,			/* Initialize notifier. */
     ExpGetHandleProc,			/* Get OS handles out of channel. */
     NULL,				/* Close2 proc */
-#endif
 };
 
 typedef struct ThreadSpecificData {
