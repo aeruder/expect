@@ -28,7 +28,7 @@ log_user 0
 
 set env(TERM) vt100	;# actual value doesn't matter, just has to be set
 
-spawn telnet downwind.sprl.umich.edu 3000
+spawn telnet madlab.sprl.umich.edu 3000
 match_max 100000
 for {} 1 {} {
 	expect timeout {

@@ -3,6 +3,49 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Ben <spy@calvin.iconoclasm.org> provided updated host for
+		weather example.
+
+		Jonathon Kamens noted that Expect didn't build properly if
+		Tcl and/or Tk used build/install directories out of the usual
+		hierarchy.  At the same time, I fixed a number of other related
+		problems in Makefile/configure.
+
+		Pierre Pomes <ppomes@it.marseille-innov.assoc.fr> provided fix
+		to ftp-inband.  It blew up from an unprotected send that
+		was handed a uuencoded line that started with a -.
+
+		Autoexpect was thrown off by simple-minded [file executable]
+		test picking up expect directory while searching for
+		executable.
+
+1/21/99 5.29.0	Martin Forssen provides mods to support INSTALL_ROOT.
+
+		Bryan Surles <surles@scriptics.com> modified configure.in to
+		map DBGX to the same value as TCL_DBGX so the .so is named
+		correctly.
+
+		Suresh Sastry <suresh@scriptics.com> forced $LIBS to be
+		added to EXP_SHLIB_LD_LIBS.  It's not clear to me why this is
+		necessary (since Tk doesn't) but he was having a problem
+		with openpty not being found during runtime on Linux.
+
+		Martin Forssen noted expectk was crashing if a Tcl error was
+		encountered.  He found that exp_exit_handlers() was trying
+		to write into interp->result after interp had been deleted.
+
+		Added another copy to distribution site - with version number.
+
+		Stanislav Shalunov <shalunov@mccme.ru> closed race in pty code.
+
+		Fixed man page: -brace should be -nobrace.
+
+		Dan O'Brien <dmobrien@lucent.com> noted that Expect needed to
+		call Tcl_FindExecutable at startup for info nameofexecutable.
+
+		Robbie Gilbert <rwg@nc.fnc.fujitsu.com> noted indirect spawn
+		ids occasionally failed.  Fixed.
+
 9/30/98	5.28.1	Brian France <franceb@fsj.co.jp> noted that his compiler
 		rejected label with no statement.
 
@@ -44,7 +87,7 @@ Date	Version	Description
 		fine!)  Solution: documented this in Expect man page.
 
 		Zachariah Baum <zack@studioarchetype.com> noted that config.sub
-		didn't grok Intel 686.  Found a newer version that did in
+		didn't recognize Intel 686.  Found a newer version that did in
 		autoconf-2.11.
 
 		POTENTIAL INCOMPATIBILITY: Changed interact so that it observes
@@ -1618,7 +1661,7 @@ Date	Version	Description
 		"-console" to spawn.
 
 		Pang Wai Man Raymond <wmpang@cuse1.se.cuhk.hk> reported that
-		passmass didn't grok DEC's passwd prompts for root.
+		passmass didn't recognize DEC's passwd prompts for root.
 
 4/7/93	4.5.0	Fixed bug in interact regexp preventing match of multichar
 		literals.
@@ -1651,8 +1694,7 @@ Date	Version	Description
 		match_max to do -i correctly.
 
 3/15/93	4.2.4	Fixed to work on new SGI which returns slave-close via excep
-		(select) or POLLERR (poll) rather than thru read().  Why do you
-		people do things like this?
+		(select) or POLLERR (poll) rather than thru read().
 
 3/12/93	4.2.3	Fixed to work on AIX (using /dev/ptc) and UTS (using getpty).
 
@@ -1942,9 +1984,8 @@ Date	Version	Description
 		a status.  This royally complicated the code, partly because
 		of the special casing all over the place in the trap command,
 		the asynchronous delivery of SIGCLD and also because Tcl itself
-		is not prepared to have system calls be interrupted.  Cleverly,
-		the HP also defines both CLD and CHLD which threw my macros
-		off at first.  Thanks, but I don't this kind of help!
+		is not prepared to have system calls be interrupted.  The HP
+		also defines both CLD and CHLD which threw my macros off.
 
 		Anyway, the end result is that on the HP, SIGCLD is ignored.
 		The manual claims wait status will not be delivered but it
@@ -1965,7 +2006,7 @@ Date	Version	Description
 		inter_select.c.  HP transmits some pty interactions via the
 		exception field in select.
 
-		Michael Grant gave me a mod to grok ~ in the logfile and
+		Michael Grant gave me a mod to recognize ~ in the logfile and
 		debug commands.
 
 2/17/92	3.17.1	Brian Keves <keves@meaddata.com> pointed out that the man page
@@ -2206,7 +2247,7 @@ Date	Version	Description
 
 		Modified expect so that if timeout > 0, and nothing in the
 		buffer matched, it will force a read, no matter how long the
-		preceeding code took.  This may be hard to understand, but is
+		preceding code took.  This may be hard to understand, but is
 		the intuitive behavior that I always desired.
 
 10/30/91 3.2.0	Fixed bug in eof handling.  Converted some more of the
@@ -2924,9 +2965,9 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		session against another session, the BSD people.  Furthermore,
 		they called my paper an application, when it is no more so than
 		any other shell or language.  Better I should be in "lessons
-		learned".  Mashey said take a hike, i.e., it was too late to
-		change the schedule.  On top of that, our session has four
-		people in it, so I'll have very little time to speak.  Grrrr.
+		learned".  But it was too late to change the schedule.  On top
+		of that, our session has four people in it, so I'll have very
+		little time to speak.  Grrrr.
 
 3/13/90	1.6	Added "stty", because without it you can't do things like
 		turning off echo to accept a password.

@@ -203,6 +203,7 @@ proc getentry {name type transfer} {
 	switch -- $type \
 	d {
 		# directory
+		if {$name=="." || $name==".."} return
 		getdirectory $name $transfer
 	} - {
 		# file

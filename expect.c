@@ -1831,7 +1831,12 @@ struct exp_i *exp_i;
 			/* by code in next section already */
 			if (!exp_fd2f(interp,fdl->fd,1,0,"")) continue;
 
-			exp_fs[m].bg_ecount--;
+			/* check before decrementing, ecount may not be */
+			/* positive if update is called before ecount is */
+			/* properly synchronized */
+			if (exp_fs[m].bg_ecount > 0) {
+				exp_fs[m].bg_ecount--;
+			}
 			if (exp_fs[m].bg_ecount == 0) {
 				exp_disarm_background_filehandler(m);
 				exp_fs[m].bg_interp = 0;

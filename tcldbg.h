@@ -37,7 +37,7 @@ EXTERN char *Dbg_VarName;
 EXTERN char *Dbg_DefaultCmdName;
 
 /* trivial interface, creates a "debug" command in your interp */
-EXTERN int Dbg_Init _ANSI_ARGS_((Tcl_Interp *));
+EXTERN int Tcldbg_Init _ANSI_ARGS_((Tcl_Interp *));
 
 EXTERN void Dbg_On _ANSI_ARGS_((Tcl_Interp *interp,
 					int immediate));

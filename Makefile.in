@@ -61,8 +61,9 @@ CFLAGS = @CFLAGS@
 #XCFLAGS = @CFLAGS@ @EXP_CFLAGS@ @EXP_SHLIB_CFLAGS@ 
 XCFLAGS = @CFLAGS@ @EXP_CFLAGS@
 
-# Tcl libraries built with optimization switches have this additional extension
+# Libraries built with optimization switches have this additional extension
 TCL_DBGX =              @TCL_DBGX@
+TK_DBGX =		@TK_DBGX@
 
 # From now on, CFLAGS is never used.  Instead, use XCFLAGS.  This is done so
 # that we can provide a public interface for CFLAGS thereby allowing users
@@ -94,6 +95,13 @@ prefix = @prefix@
 # You can specify a separate installation prefix for architecture-specific
 # files such as binaries and libraries.
 exec_prefix = @exec_prefix@
+
+# The following definition can be set to non-null for special systems
+# like AFS with replication.  It allows the pathnames used for installation
+# to be different than those used for actually reference files at
+# run-time.  INSTALL_ROOT is prepended to $prefix and $exec_prefix
+# when installing files.
+INSTALL_ROOT =
 
 # The following Expect scripts are not necessary to have installed as
 # commands, but are very useful.  Edit out what you don't want installed.
@@ -161,17 +169,17 @@ STTY = -DDFLT_STTY="\"@DEFAULT_STTY_ARGS@\""
 # Do not change anything after this
 ######################################################################
 
-bindir            = @bindir@
-bindir_arch_indep = $(prefix)/bin
-tcl_libdir        = @libdir@
-libdir            = @libdir@/expect$(VERSION)
-libdir_arch_indep = $(prefix)/lib/expect$(VERSION)
+bindir            = $(INSTALL_ROOT)@bindir@
+bindir_arch_indep = $(INSTALL_ROOT)$(prefix)/bin
+tcl_libdir        = $(INSTALL_ROOT)@libdir@
+libdir            = $(INSTALL_ROOT)@libdir@/expect$(VERSION)
+libdir_arch_indep = $(INSTALL_ROOT)$(prefix)/lib/expect$(VERSION)
 
-mandir 	= @mandir@
+mandir 	= $(INSTALL_ROOT)@mandir@
 man1dir = $(mandir)/man1
 man3dir = $(mandir)/man3
-infodir = @infodir@
-includedir = @includedir@
+infodir = $(INSTALL_ROOT)@infodir@
+includedir = $(INSTALL_ROOT)@includedir@
 
 # Expect's utility script directories - arch-independent and arch-non-
 # independent.  These correspond to the variables "exp_library" and
@@ -188,7 +196,7 @@ INSTALL_DATA = @INSTALL_DATA@
 AR = ar
 ARFLAGS = cr
 
-LOCAL_EXPECT=LD_LIBRARY_PATH=.:$$LD_LIBRARY_PATH ./expect
+LOCAL_EXPECT=LD_LIBRARY_PATH=.:@TCL_EXEC_PREFIX@/lib:$(tcl_libdir):$$LD_LIBRARY_PATH ./expect
 
 # These definitions are used by the "subdirs_do" target to pass
 # the compile flags down recursively.
@@ -323,6 +331,7 @@ info:
 dvi:
 
 # build expect binary that does not depend on Expect's shared libs
+# IFF static Tcl/Tk libraries are available.
 expect:	exp_main_exp.o $(EXP_UNSHARED_LIB_FILE)
 	$(CC) $(XCFLAGS) @TCL_LD_FLAGS@ -o expect exp_main_exp.o $(EXP_UNSHARED_LIB_FILE) $(TCLLIB) $(EXP_AND_TCL_LIBS)
 	$(SETUID) expect
@@ -359,7 +368,8 @@ expect.tc: exp_main_exp.o $(OFILES)
 	proof $(CC) $(XCFLAGS) @EXP_SHLIB_CFLAGS@ @TCL_LD_FLAGS@ -o expect.tc $(OFILES) exp_main_exp.o $(TCLLIB) $(EXP_AND_TCL_LIBS) 
 	$(SETUID) expect.tc
 
-# Build an executable with both Expect and Tk.
+# Build an executable with both Expect and Tk
+# IFF static Tcl/Tk libraries are available.
 # Yes, I know that the link line can have libraries repeated.  This is a
 # consequence of Tcl's configure combining the Tcl and X dependent libs
 # together.  I could fix it by testing all the libraries (again, in Expect's
@@ -751,6 +761,9 @@ exp_$(EVENT_TYPE).o: $(srcdir)/exp_$(EVENT_TYPE).c expect_cf.h expect.h \
 exp_command.o: $(srcdir)/exp_command.c expect_cf.h exp_tty.h \
 	exp_rename.h expect.h exp_command.h \
 	exp_log.h exp_printify.h exp_event.h exp_pty.h 
+exp_console.o: $(srcdir)/exp_console.c expect_cf.h exp_rename.h exp_prog.h \
+	exp_log.h
+exp_glob.o: $(srcdir)/exp_glob.c expect_cf.h
 exp_inter.o: $(srcdir)/exp_inter.c expect_cf.h \
 	exp_tty_in.h exp_tty.h exp_rename.h expect.h exp_command.h \
 	exp_log.h exp_printify.h exp_regexp.h exp_tstamp.h
@@ -782,13 +795,13 @@ exp_select.o: $(srcdir)/exp_select.c expect_cf.h \
 	expect.h exp_command.h exp_event.h 
 exp_simple.o: $(srcdir)/exp_simple.c expect_cf.h \
 	expect.h exp_command.h exp_event.h 
-exp_strf.o: $(srcdir)/exp_strf.c
+exp_strf.o: $(srcdir)/exp_strf.c expect_cf.h
 exp_trap.o: $(srcdir)/exp_trap.c expect_cf.h expect.h \
 	exp_command.h exp_log.h exp_printify.h 
 exp_tty.o: $(srcdir)/exp_tty.c expect_cf.h \
 	expect.h exp_rename.h exp_tty_in.h exp_tty.h exp_log.h \
 	exp_printify.h exp_command.h 
-exp_win.o: $(srcdir)/exp_win.c exp_win.h 
+exp_win.o: $(srcdir)/exp_win.c exp_win.h expect_cf.h
 expect.o: $(srcdir)/expect.c expect_cf.h \
 	exp_rename.h expect.h exp_command.h \
 	exp_log.h exp_printify.h exp_event.h exp_tty.h exp_tstamp.h

@@ -1247,7 +1247,12 @@ parent_error:
 
 	if (0 > (slave = getptyslave(ttycopy,ttyinit,stty_init))) {
 		restore_error_fd
-		errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
+
+		if (exp_pty_error) {
+			errorlog("open(slave pty): %s\r\n",exp_pty_error);
+		} else {
+			errorlog("open(slave pty): %s\r\n",Tcl_ErrnoMsg(errno));
+		}
 		exit(-1);
 	}
 	/* sanity check */

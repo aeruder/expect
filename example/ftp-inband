@@ -156,7 +156,7 @@ proc put {infile outfile} {
 	while 1 {
 		if {-1 == [gets $fp buf]} break
 		send_verbose "."
-		send "$buf\r"
+		send -- "$buf\r"
 	}
 
 	if ($verbose_flag) {

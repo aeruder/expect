@@ -10,8 +10,8 @@ AC_INIT(expect.h)
 # note when updating version numbers here, also update pkgIndex.in (see
 # comments in Makefile)
 EXP_MAJOR_VERSION=5
-EXP_MINOR_VERSION=28
-EXP_MICRO_VERSION=1
+EXP_MINOR_VERSION=29
+EXP_MICRO_VERSION=0
 EXP_VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 EXP_VERSION_NODOTS=$EXP_MAJOR_VERSION$EXP_MINOR_VERSION
 EXP_VERSION_FULL=$EXP_VERSION.$EXP_MICRO_VERSION
@@ -1056,7 +1056,7 @@ if test $ac_cv_sys_long_file_names = no; then
 fi
 
 EXP_BUILD_LIB_SPEC="-L`pwd` -lexpect${EXP_LIB_VERSION}"
-EXP_LIB_SPEC="-L\${exec_prefix}/lib -lexpect${EXP_LIB_VERSION}"
+EXP_LIB_SPEC="-L\${INSTALL_ROOT}\${exec_prefix}/lib -lexpect${EXP_LIB_VERSION}"
 EXP_UNSHARED_LIB_FILE=libexpect${EXP_LIB_VERSION}${TCL_DBGX}.a
 
 # The TCL_SHARED_LIB_SUFFIX macro below relies on the DBGX macro.
@@ -1080,11 +1080,6 @@ else
   EXP_LIB_FILES="$EXP_UNSHARED_LIB_FILE"
   AC_MSG_RESULT(unshared)
 fi
-
-# now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this
-# in order to avoid repeating lib specs to which some systems object.
-EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $TCL_LD_SEARCH_FLAGS"
-EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $TCL_LD_SEARCH_FLAGS"
 
 # Sigh - Tcl defines SHLIB_LD_LIBS to be either empty or ${LIBS} and
 # LIBS is intended to be expanded by Make.  But since we're too close
@@ -1117,20 +1112,37 @@ LIB_RUNTIME_DIR='${LIB_RUNTIME_DIR}'
 # If Tcl and Expect are installed in different places, adjust the library
 # search path to reflect this.
 
-if test "$TCL_EXEC_PREFIX" != "$exec_prefix"; then
-    LIB_RUNTIME_DIR="${LIB_RUNTIME_DIR}:${TCL_EXEC_PREFIX}"
+if test x"$no_tk" = x"true" ; then
+  if test "$TCL_EXEC_PREFIX" != "$exec_prefix"; then
+    LIB_RUNTIME_DIR="${LIB_RUNTIME_DIR}:${TCL_EXEC_PREFIX}/lib"
+  fi
+else
+  if test "$TK_EXEC_PREFIX" != "$exec_prefix"; then
+    LIB_RUNTIME_DIR="${LIB_RUNTIME_DIR}:${TK_EXEC_PREFIX}/lib"
+    # no need to include TCL's search path, because TK does it already
+    # (it is actually appended later, via TK_LD_SEARCH_FLAGS trick below)
+  fi
 fi
 
 if test "${TCL_LD_SEARCH_FLAGS}" = '-L${LIB_RUNTIME_DIR}'; then
     LIB_RUNTIME_DIR=`echo ${LIB_RUNTIME_DIR} |sed -e 's/:/ -L/g'`
 fi
 
-# The statement below is very tricky!  It actually *evaluates* the
-# string in TCL_LD_SEARCH_FLAGS, which causes a substitution of the
+# The eval below is tricky!  It *evaluates* the string in
+# TCL_LD_SEARCH_FLAGS, which causes a substitution of the
 # variable LIB_RUNTIME_DIR.
 
-eval "EXP_CC_SEARCH_FLAGS=\"$TCL_LD_SEARCH_FLAGS\""
+if test x"$no_tk" = x"true" ; then
+  eval "EXP_CC_SEARCH_FLAGS=\"$TCL_LD_SEARCH_FLAGS\""
+else
+  eval "EXP_CC_SEARCH_FLAGS=\"$TK_LD_SEARCH_FLAGS\""
+fi
 EXP_LD_SEARCH_FLAGS=`echo ${EXP_CC_SEARCH_FLAGS} |sed -e "s|-Wl,||g" -e "s|,| |g"`
+
+# now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this
+# in order to avoid repeating lib specs to which some systems object.
+EXP_AND_TCL_LIBS="$EXP_AND_TCL_LIBS $EXP_LD_SEARCH_FLAGS"
+EXP_AND_TK_LIBS="$EXP_AND_TK_LIBS $EXP_LD_SEARCH_FLAGS"
 
 #
 # Set up makefile substitutions

@@ -2316,7 +2316,7 @@ use a heuristic to decide if the list is actually one argument or many.
 The heuristic can fail only in the case when the list actually does
 represent a single argument which has multiple embedded \\n's with
 non-whitespace characters between them.  This seems sufficiently improbable,
-however the argument "-brace" can be used to force a single argument
+however the argument "\-nobrace" can be used to force a single argument
 to be handled as a single argument.  This could conceivably be used
 with machine-generated Expect code.
 .SH BUGS

@@ -19,6 +19,7 @@ char *argv[];
 {
 	int rc = 0;
 	Tcl_Interp *interp = Tcl_CreateInterp();
+	Tcl_FindExecutable(argv[0]);
 
 	if (Tcl_Init(interp) == TCL_ERROR) {
 		fprintf(stderr,"Tcl_Init failed: %s\n",interp->result);

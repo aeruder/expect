@@ -82,9 +82,10 @@ Trying Expect Without Installing Tcl
 --------------------
 
 Once expect is built, you can try it out.  If Tcl has not been
-installed, you will need to define the environment variable
-TCL_LIBRARY.  It should name the directory contain the Tcl libraries.
-For example, if you are using csh with Tcl 8.0.3:
+installed (but it has been compiled), you will need to define the
+environment variable TCL_LIBRARY.  It should name the directory
+contain the Tcl libraries.  For example, if you are using csh with Tcl
+8.0.3:
 
 	$ setenv TCL_LIBRARY ../tcl8.0.3/library
 

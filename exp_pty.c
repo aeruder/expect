@@ -142,7 +142,11 @@ exp_pty_test_start()
 	/* that they are not deleted (later on in this code) */
 	sprintf(locksrc,"/tmp/expect.%d",getpid());
 	(void) unlink(locksrc);
-	if (-1 == (lfd = creat(locksrc,0777))) {
+	/* stanislav shalunov <shalunov@mccme.ru> notes that creat allows */
+	/* race - someone could link to important file which root could then */
+	/* smash. */
+/*	if (-1 == (lfd = creat(locksrc,0777))) { */
+       if (-1 == (lfd = open(locksrc,O_RDWR|O_CREAT|O_EXCL,0777))) {
 		static char buf[256];
 		exp_pty_error = buf;
 		sprintf(exp_pty_error,"can't create %s, errno = %d\n",locksrc, errno);

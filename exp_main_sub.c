@@ -112,10 +112,8 @@ ClientData clientData;
 
 	/* don't think this code is relevant any longer, but not positive! */
 	if (!interp) {
-		/* if no interp handy (i.e., called from interrupt handler) */
-		/* use last one created - it's a hack but we're exiting */
-		/* ungracefully to begin with */
-		interp = exp_interp;
+		/* if no interp handy there is nothing meaningful to do */
+		return;
 	}
 
 	if (!did_expect_exit) {
@@ -490,7 +488,7 @@ Tcl_Interp *interp;
 		exp_init_unit_random();
 		exp_init_spawn_ids();
 
-		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)interp);
+		Tcl_CreateExitHandler(exp_exit_handlers,(ClientData)NULL);
 
 		first_time = FALSE;
 	}

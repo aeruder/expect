@@ -251,7 +251,7 @@ verbose_send_user "autoexpect started, file is $filename\n"
 # calculate a reasonable #! line
 set expectpath /usr/local/bin		;# prepare default
 foreach dir [split $env(PATH) :] {	;# now look for real location
-	if [file executable $dir/expect] {
+	if {[file executable $dir/expect] && ![file isdirectory $dir/expect]} {
 		set expectpath $dir
 		break
 	}

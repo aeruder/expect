@@ -552,8 +552,8 @@ expect -re.
 4) exec is no longer necessary to retrieve environment variables, since
 they can now be retrieved from $env.
 
-5) If you have been really anal about testing for timeout and eof, you
-can dramatically reduce the size of your scripts by using expect_before
-and expect_after.  This is more efficient, as well, since those actions
-are only parsed once.
+5) If you have been really careful about testing for timeout and eof,
+you can dramatically reduce the size of your scripts by using
+expect_before and expect_after.  This is more efficient, as well,
+since those actions are only parsed once.
 

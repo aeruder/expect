@@ -252,9 +252,7 @@ dnl     AC_SUBST(TCL_LIBS)
 dnl not used, don't export to save symbols
 dnl    AC_SUBST(TCL_PREFIX)
 
-dnl not used, don't export to save symbols
-dnl    AC_SUBST(TCL_EXEC_PREFIX)
-
+    AC_SUBST(TCL_EXEC_PREFIX)
 
 dnl not used, don't export to save symbols
 dnl AC_SUBST(TCL_SHLIB_CFLAGS)
@@ -493,6 +491,7 @@ dnl    AC_SUBST(TK_MAJOR_VERSION)
 dnl    AC_SUBST(TK_MINOR_VERSION)
     AC_SUBST(TK_DEFS)
 
+    AC_SUBST(TK_DBGX)
 dnl not used, don't export to save symbols
     dnl AC_SUBST(TK_LIB_FILE)
 
@@ -506,6 +505,24 @@ dnl    AC_SUBST(TK_EXEC_PREFIX)
 
     AC_SUBST(TK_XINCLUDES)
     AC_SUBST(TK_XLIBSW)
+
+# if Tk's build directory has been removed, TK_LIB_SPEC should
+# be used instead of TK_BUILD_LIB_SPEC
+SAVELIBS=$LIBS
+# eval used to expand out TK_DBGX
+eval "LIBS=\"$TK_BUILD_LIB_SPEC $TK_LIBS\""
+AC_CHECK_FUNC(Tk_Main,[
+	AC_MSG_CHECKING([if Tk library build specification is valid])
+	AC_MSG_RESULT(yes)
+],[
+	TK_BUILD_LIB_SPEC=$TK_LIB_SPEC
+	# Can't pull the following CHECKING call out since it will be
+	# broken up by the CHECK_FUNC just above.
+	AC_MSG_CHECKING([if Tk library build specification is valid])
+	AC_MSG_RESULT(no)
+])
+LIBS=$SAVELIBS
+
     AC_SUBST(TK_BUILD_LIB_SPEC)
     AC_SUBST(TK_LIB_SPEC)
 ])

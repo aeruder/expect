@@ -212,6 +212,10 @@ symlink:
 
 FTPDIR = /proj/itl/www/div826/subject/expect/tcl-debug
 
+# make a private tar file for myself
+tar:	tcl-debug-$(VERSION).tar
+	mv tcl-debug-$(VERSION).tar tcl-debug.tar
+
 ftp:	tcl-debug-$(VERSION).tar.Z tcl-debug-$(VERSION).tar.gz
 	cp tcl-debug-$(VERSION).tar.Z $(FTPDIR)/tcl-debug.tar.Z
 	cp tcl-debug-$(VERSION).tar.gz $(FTPDIR)/tcl-debug.tar.gz

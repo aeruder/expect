@@ -610,7 +610,12 @@ char *stty_args;
 	int slave, slave2;
 	char buf[10240];
 
-	if (0 > (slave = open(slave_name, O_RDWR))) return(-1);
+	if (0 > (slave = open(slave_name, O_RDWR))) {
+		static char buf[500];
+		exp_pty_error = buf;
+		sprintf(exp_pty_error,"open(%s,rw) = %d (%s)",slave_name,slave,Tcl_ErrnoMsg(errno));
+		return(-1);
+	}
 
 #if defined(HAVE_PTMX_BSD)
 	if (ioctl (slave, I_LOOK, buf) != 0)
