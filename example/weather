@@ -2,7 +2,7 @@
 
 # weather - Expect script to get the weather (courtesy University of Michigan)
 # Don Libes
-# Version 1.9
+# Version 1.10
 
 # local weather is retrieved if no argument
 # argument is the National Weather Service designation for an area
@@ -28,7 +28,8 @@ set timeout 60
 
 set env(TERM) vt100	;# actual value doesn't matter, just has to be set
 
-spawn telnet cirrus.sprl.umich.edu 3000
+spawn telnet rainmaker.wunderground.com
+send_user "attempting to connect to rainmaker..."
 match_max 100000
 while {1} {
 	expect timeout {

@@ -1,3 +1,8 @@
+2002-06-26  David Gravereaux  <davygrvy@pobox.com>
+
+	* example/weather: updated script to use rainmaker.wunderground.com
+	instead of cirrus.sprl.umich.edu.  The old service is closed.
+
 2002-06-17  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* exp_main_tk.c: #ifdef'd definition of "matherr". This hack is
