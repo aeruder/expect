@@ -208,7 +208,7 @@ set term_spawn_id $spawn_id
 # this shouldn't be needed if Ousterhout fixes text bug
 text $term \
      -yscroll "$sb set" \
-     -relief sunken -bd 1 -width $cols -height $rows -wrap none
+     -relief sunken -bd 1 -width $cols -height $rows -wrap none -setgrid 1
 
 # define scrollbars
 scrollbar .sb -command "$term yview"
@@ -272,6 +272,27 @@ proc term_init {} {
     $term mark set insert $cur_row.$cur_col
 
     set ::rowsDumb $rows
+}
+
+# NOT YET COMPLETE!
+proc term_resize {rowsNew colsNew} {
+    global rows cols term
+
+    foreach {set r 1} {$r < $rows} {incr r} {
+	if {$colsNew > $cols} {
+	    # add columns
+	    $term insert $i.$column $blanks
+	} elseif {$colsNew < $cols} {
+	    # remove columns
+	    # ?
+	}
+    }
+
+    if {$rowsNew > $rows} {
+	# add rows
+    } elseis {$rowsNew < $rows} {
+	# remove rows
+    }
 }
 
 proc term_down {} {
@@ -472,6 +493,15 @@ expect_background {
 	# (rmkx,ke) end keyboard-transmit mode
 	graphicsSet 0
     }
+}
+
+# New and incomplete!
+bind $term <Configure> {
+    scan [wm geometry .] "%dx%dx" rows cols
+    stty rows $rows columns $cols < $spawn_out(slave,name)
+    
+    # when this is working, uncomment ...
+    # term_resize $rows $cols
 }
 
 bind $term <Any-Enter> {

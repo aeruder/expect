@@ -326,6 +326,12 @@ ExpState *esPtr;
     /* surprised finding stdio or /dev/tty nonblocking */
     (void) Tcl_SetChannelOption(interp,esPtr->channel,"-blocking","on");
 
+    /* Since we're closing the channel, not Tcl, we need to get Tcl's
+       buffers flushed.  Because the channel was nonblocking, EAGAINs
+       could leave things buffered.  They need to be synchronously
+       written now! */
+    Tcl_Flush(esPtr->channel);
+
     /*
      * Ignore close errors from ptys.  Ptys on some systems return errors for
      * no evident reason.  Anyway, receiving an error upon pty-close doesn't
@@ -1225,7 +1231,7 @@ parent_error:
     Tcl_DStringFree(&dstring);
     if (esPtr) {
         exp_close(interp,esPtr);
-	waitpid(esPtr->pid,&esPtr->wait,0);
+	waitpid(esPtr->pid,(int *)&esPtr->wait,0);
 	if (esPtr->registered) {
 	    Tcl_UnregisterChannel(interp,esPtr->channel);
 	}
@@ -2583,7 +2589,7 @@ char **argv;
 			if (rc != TCL_OK) return(rc);
 		    }
 
-		    result = waitpid(esPtr->pid,&esPtr->wait,0);
+		    result = waitpid(esPtr->pid,(int *)&esPtr->wait,0);
 		    if (result == esPtr->pid) break;
 		    if (result == -1) {
 			if (errno == EINTR) continue;
@@ -2617,7 +2623,7 @@ char **argv;
 	    for (fp=forked_proc_base;fp;fp=fp->next) {
 		if (fp->link_status == not_in_use) continue;
 	restart:
-		result = waitpid(fp->pid,&fp->wait_status,WNOHANG);
+		result = waitpid(fp->pid,(int *)&fp->wait_status,WNOHANG);
 		if (result == fp->pid) {
 		    waited_on_forked_process = 1;
 		    break;

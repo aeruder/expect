@@ -66,6 +66,7 @@ Tcl_ChannelType expChannelType = {
     ExpWatchProc,			/* Initialize notifier. */
     ExpGetHandleProc,			/* Get OS handles out of channel. */
     NULL,				/* Close2 proc */
+#endif
 };
 
 typedef struct ThreadSpecificData {
@@ -225,23 +226,20 @@ ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
 
     if (toWrite < 0) Tcl_Panic("ExpOutputProc: called with negative char count");
 
-    while (toWrite > 0) {
-	written = write(esPtr->fdout, buf, (size_t) toWrite);
-	if (written == 0) {
-	    /* This shouldn't happen but I'm told that it does
-	     * nonetheless (at least on SunOS 4.1.3).  Since this is
-	     * not a documented return value, the most reasonable
-	     * thing is to complain here and retry in the hopes that
-	     * it is some transient condition.  */
-	    sleep(1);
-	    expDiagLogU("write() failed to write anything - will sleep(1) and retry...\n");
-	} else if (written < 0) {
-	    if (errno == EAGAIN) continue;
-	    *errorCodePtr = errno;
-	    return -1;
-	}
-	buf += written;
-	toWrite -= written;
+    written = write(esPtr->fdout, buf, (size_t) toWrite);
+    if (written == 0) {
+      /* This shouldn't happen but I'm told that it does
+       * nonetheless (at least on SunOS 4.1.3).  Since this is
+       * not a documented return value, the most reasonable
+       * thing is to complain here and retry in the hopes that
+       * it is some transient condition.  */
+      sleep(1);
+      expDiagLogU("write() failed to write anything - will sleep(1) and retry...\n");
+      *errorCodePtr = EAGAIN;
+      return -1;
+    } else if (written < 0) {
+      *errorCodePtr = errno;
+      return -1;
     }
     return written;
 }

@@ -273,9 +273,9 @@ Requires Tk 8.3.3 or later.
 This man page describes version 1.8 of multixterm.
 
 The latest version of multixterm is available from
-http://expect.nist.gov/example/multixterm . However, if your version
-of Expect and Tk are too old (see REQUIREMENTS above) you should
-download a new version of expect from http://expect.nist.gov
+http://expect.nist.gov/example/multixterm .  If your version of Expect
+and Tk are too old (see REQUIREMENTS above), download a new version of
+Expect from http://expect.nist.gov
 
 .SH DATE
 April 30, 2002
@@ -285,5 +285,5 @@ Don Libes <don@libes.com>
 
 .SH LICENSE
 Multixterm is in the public domain; however the author would
-appreciate acknowledgement if multixterm or parts of it are
-used.
+appreciate acknowledgement if multixterm or parts of it or ideas from
+it are used.

@@ -208,7 +208,7 @@ set term_spawn_id $spawn_id
 # this shouldn't be needed if Ousterhout fixes text bug
 text $term \
      -yscroll "$sb set" \
-     -relief sunken -bd 1 -width $cols -height $rows -wrap none
+     -relief sunken -bd 1 -width $cols -height $rows -wrap none -setgrid 1
 
 # define scrollbars
 scrollbar .sb -command "$term yview"

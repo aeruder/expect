@@ -18,6 +18,11 @@ would appreciate credit if this program or parts of it are used.
 # endif
 #endif
 
+#ifdef __APPLE__
+/* From: "Daniel A. Steffen" <steffen@ics.mq.edu.au> */
+# undef panic
+#endif
+
 #include <tclPort.h>
 
 #define EXP_CHANNELNAMELEN (16 + TCL_INTEGER_SPACE)

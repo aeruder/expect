@@ -2425,6 +2425,9 @@ discards the return codes from async event handlers.  A workaround is
 to set a flag in the trap code.  Then check the flag immediately after
 the command (i.e., sleep).
 
+The expect_background command ignores -timeout arguments and has no
+concept of timeouts in general.
+
 .SH EXPECT HINTS
 There are a couple of things about
 .B Expect

@@ -200,9 +200,10 @@ if {[info exists user]} {
 			exit 1
 		}
 	}
+
+        if {$verbose} {
+	    puts -nonewline "password for $user is "
+        }
 }
 
-if {$verbose} {
-	puts -nonewline "password for $user is "
-}
 puts "$password"

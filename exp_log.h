@@ -21,6 +21,7 @@ EXTERN void		expDiagLogU _ANSI_ARGS_((char *));
 
 EXTERN char *		expPrintify _ANSI_ARGS_((char *));
 EXTERN char *		expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
+EXTERN void		expPrintf _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 
 EXTERN void		expLogInit _ANSI_ARGS_((void));
 EXTERN int		expLogChannelOpen _ANSI_ARGS_((Tcl_Interp *,char *,int));

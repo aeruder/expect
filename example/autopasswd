@@ -5,7 +5,7 @@
 set password [lindex $argv 1]
 spawn passwd [lindex $argv 0]
 expect "assword:"
-send "$password\r"
+send -- "$password\r"
 expect "assword:"
-send "$password\r"
+send -- "$password\r"
 expect eof

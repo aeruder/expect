@@ -278,10 +278,32 @@ char *str;
     expDiagWriteBytes(str,-1);
 
     if (tsdPtr->diagToStderr) {
-	fprintf(stderr,"%s",str);
-	if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,str,-1);
+      fprintf(stderr,"%s",str);
+      if (tsdPtr->logChannel) Tcl_WriteChars(tsdPtr->logChannel,str,-1);
     }
 }
+
+/* expPrintf prints to stderr.  It's just a utility for making
+   debugging easier. */
+
+/*VARARGS*/
+void
+expPrintf TCL_VARARGS_DEF(char *,arg1)
+{
+  char *fmt;
+  va_list args;
+  char bigbuf[2000];
+  int len, rc;
+
+  fmt = TCL_VARARGS_START(char *,arg1,args);
+  len = vsprintf(bigbuf,arg1,args);
+ retry:
+  rc = write(2,bigbuf,len);
+  if ((rc == -1) && (errno == EAGAIN)) goto retry;
+
+  va_end(args);
+}
+
 
 void
 expDiagToStderrSet(val)
