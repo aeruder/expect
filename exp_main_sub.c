@@ -219,7 +219,7 @@ handle_eval_error(interp,check_for_nostack)
 Tcl_Interp *interp;
 int check_for_nostack;
 {
-	CONST char *msg;
+	char *msg;
 
 	/* if errorInfo has something, print it */
 	/* else use what's in interp->result */
@@ -370,7 +370,7 @@ Tcl_Obj *eofObj;
 	code = Tcl_RecordAndEvalObj(interp, commandPtr, 0);
 	Tcl_SetObjLength(commandPtr, 0);
 	switch (code) {
-	    CONST char *str;
+	    char *str;
 
 	    case TCL_OK:
 	        str = Tcl_GetStringResult(interp);
@@ -454,7 +454,7 @@ char **argv;
 			exp_argv0,user_version,exp_version);
 		return(TCL_ERROR);
 	}
-	expErrorLog("%s: requires Expect version %s (but using %s)\r\n",
+	expErrorLog("%s requires Expect version %s (but is using %s)\r\n",
 		exp_argv0,user_version,exp_version);
 
 	/* SF #439042 -- Allow overide of "exit" by user / script

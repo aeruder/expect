@@ -110,11 +110,12 @@ INSTALL_ROOT =
 # target.  If this is a problem, just comment out the SCRIPTS target itself.
 SCRIPTS = timed-run timed-read ftp-rfc autopasswd lpunlock weather \
 	passmass rftp kibitz rlogin-cwd xpstat tkpasswd dislocate xkibitz \
-	tknewsbiff unbuffer mkpasswd cryptdir decryptdir autoexpect
+	tknewsbiff unbuffer mkpasswd cryptdir decryptdir autoexpect \
+	multixterm
 # A couple of the scripts have man pages of their own.
 # You can delete these too if you don't want'em.
 SCRIPTS_MANPAGES = kibitz dislocate xkibitz tknewsbiff unbuffer mkpasswd \
-	passmass cryptdir decryptdir autoexpect
+	passmass cryptdir decryptdir autoexpect multixterm
 
 # Short directory path where binaries can be found to support #! hack.
 # This directory path can be the same as the directory in which the binary

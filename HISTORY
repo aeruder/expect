@@ -3,6 +3,11 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+4/15/02 5.37.0	Added multixterm to example directory.
+
+4/8/02	5.36.1	Backed out CONST qualifiers.  Too much trouble with older
+		versions of Tcl.  I'll let someone else worry about them.
+
 4/8/02	5.36.0	Made first cut at multixterm, a replacement for crlogin.
 
 		Fixed bug in background handler.  If an action waited on the

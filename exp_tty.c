@@ -278,9 +278,9 @@ int fd;
 /* to write send_user strings without always putting in \r. */
 /* If len == 0, use strlen to compute it */
 /* NB: if terminal is not in raw mode, nothing is done. */
-CONST char *
+char *
 exp_cook(s,len)
-CONST char *s;
+char *s;
 int *len;	/* current and new length of s */
 {
 	static int destlen = 0;

@@ -183,7 +183,7 @@ int any;
 {
     static char *user_spawn_id = "exp0";
 
-    CONST char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
+    char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
     if (!name) name = user_spawn_id;
 
     return expStateFromChannelName(interp,name,opened,adjust,any,SPAWN_ID_VARNAME);
@@ -208,7 +208,7 @@ expStateCheck(interp,esPtr,open,adjust,msg)
 ExpState *
 expStateFromChannelName(interp,name,open,adjust,any,msg)
     Tcl_Interp *interp;
-    CONST char *name;
+    char *name;
     int open;
     int adjust;
     char *msg;
@@ -1705,7 +1705,7 @@ exp_i_update(interp,i)
 Tcl_Interp *interp;
 struct exp_i *i;
 {
-  CONST char *p;	/* string representation of list of spawn ids */
+  char *p;	/* string representation of list of spawn ids */
 
   if (i->direct == EXP_INDIRECT) {
     p = Tcl_GetVar(interp,i->variable,TCL_GLOBAL_ONLY);
