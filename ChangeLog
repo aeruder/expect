@@ -1,5 +1,7 @@
 2002-03-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
+	* exp_main_sub.c: Fixed typo in merge of #459646. Thanks to Hemang Lavana.
+
  	* exp_log.c (expStdoutLogU): Merged fix for SF Bug #513382 into
 	  the HEAD (The source of the patch is "expect-sf418892-sf439042-branch").
 

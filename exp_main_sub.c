@@ -505,7 +505,7 @@ Tcl_Interp *interp;
     Tcl_Preserve(interp);
     Tcl_CreateExitHandler(Tcl_Release,(ClientData)interp);
 
-    if (firsttime) {
+    if (first_time) {
 	exp_getpid = getpid();
 	exp_init_pty();
 	exp_init_pty_exit();
