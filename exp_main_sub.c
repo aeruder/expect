@@ -493,17 +493,19 @@ Tcl_Interp *interp;
 		    NEED_TCL_MAJOR,NEED_TCL_MINOR);
 	    return TCL_ERROR;
 	}
+    }
 
-	if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
-	    return TCL_ERROR;
-	}
-	if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
-	    return TCL_ERROR;
-	}
+    if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
+      return TCL_ERROR;
+    }
+    if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
+      return TCL_ERROR;
+    }
 
-	Tcl_Preserve(interp);
-	Tcl_CreateExitHandler(Tcl_Release,(ClientData)interp);
+    Tcl_Preserve(interp);
+    Tcl_CreateExitHandler(Tcl_Release,(ClientData)interp);
 
+    if (firsttime) {
 	exp_getpid = getpid();
 	exp_init_pty();
 	exp_init_pty_exit();

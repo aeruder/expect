@@ -1,5 +1,8 @@
 2002-03-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
+	* Merged fix for SF Bug #459646 into the HEAD (The source of the
+	  patch is "expect-sf418892-sf439042-branch").
+
 	* Merged fix for SF Bug #439042 into the HEAD (The source of the
 	  patch is "expect-sf418892-sf439042-branch").
 
