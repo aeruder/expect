@@ -32,7 +32,6 @@ echo "configuring Expect $EXP_MAJOR_VERSION.$EXP_MINOR_VERSION.$EXP_MICRO_VERSIO
 # development.
 # Test if configure is older than configure.in and explain if no autoconf
 AC_CHECK_PROG(found,autoconf,yes,no,)
-found=no
 AC_MSG_CHECKING([configure up to date])
 for i in `ls -tr ${srcdir}/configure ${srcdir}/configure.in ${srcdir}/Makefile.in` ; do
   newest=$i
