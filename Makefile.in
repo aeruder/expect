@@ -324,8 +324,14 @@ LIB_RUNTIME_DIR = $(tcl_libdir)
 	   $(CC) -c $(CFLAGS_INT) @EXP_SHLIB_CFLAGS@ $(STTY) $(HDEFS) $< -o shared/$@ ; \
 	fi
 
-all: expect $(EXP_LIB_FILES) ${X11_PROGS}
+all: binaries libraries doc
+
+binaries: expect $(EXP_LIB_FILES) ${X11_PROGS}
 	@$(MAKE) subdir_do DO=$@  $(FLAGS_TO_PASS)
+
+libraries:
+
+doc: info dvi
 
 info:
 dvi:
@@ -406,7 +412,9 @@ $(EXP_SHARED_LIB_FILE): $(OFILES)
 .PHONY: install-info install info
 install-info:
 
-install:	expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
+install: all install-binaries install-libraries install-doc
+
+install-binaries: expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
 	${srcdir}/mkinstalldirs $(man1dir) $(man3dir) $(bindir) $(tcl_libdir) $(includedir)
 # install Expect
 	$(INSTALL_PROGRAM) expect_installed $(bindir)/expect
@@ -435,6 +443,8 @@ install:	expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
 	   if $(LOCAL_EXPECT) $(srcdir)/fixcat ; then \
 	      $(INSTALL_DATA) $(srcdir)/fixcat $(EXECSCRIPTDIR)/cat-buffers ; \
 	   else true; fi
+
+install-libraries:
 # install standalone scripts and their man pages, if requested
 	${srcdir}/mkinstalldirs $(bindir_arch_indep) $(man1dir) $(SCRIPTDIR) $(EXECSCRIPTDIR)
 	-for i in $(SCRIPT_LIST) ; do \
@@ -443,6 +453,8 @@ install:	expect expect_installed ${X11_PROGS_INSTALLED} $(SCRIPTS)
 	    rm -f $$i ; \
 	  else true; fi ; \
 	done
+
+install-doc:
 	-for i in $(SCRIPT_MANPAGE_LIST) ; do \
 	  if [ -f $(srcdir)/example/$$i.man ] ; then \
 	    $(INSTALL_DATA) $(srcdir)/example/$$i.man $(man1dir)/$$i.1 ; \

@@ -163,18 +163,18 @@ AC_DEFUN(CY_AC_PATH_TCLCONFIG, [
 #
 # Ok, lets find the tcl configuration
 # First, look for one uninstalled.  
-# the alternative search directory is invoked by --with-tclconfig
+# the alternative search directory is invoked by --with-tcl
 #
 
 if test x"${no_tcl}" = x ; then
   # we reset no_tcl in case something fails here
   no_tcl=true
-  AC_ARG_WITH(tclconfig, [  --with-tclconfig           directory containing tcl configuration (tclConfig.sh)],
+  AC_ARG_WITH(tcl, [  --with-tcl           directory containing tcl configuration (tclConfig.sh)],
          with_tclconfig=${withval})
   AC_MSG_CHECKING([for Tcl configuration])
   AC_CACHE_VAL(ac_cv_c_tclconfig,[
 
-  # First check to see if --with-tclconfig was specified.
+  # First check to see if --with-tcl was specified.
   if test x"${with_tclconfig}" != x ; then
     if test -f "${with_tclconfig}/tclConfig.sh" ; then
       ac_cv_c_tclconfig=`(cd ${with_tclconfig}; pwd)`
@@ -410,18 +410,18 @@ AC_DEFUN(CY_AC_PATH_TKCONFIG, [
 #
 # Ok, lets find the tk configuration
 # First, look for one uninstalled.  
-# the alternative search directory is invoked by --with-tkconfig
+# the alternative search directory is invoked by --with-tk
 #
 
 if test x"${no_tk}" = x ; then
   # we reset no_tk in case something fails here
   no_tk=true
-  AC_ARG_WITH(tkconfig, [  --with-tkconfig           directory containing tk configuration (tkConfig.sh)],
+  AC_ARG_WITH(tk, [  --with-tk           directory containing tk configuration (tkConfig.sh)],
          with_tkconfig=${withval})
   AC_MSG_CHECKING([for Tk configuration])
   AC_CACHE_VAL(ac_cv_c_tkconfig,[
 
-  # First check to see if --with-tkconfig was specified.
+  # First check to see if --with-tk was specified.
   if test x"${with_tkconfig}" != x ; then
     if test -f "${with_tkconfig}/tkConfig.sh" ; then
       ac_cv_c_tkconfig=`(cd ${with_tkconfig}; pwd)`
@@ -527,3 +527,52 @@ LIBS=$SAVELIBS
     AC_SUBST(TK_LIB_SPEC)
 ])
 
+#------------------------------------------------------------------------
+# SC_ENABLE_THREADS --
+#
+#	Specify if thread support should be enabled
+#
+# Arguments:
+#	none
+#	
+# Results:
+#
+#	Adds the following arguments to configure:
+#		--enable-threads
+#
+#	Sets the following vars:
+#		THREADS_LIBS	Thread library(s)
+#
+#	Defines the following vars:
+#		TCL_THREADS
+#		_REENTRANT
+#
+#------------------------------------------------------------------------
+
+AC_DEFUN(SC_ENABLE_THREADS, [
+    AC_MSG_CHECKING(for building with threads)
+    AC_ARG_ENABLE(threads, [  --enable-threads        build with threads (not supported)],
+	[tcl_ok=$enableval], [tcl_ok=no])
+
+#    if test "$tcl_ok" = "yes"; then
+#	AC_MSG_RESULT(yes)
+#	TCL_THREADS=1
+#	AC_DEFINE(TCL_THREADS)
+#	AC_DEFINE(_REENTRANT)
+#
+#	AC_CHECK_LIB(pthread,pthread_mutex_init,tcl_ok=yes,tcl_ok=no)
+#	if test "$tcl_ok" = "yes"; then
+#	    # The space is needed
+#	    THREADS_LIBS=" -lpthread"
+#	else
+#	    TCL_THREADS=0
+#	    AC_MSG_WARN("Don t know how to find pthread lib on your system - you must disable thread support or edit the LIBS in the Makefile...")
+#	fi
+#    else
+#	TCL_THREADS=0
+#	AC_MSG_RESULT(no (default))
+#    fi
+
+    AC_MSG_RESULT(no (default))
+
+])

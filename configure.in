@@ -50,6 +50,13 @@ CY_AC_PATH_TKCONFIG
 CY_AC_LOAD_TKCONFIG
 EXP_AND_TK_LIBS=$TK_LIBS
 
+#------------------------------------------------------------------------
+# Hook for when threading is supported in Expect.  The --enable-threads
+# flag currently has no effect.
+#------------------------------------------------------------------------
+
+SC_ENABLE_THREADS
+
 # An explanation is in order for the strange things going on with the
 # various LIBS.  There are three separate definitions for LIBS.  The
 # reason is that some systems require shared libraries include

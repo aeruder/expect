@@ -140,13 +140,17 @@ standard ones:
 				this, then information related to dynamic
 				linking will be incorrect.
 
-	--with-tclconfig=...	Specifies the directory containing Tcl's
+	--enable-threads	This switch is ignored so that you can
+				configure Expect with the same configure
+				command as Tcl.
+
+	--with-tcl=...		Specifies the directory containing Tcl's
 				configure file (tclConfig.sh).
 
 	--with-tclinclude=...	Specifies the directory containing Tcl's
 				private include files (such as tclInt.h)
 
-	--with-tkconfig=...	Specifies the directory containing Tk's
+	--with-tk=...		Specifies the directory containing Tk's
 				configure file (tkConfig.sh).
 
 	--with-tkinclude=...	Specifies the directory containing Tk's
@@ -187,10 +191,10 @@ release you want.
 If you can't or don't want to create symbolic links, you can instead
 indicate where Tcl and Tk are by using the following environment variables:
  
-with_tclconfig		Directory containing Tcl configure file (tclConfig.h)
+with_tcl		Directory containing Tcl configure file (tclConfig.h)
 with_tclinclude		Directory containing Tcl include files
 with_tkinclude		Directory containing Tk include files
-with_tkconfig		Directory containing Tk binary library (tkConfig.h)
+with_tk			Directory containing Tk binary library (tkConfig.h)
 
 --------------------
 Multiple-Architecture Installation
