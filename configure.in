@@ -11,7 +11,7 @@ AC_INIT(expect.h)
 # comments in Makefile)
 EXP_MAJOR_VERSION=5
 EXP_MINOR_VERSION=31
-EXP_MICRO_VERSION=3
+EXP_MICRO_VERSION=4
 EXP_VERSION=$EXP_MAJOR_VERSION.$EXP_MINOR_VERSION
 EXP_VERSION_NODOTS=$EXP_MAJOR_VERSION$EXP_MINOR_VERSION
 EXP_VERSION_FULL=$EXP_VERSION.$EXP_MICRO_VERSION
@@ -1106,6 +1106,13 @@ AC_ARG_ENABLE(gcc,
 	[  --enable-gcc        allow use of gcc if available],
 	[enable_gcc=$enableval], [enable_gcc=no])
 
+AC_ARG_ENABLE(threads,
+	[  --enable-threads        build with threads],
+	[enable_threads=$enableval], [enable_threads=no])
+if test "$enable_threads=yes"; then
+  AC_MSG_WARN([Expect is not fully thread-enabled.  Although significant work has been done towards that goal, it is not complete.  Continue compiling at your own risk.])
+fi
+
 # Following comment stolen from Tcl's configure.in:
 #   Note:  in the following variable, it's important to use the absolute
 #   path name of the Tcl directory rather than "..":  this is because
@@ -1200,27 +1207,15 @@ if test "${TCL_LD_SEARCH_FLAGS}" = '-L${LIB_RUNTIME_DIR}'; then
 fi
 
 # The eval below is tricky!  It *evaluates* the string in
-# TCL_LD_SEARCH_FLAGS, which causes a substitution of the
+# ..._CC_SEARCH_FLAGS, which causes a substitution of the
 # variable LIB_RUNTIME_DIR.
 
 if test x"$no_tk" = x"true" ; then
-  eval "EXP_CC_SEARCH_FLAGS=\"$TCL_LD_SEARCH_FLAGS\""
+  eval "EXP_CC_SEARCH_FLAGS=\"$TCL_CC_SEARCH_FLAGS\""
+  EXP_LD_SEARCH_FLAGS=${TCL_LD_SEARCH_FLAGS}
 else
-  eval "EXP_CC_SEARCH_FLAGS=\"$TK_LD_SEARCH_FLAGS\""
-fi
-
-# TCL_LD_SEARCH_FLAGS is only valid when used with the compiler, $CC.
-# Expect needs to use these flags with the linker, though.  If the
-# linker and the compiler are not the same program (as they aren't on
-# Solaris 2.7) then we need to transform the flags into something that
-# the linker understands.
-
-LD_PROG=`echo ${TCL_SHLIB_LD} | sed -e "s| .*||"`
-CC_PROG=`echo ${CC} | sed -e "s| .*||"`
-if test x"$LD_PROG" = x"$CC_PROG" ; then
-    EXP_LD_SEARCH_FLAGS=${EXP_CC_SEARCH_FLAGS}
-else
-    EXP_LD_SEARCH_FLAGS=`echo ${EXP_CC_SEARCH_FLAGS} |sed -e "s|-Wl,||g" -e "s|,| |g"`
+  eval "EXP_CC_SEARCH_FLAGS=\"$TK_CC_SEARCH_FLAGS\""
+  EXP_LD_SEARCH_FLAGS=${TK_LD_SEARCH_FLAGS}
 fi
 
 # now broken out into EXP_AND_TCL_LIBS and EXP_AND_TK_LIBS.  Had to do this

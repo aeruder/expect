@@ -490,7 +490,7 @@ exp_getptymaster()
                 break;
             sprintf (slave_name, "%s%s", "/dev/ttyp", num_str);
 
-            master = exp_pty_test (master_name, slave_name, 0, num_str);
+            master = exp_pty_test(master_name,slave_name,'0',num_str);
             if (master >= 0)
                 goto done;
         }
@@ -547,7 +547,7 @@ exp_getptymaster()
 			*slave_bank = *tty_bank;
 			sprintf(tty_num,"%02d",num);
 			strcpy(slave_num,tty_num);
-			master = exp_pty_test(master_name,slave_name,tty_bank,tty_num);
+			master = exp_pty_test(master_name,slave_name,*tty_bank,tty_num);
 			if (master >= 0) goto done;
 		}
 	}
@@ -563,7 +563,7 @@ exp_getptymaster()
 			*slave_bank = *tty_bank;
 			sprintf(tty_num,"%03d",num);
 			strcpy(slave_num,tty_num);
-			master = exp_pty_test(master_name,slave_name,tty_bank,tty_num);
+			master = exp_pty_test(master_name,slave_name,*tty_bank,tty_num);
 			if (master >= 0) goto done;
 		}
 	}

@@ -3,8 +3,17 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+2/19/00 5.31.4	Omer Azmon <oazmon@telsoft-solutions.com> note errors in
+		pty_termios.c in exp_pty_test that caused problems during
+		pty testing.
+
+		Jeffrey Hobbs recommended having configure accept and warn
+		about --enable-threads.
+
 		John Ellson <ellson@lucent.com> noted configure's autoconf
-		testing had leftover debugging code.
+		testing had leftover debugging code.  Also provided a fix for
+		building w/shared libs on HP - appeared to be leftover from
+		earlier Tcl-required configuration that has now disappeared.
 
 		Susan Muston <smuston@crosskeys.com> noted that exp_wait with
 		no spawned processes exited immediately which is different

@@ -189,7 +189,7 @@ int
 exp_pty_test(master_name,slave_name,bank,num)
 char *master_name;
 char *slave_name;
-int bank;
+char bank;
 char *num;	/* string representation of number */
 {
 	int master, slave;
@@ -272,7 +272,7 @@ exp_pty_unlock()
 /* returns 1 if successfully locked, 0 otherwise */
 int
 exp_pty_lock(bank,num)
-int bank;
+char bank;
 char *num;	/* string representation of number */
 {
 	struct stat statbuf;
