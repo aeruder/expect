@@ -103,7 +103,7 @@ dnl AC_TIME_WITH_SYS_TIME
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
 
-EXP_CFLAGS=-g
+EXP_CFLAGS="-g $TCL_EXTRA_CFLAGS"
 case "${host}" in
  # Use -g on all systems but Linux where it upsets the dynamic X libraries.
   i[[3456]]86-*-linux*)	EXP_CFLAGS="" ;;
