@@ -153,7 +153,7 @@ if test x"${ac_cv_c_tclh}" != x ; then
     AC_MSG_RESULT([found in ${ac_cv_c_tclh}])
     # this hack is cause the TCLHDIR won't print if there is a "-I" in it.
     TCLHDIR="${ac_cv_c_tclh}"
-    TCLHDIRDASHI="-I${ac_cv_c_tclh}"
+    TCLHDIRDASHI="-I${ac_cv_c_tclh} -I`dirname ${ac_cv_c_tclh}`/unix"
     TCL_LIBRARY=`echo $TCLHDIR | sed -e 's/generic//'`library
   fi
 fi

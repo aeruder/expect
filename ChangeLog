@@ -1,3 +1,12 @@
+2004-06-03  Andreas Kupries  <andreask@activestate.com>
+
+	* aclocal.m4 (TCLHDIRDASHI): Extended with path to unix headers as
+	  well.
+	* expect_tcl.h: Added inclusion of <stdio.h>.
+	  Both changes required for Expect to compile against Tcl 8.5
+	  after the header reform.
+	* configure: Regenerated.
+
 2004-05-19  Andreas Kupries  <andreask@activestate.com>
 
 	* Merged changes from the official version 5.41 of expect into the
