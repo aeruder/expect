@@ -397,6 +397,12 @@ Tcl_Interp *interp;
     ExpState *esPtr;
     ExpState *esNextPtr;
 
+    /* Save the nextPtr in a local variable before calling 'exp_close'
+       as 'expStateFree' can be called from it under some
+       circumstances, possibly causing the memory allocator to smash
+       the value in 'esPtr'. - Andreas Kupries
+    */
+
     /* no need to keep things in sync (i.e., tsdPtr, count) since we could only
        be doing this if we're exiting.  Just close everything down. */
 

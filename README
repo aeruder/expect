@@ -9,7 +9,7 @@ dialogue with other interactive programs.  It is briefly described by
 its man page, expect(1).  This directory contains the source and man
 page for Expect.
 
-This is Expect 5.32 for Tcl 8.2 and Tk 8.2 (and Tcl and Tk 8.3).
+This is Expect 5.39 for Tcl 8.2 (and later) and Tk 8.2 (and later).
 Significant changes and other news can be found in the NEWS file.
 
 The Expect home page is: http://expect.nist.gov

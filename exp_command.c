@@ -790,19 +790,18 @@ when trapping, see below in child half of fork */
 	if (!(channel = Tcl_GetChannel(interp,chanName,&mode))) {
 	    return TCL_ERROR;
 	}
-
 	if (!mode) {
 	    exp_error(interp,"channel is neither readable nor writable");
 	    return TCL_ERROR;
 	}
 	if (mode & TCL_READABLE) {
-	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_READABLE, (ClientData*) &rfdc)) {
+	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_READABLE, (ClientData *) &rfdc)) {
 		return TCL_ERROR;
 	    }
 	    rfd = (int) rfdc;
 	}
 	if (mode & TCL_WRITABLE) {
-	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_WRITABLE, (ClientData*) &wfdc)) {
+	    if (TCL_ERROR == Tcl_GetChannelHandle(channel, TCL_WRITABLE, (ClientData *) &wfdc)) {
 		return TCL_ERROR;
 	    }
 	    wfd = (int) wfdc;
@@ -2058,7 +2057,7 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	if (filename && (0 == strcmp(filename,expLogFilenameGet()))) {
 	    expLogAllSet(logAll);
 	    return TCL_OK;
-	} else if (chanName && (0 == strcmp(filename,Tcl_GetChannelName(expLogChannelGet())))) {
+	} else if (chanName && (0 == strcmp(chanName,Tcl_GetChannelName(expLogChannelGet())))) {
 	    expLogAllSet(logAll);
 	    return TCL_OK;
 	} else {

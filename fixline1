@@ -8,15 +8,18 @@
 #!../expect ...
 #!expectk ...
 #!foo/bar/expectk ...
+#!/bin/sh ...  (beginning of multiline #! style)
 #
-if {0} {
-    # Original scheme, but this can wire in a platform-specific path
-    regsub "^#!(.*/)*(.*)" [gets stdin] "#!$argv/\\2" line1
+set line1 [gets stdin]
+if {"$line1" == "\#!/bin/sh"} {
+    # if multi-line hack already in place, do nothing
+    set header $line1
 } else {
+    # if single-line #!, switch to multi-line rewrite
+
+    regexp "^#!(.*/)*(.*)" $line1 X X tail
     set header "#!/bin/sh\n"
     append header "# \\\n"
-    append header {exec expect "$0" ${1+"$@"}}
-
-    regsub "^#!(.*/)*(.*)" [gets stdin] $header line1
+    append header "exec $tail "; append header {"$0" ${1+"$@"}}
 }
-puts -nonewline "$line1\n[read stdin]"
+puts -nonewline "$header\n[read stdin]"

@@ -1076,7 +1076,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    objc--;objv++;
 		    if (objc < 1) {
-			Tcl_WrongNumArgs(interp,1,objv_copy,"timeout time");
+			Tcl_WrongNumArgs(interp,1,objv_copy,"timeout time [action]");
 			return(TCL_ERROR);
 		    }
 		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
@@ -1092,7 +1092,11 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    action = inp->action_timeout = new_action(&action_base);
 		    inp->timeout_nominal = t;
 
-		    action->statement = *objv;
+		    if (objc >= 1) {
+		      action->statement = *objv;
+		    } else {
+		      action->statement = 0;
+		    }
 
 		    action->tty_reset = next_tty_reset;
 		    next_tty_reset = FALSE;

@@ -56,6 +56,7 @@ Entries marked with "a" live in the Expect archive (see above).
    m	passmass - sets passwd on many machines simultaneously.
         passwd.html - form to change a login passwd
 	passwd.cgi - CGI script to respond to passwd.html form
+	passwdprompt - Prompt from stdin and echo *'s.
    a	ping-and-page - Ping list of hosts.  If any down, page system admin.
 	read1char - read a single character for the shell, Perl, etc.
 	reprompt - like timed-read but reprompt after given amount of time.

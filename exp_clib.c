@@ -3009,6 +3009,7 @@ struct exp_case *ecases;
  		 * we should timeout if either
  		 *   1) exp_timeout > remtime <= 0 (normal)
  		 *   2) exp_timeout == 0 and we have polled at least once
+		 * 
 		 */
 		if (((exp_timeout > remtime) && (remtime <= 0)) ||
  		    ((exp_timeout == 0) && polled)) {

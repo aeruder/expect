@@ -494,7 +494,7 @@ char **argv;
 		}
 
 		/* if no result, make a crude one */
-		if (interp->result[0] == '\0') {
+		if (0 == strcmp(Tcl_GetString(Tcl_GetObjResult(interp)),"")) {
 			sprintf(interp->result,"%sraw %secho",
 				(was_raw?"":"-"),
 				(was_echo?"":"-"));

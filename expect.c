@@ -1044,7 +1044,7 @@ int direct;
 		exp_free_state_single(tmp);
 
 		/* if last bg ecase, disarm spawn id */
-		if ((ecmd->cmdtype == EXP_CMD_BG) && (expStateAnyIs(esPtr))) {
+		if ((ecmd->cmdtype == EXP_CMD_BG) && (!expStateAnyIs(esPtr))) {
 		    esPtr->bg_ecount--;
 		    if (esPtr->bg_ecount == 0) {
 			exp_disarm_background_channelhandler(esPtr);
@@ -2027,7 +2027,7 @@ struct exp_i *exp_i;
 	struct exp_state_list *slPtr;	/* temp for interating over state_list */
 
 	/*
-	 * disarm any ExpState's that lose all their ecases
+	 * disarm any ExpState's that lose all their active spawn ids
 	 */
 
 	if (ecmd->cmdtype == EXP_CMD_BG) {

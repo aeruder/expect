@@ -1,4 +1,4 @@
-.TH MULTIXTERM 1 "15 April 2002"
+.TH MULTIXTERM 1 "16 August 2002"
 .SH NAME
 multixterm \- drive multiple xterms separately or together
 .SH SYNOPSIS
@@ -96,8 +96,8 @@ File->Open.  Any filename is acceptable but the File->Open
 browser defaults to files with a .mxt suffix.
 
 Files are written in Tcl and may change any variables or
-invoke any procedures.  The primary variables of interest are
-'xtermCmd' which identifies the command (see \-xc) and 'xtermNames'
+invoke any procedures.  The primary variables of interest are 'xtermCmd'
+which identifies the command (see \-xc) and 'xtermNames'
 which is a list of names (see \-xn).  The procedure
 xtermStartAll, starts xterms for each name in the list.  Other
 variables and procedures may be discovered by examining

@@ -43,7 +43,6 @@ static char sccsid[] = "@(#) tkAppInit.c 1.19 95/12/23 17:09:24";
 #include "tcldbg.h"
 
 #if (TCL_MAJOR_VERSION < 8) || ((TCL_MAJOR_VERSION == 8) && (TCL_MINOR_VERSION < 4))
-/* This is now version dependent. In 8.4+ this is erroneous */
 /*
  * The following variable is a special hack that is needed in order for
  * Sun shared libraries to be used for Tcl.

@@ -127,7 +127,7 @@ typedef struct ExpState {
                         /* only relevant if Tcl does the original open */
 
     Tcl_Interp *bg_interp;	/* interp to process the bg cases */
-    int bg_ecount;		/* number of background ecases */
+    int bg_ecount;		/* number of background ExpStates */
     enum {
 	blocked,	/* blocked because we are processing the */
 			/* file handler */

@@ -386,15 +386,23 @@ exp_getptymaster()
 #else
 	if ((master = open("/dev/ptmx", O_RDWR)) == -1) return(-1);
 #endif
-	if ((slave_name = (char *)ptsname(master)) == NULL || unlockpt(master)) {
+	if ((slave_name = (char *)ptsname(master)) == NULL) {
 		close(master);
 		return(-1);
-	} else if (grantpt(master)) {
-		static char buf[500];
-		exp_pty_error = buf;
-		sprintf(exp_pty_error,"grantpt(%s) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", expErrnoMsg(errno));
-		close(master);
-		return(-1);
+	}
+	if (grantpt(master)) {
+	  static char buf[500];
+	  exp_pty_error = buf;
+	  sprintf(exp_pty_error,"grantpt(%s) failed - likely reason is that your system administrator (in a rage of blind passion to rid the system of security holes) removed setuid from the utility used internally by grantpt to change pty permissions.  Tell your system admin to reestablish setuid on the utility.  Get the utility name by running Expect under truss or trace.", expErrnoMsg(errno));
+	  close(master);
+	  return(-1);
+	}
+	if (-1 == (int)unlockpt(master)) {
+	  static char buf[500];
+	  exp_pty_error = buf;
+	  sprintf(exp_pty_error,"unlockpt(%s) failed.", expErrnoMsg(errno));
+	  close(master);
+	  return(-1);
 	}
 #ifdef TIOCFLUSH
 	(void) ioctl(master,TIOCFLUSH,(char *)0);

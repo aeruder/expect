@@ -621,7 +621,8 @@ Tcl_Interp *interp;
     return TCL_OK;
 }
 
-static char sigexit_init_default[] = "trap exit {SIGINT SIGTERM}";
+static char sigint_init_default[80];
+static char sigterm_init_default[80];
 static char debug_init_default[] = "trap {exp_debug 1} SIGINT";
 
 void
@@ -654,7 +655,13 @@ char **argv;
 	/* after handling args, we can change our mind */
 	Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
-	Tcl_Eval(interp,sigexit_init_default);
+	/* there's surely a system macro to do this but I don't know what it is */
+#define EXP_SIG_EXIT(signalnumber) (0x80|signalnumber)
+
+	sprintf(sigint_init_default, "trap {exit %d} SIGINT", EXP_SIG_EXIT(SIGINT));
+	Tcl_Eval(interp,sigint_init_default);
+	sprintf(sigterm_init_default,"trap {exit %d} SIGTERM",EXP_SIG_EXIT(SIGTERM));
+	Tcl_Eval(interp,sigterm_init_default);
 
 	/*
 	 * [#418892]. The '+' character in front of every other option

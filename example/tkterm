@@ -116,8 +116,8 @@ unset env(DISPLAY)
 set env(LINES) $rows
 set env(COLUMNS) $cols
 
-set env(TERM) "tt"
 if {$termcap} {
+    set env(TERM) "tt"
     set env(TERMCAP) {tt:
 	:cm=\E[%d;%dH:
 	:up=\E[A:
@@ -139,11 +139,12 @@ if {$termcap} {
 }
 
 if {$terminfo} {
+    set env(TERM) "tkterm"
     set env(TERMINFO) /tmp
     set ttsrc "/tmp/tt.src"
     set file [open $ttsrc w]
 
-    puts $file {tt|textterm|Don Libes' tk text widget terminal emulator,
+    puts $file {tkterm|Don Libes' tk text widget terminal emulator,
 	cup=\E[%p1%d;%p2%dH,
 	cuu1=\E[A,
 	cuf1=\E[C,

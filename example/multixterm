@@ -303,8 +303,8 @@ proc initLate {} {}      ;# anything that must be done late in initialization
 # sanity checking
 ######################################################################
 
-set versionString 1.5
-set versionDate "2002/04/30"
+set versionString 1.6
+set versionDate "2002/08/16"
 
 package require Tcl
 package require Tk
@@ -489,7 +489,7 @@ proc xtermStart {cmd name} {
     # start the new process
     ######################################################################
     set pid [eval spawn -noecho $cmd]
-    verbose "$cmd: pid = $pid$, spawn_id = $spawn_id"
+    verbose "$cmd: pid = $pid, spawn_id = $spawn_id"
     set sidCmd $spawn_id
     lappend ::activeList $sidCmd
     set ::activeArray($sidCmd) 1
@@ -619,6 +619,42 @@ proc xtermActivate {sid} {
 proc xtermDeactivate {sid} {
     set ::activeArray($sid) 0
     xtermActiveUpdate $sid
+}
+
+# utility to do an explicit Expect
+# multixterm doesn't use this but a user might want to
+proc xtermExpect {args} {
+    # check if explicit spawn_id in args
+    for {set i 0} {$i < [llength $args]} {incr i} {
+	switch -- [lindex $args $i] "-i" {
+	    set sidCmd [lindex $args [incr i]]
+	    break
+	}
+    }
+
+    if {![info exists sidCmd]} {
+	# nothing explicit, so get it from the environment
+
+	upvar spawn_id spawn_id
+
+	# mimic expect's normal behavior in obtaining spawn_id
+	if {[info exists spawn_id]} {
+	    set sidCmd $spawn_id
+	} else {
+	    set sidCmd $::spawn_id
+	}
+    }
+
+    # turn off bg expect, do fg expect, then re-enable bg expect
+
+    expect_background -i $sidCmd	;# disable bg expect
+    eval expect $args			;# fg expect
+					;# reenable bg expect
+    expect_background {
+	-i $sidCmd
+	-re ".+" [list sendTo $::xtermSid($sidCmd)]
+	eof [list xtermKill $sidCmd]
+    }
 }
 
 ######################################################################
@@ -760,6 +796,17 @@ bind .input <Alt-KeyPress>     {xtermSend \033%A; break}
 bind .input <Meta-KeyPress>    {xtermSend \033%A; break}
 bind .input <<Paste>>          {xtermPaste ; break}
 bind .input <<PasteSelection>> {xtermPaste ; break}
+
+# arrow keys - note that if they've been rebound through .Xdefaults
+# you'll have to change these definitions.
+bind .input <Up>    {xtermSend \033OA; break}
+bind .input <Down>  {xtermSend \033OB; break}
+bind .input <Right> {xtermSend \033OC; break}
+bind .input <Left>  {xtermSend \033OD; break}
+# Strange: od -c reports these as \033[A et al but when keypad mode
+# is initialized, they send \033OA et al.  Presuming most people
+# want keypad mode, I'll go with the O versions.  Perhaps the other
+# version is just a Sun-ism anyway.
 
 set colorCurrent [.input cget -bg]
 set colorFocusOut $colorCurrent

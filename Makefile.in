@@ -670,16 +670,17 @@ tar:	expect-$(VERSION).tar
 
 # make a release and install it on ftp server
 # update web page to reflect new version
-ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz install-html
+ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz install-html homepage.html
 	cp expect-$(VERSION).tar.Z $(FTPDIR)/expect.tar.Z
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/expect.tar.gz
 	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/expect-@EXP_VERSION_FULL@.tar.gz
+	md5 $(FTPDIR)/expect.tar.gz > expect.tar.gz.md5
 	cp HISTORY $(FTPDIR)
 	cp README $(FTPDIR)/README.distribution
 	cp example/README $(FTPDIR)/example
 	cp `pubfile example` $(FTPDIR)/example
 	ls -l $(FTPDIR)/expect.tar*
-#	delete temp files
+#	delete .Z temp file, still need .gz though for md5 later
 	rm expect-$(VERSION).tar*
 
 # make an alpha release and install it on ftp server
@@ -746,8 +747,11 @@ FAQ:	FAQ.src FAQ.tcl
 homepage.html:	homepage.src homepage.tcl expect.tar.gz.md5
 	homepage.src > homepage.html
 
-expect.tar.gz.md5:	$(FTPDIR)/expect.tar.gz
-	md5 $(FTPDIR)/expect.tar.gz > expect.tar.gz.md5
+expect.tar.gz.md5:	expect-$(VERSION).tar.gz
+	md5 expect-$(VERSION).tar.gz > expect.tar.gz.md5
+
+#expect.tar.gz.md5:	$(FTPDIR)/expect.tar.gz
+#	md5 $(FTPDIR)/expect.tar.gz > expect.tar.gz.md5
 
 # install various html docs on our web server
 install-html:	FAQ.html homepage.html

@@ -172,7 +172,7 @@ way, use the
 .B \-b
 flag.
 (When using Expectk, this option is specified as
-.BR \-buffer .)
+.BR \-buffer .)  Note that stdio-buffering may still take place however this shouldn't cause problems when reading from a fifo or stdin.
 .PP
 If the string "\-" is supplied as a filename, standard input is read instead.
 (Use "./\-" to read from a file actually named "\-".)
@@ -2322,13 +2322,15 @@ The commands that accepted arguments braced into a single list (the
 .B expect
 variants and
 .BR interact )
-use a heuristic to decide if the list is actually one argument or many.
-The heuristic can fail only in the case when the list actually does
-represent a single argument which has multiple embedded \\n's with
-non-whitespace characters between them.  This seems sufficiently improbable,
-however the argument "\-nobrace" can be used to force a single argument
-to be handled as a single argument.  This could conceivably be used
-with machine-generated Expect code.
+use a heuristic to decide if the list is actually one argument or
+many.  The heuristic can fail only in the case when the list actually
+does represent a single argument which has multiple embedded \\n's
+with non-whitespace characters between them.  This seems sufficiently
+improbable, however the argument "\-nobrace" can be used to force a
+single argument to be handled as a single argument.  This could
+conceivably be used with machine-generated Expect code.  Similarly,
+-brace forces a single argument to be handle as multiple patterns/actions.
+
 .SH BUGS
 It was really tempting to name the program "sex" (for either "Smart EXec"
 or "Send-EXpect"), but good sense (or perhaps just Puritanism) prevailed.

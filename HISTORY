@@ -3,17 +3,86 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-7/18/02 5.38.0	At request of Hugh Sasse <hgs@dmu.ac.uk> added md5 hash of gz
+7/31/03 5.39.0	Poorva Gupta <poorva@cup.hp.xcom> noted that grantpt/unlockpt
+		order was backward.  Strange that this was never a prob before!
+
+		Andreas Kupries <andreask@pliers.activestate.xcom> noted that
+		in exp_command.c, Tcl_GetChannelHandle expected a ClientData*,
+		but got an int*. sizeof(int) != sizeof(ClientData) on 64bit
+		platforms. Crashed the command on a PA-RISC 2.0 machine with
+		--enable-64bit set. Fix: Use temp. variables of type ClientData
+		to retrieve the fd's, and copy this into the actual variables,
+		with a cast to int.
+
+		More fixes from Andreas to sync this version with SF.
+		Fixed: exp_chan, weather, exp_main_tk.
+
+		Eric Raymond <esr@snark.thyrsus.xcom> provided a troff-related
+		fix for the multixterm man page.
+
+7/29/03 5.38.4	Nicolas Roeser <n-roeser@gmx.xnet> noted confusion with md5 so
+		I made the Expect page more explicit about which file that hash
+		was based on.		
+
+7/11/03 5.38.3	Josh Purinton noted that earlier fix wasn't quite right.  Exit
+		on INT/TERM should cause Expect to exit with signal embedded in
+		status.  He also requested I obfuscate email addresses in this
+		file.
+
+7/7/03	5.38.2	Guido Ostkamp <Guido.Ostkamp@t-online.xde> and Igor Sobrado
+		<sobrado@string1.ciencias.uniovi.xes> noted that fixline1
+		rewrote scripts to be expect scripts even if they were expectk
+		scripts.
+
+5/27/03	5.38.1	Dirk Petera <dirkpetera@yahoo.xcom> noted that any_spawn_id
+		used to work but did no longer.  Looks like a bug left over
+		from the the I18L conversion.  Fixed.
+
+		Steve Szabo noted exp_log_file -open channel failed.  Fixed.
+
+		Fixed bug from 5.31 that prevent stty from returning messages
+		from underlying program.
+
+		Thomas Dickey <dickey@herndon4.his.xcom> noted that ncurses
+		ignores 2-char term names because of, well, poor assumptions
+		and coding.  Changed tkterm to use longer names.
+
+		Heath Moore <hmoore@systran.xcom> noted that exp_clib could
+		lock up if remtime happened to be precisely 0.  Recoded to
+		avoid.
+
+		At request of Per Otterholm <otterholm@telia.xcom>, wrote
+		script to read from stdin and echo passwords (exercise 9 in Tk
+		chapter of Expect book).  Added to example directory as
+		passwdprompt.
+
+		Josh Purinton <josh@purinton.xorg> pointed out that
+		by default, SIGINT/TERM should cause expect's return status to
+		be 1, not 0.
+
+		Paul Reithmuller <paul.reithmuller@eng.sun.xcom> noted that
+		unbuffer shouldn't postprocess its output.  Added stty_init.
+
+		Mordechai T. Abzug <morty@sanctuary.arbutus.md.xus> noted that
+		log_file wasn't recording -append status.
+
+		James Kelly <macubergeek@comcast.xnet> noted weather example
+		needed new source.
+
+		Dimitar Haralanov <mitko@tahoenetworks.xcom> noted that
+		interact dumped core with interact { timeout 1 }
+
+7/18/02 5.38.0	At request of Hugh Sasse <hgs@dmu.ac.xuk> added md5 hash of gz
 		to homepage.
 
-		Dave Schooler <dave@stashtea.com> reported that send -s wasn't
+		Dave Schooler <dave@stashtea.xcom> reported that send -s wasn't
 		handling certains chars correctly.  Turned out to be those
 		that had multibyte UTF8 reps.  send -s was just pumping out
 		hunks of bytes without regard to UTF boundaries and evidentally
 		Tcl's I/O engine thought that it should translate a partial
 		UTF8 character into, uh, something else.
 
-		Curt Shroeder <c.schroeder@computer.org> fixed bug in rftp - a
+		Curt Shroeder <c.schroeder@computer.xorg> fixed bug in rftp - a
 		a filename looked enough like a 3-digit diagnostic that the
 		script got confused.
 
@@ -31,47 +100,47 @@ Date	Version	Description
 		Fixed bug in background handler.  If an action waited on the
 		same spawn id, esPtr would become invalidated.
 
-		Ryan Schmidt <rschmidt@mac.com> noted configure didn't
+		Ryan Schmidt <rschmidt@mac.xcom> noted configure didn't
 		recognize MacOS X.  Downloaded new config.guess.
 
-		Andreas Kupries <andreask@activestate.com> provided CONST
+		Andreas Kupries <andreask@activestate.xcom> provided CONST
 		patches to accomodate Tcl changes per TIP 27.
 
-2/25/02 5.35.0	Joe Eggleston <joe@arbor.net> noted bug in full_buffer test.
+2/25/02 5.35.0	Joe Eggleston <joe@arbor.xnet> noted bug in full_buffer test.
 		The test hadn't been I18'd properly and was testing chars
 		instead of bytes.  Also fixed diagnostics so it printed when
 		it was testing full buffer even if there wasn't one.
 
-2/7/02	5.34.1	Bruce Hartweg <brhartweg@bigfoot.com> noted that direct spawn
+2/7/02	5.34.1	Bruce Hartweg <brhartweg@bigfoot.xcom> noted that direct spawn
 		ids were not being tested so something like "expect -i exp9999"
 		would dump core.  Evidentally a bug from the 5.31 transition.
 
-12/20/01 5.34.0	Don Porter <don.porter@nist.gov> provided package-related
+12/20/01 5.34.0	Don Porter <don.porter@nist.xgov> provided package-related
 		fixes for test suite.
 
-		Brian Theado <brian.theado@usa.net> noted that interact's -re
+		Brian Theado <brian.theado@usa.xnet> noted that interact's -re
 		support broke when offsets kicked in.  Turned out that the
 		regexp engine supports them during execution but the results
 		are delivered RELATIVE to the offset.  (I suspect this was done
 		due to expediency.)
 
-10/1/01 5.33.0	<mark@doradosoftware.com> found that expect's diagnostics
+10/1/01 5.33.0	<mark@doradosoftware.xcom> found that expect's diagnostics
 		didn't include the "no" after testing for a full buffer.
 
-		Hemang Lavana <hlavana@cisco.com> noted that "debug" (Dbg_On)
+		Hemang Lavana <hlavana@cisco.xcom> noted that "debug" (Dbg_On)
 		calls didn't always force the debugger into step mode.
 
-		Martin Kammerhofer <dada@sbox.tugraz.at> noted that the man
+		Martin Kammerhofer <dada@sbox.tugraz.xat> noted that the man
 		page neglected to document interpreter -eof.
 
-		Chris Clare <clarec@nortelnetworks.com> provided fix for
+		Chris Clare <clarec@nortelnetworks.xcom> provided fix for
 		multiple decl in C lib.
 
-		Sheng Wang <wangs@sh.bel.alcatel.be> found interact's
+		Sheng Wang <wangs@sh.bel.alcatel.xbe> found interact's
 		can-match code had broken.  It was missing the special hook
 		that Henry had added just for this purpose.  How strange.
 
-		Dieter Fiebelkorn <dieter@fiebelkorn.net> requested addition
+		Dieter Fiebelkorn <dieter@fiebelkorn.xnet> requested addition
 		to config.guess for Power*Macintosh:Darwin for MacOSX.
 		Aside - to download latest config.guess:
 		 cvs -d :pserver:anoncvs@subversions.gnu.org:/cvs co \
@@ -79,10 +148,10 @@ Date	Version	Description
 
 		Added pipeline example to unbuffer man page.
 
-8/4/00 5.32.2	Allen J. Newton <anewton@alturia.fleet.org> provided code for
+8/4/00 5.32.2	Allen J. Newton <anewton@alturia.fleet.xorg> provided code for
 		generating passwords with special characters in mkpasswd.
 
-		Brent Welch <welch@ajubasolutions.com> changed the fix1line
+		Brent Welch <welch@ajubasolutions.xcom> changed the fix1line
 		install script so that "autoexpect" and other scripts that
 		get installed into the platform-independent bin directory
 		generically invoke "expect" from the users PATH instead
@@ -90,19 +159,19 @@ Date	Version	Description
 
 		TclPro 1.4 released with 5.32.2 bundled.
 
-7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.net> reported segfaults from reading
+7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.xnet> reported segfaults from reading
 		nulls.  Due to code rewrite in 5.30->5.31 transition.
 
 5/14/00 5.32.0	New version for timing with Ajuba TclPro 1.4.  This version
 		of Expect has no new features or behaviors but a lot has been
 		fixed since 5.31.0.
 
-		Martin Buchholz <martin@xemacs.org> noted that his
+		Martin Buchholz <martin@xemacs.xorg> noted that his
 		alphaev56-dec-osf4.0e has ptmx and ptmx_bsd (and ptm, pts,
 		pty, ptym).  He suggested that BSD things are now usually
 		deprecated so to skip ptmx_bsd if ptmx avail.
 
-		Chang Li <changl@neatware.com> noted that debugger's bp cmd
+		Chang Li <changl@neatware.xcom> noted that debugger's bp cmd
 		broke on every command.  Was a bug in breakpoint_trace from
 		when we installed the new regexp engine.
 
@@ -117,7 +186,7 @@ Date	Version	Description
 
 4/27/00 5.31.7	Rob Savoye fixed Debian ptys and properly checking of libpt.
 
-3/8/00  5.31.6	Petrus Vloet <petrus.vloet@siemens.at> noted that Expect
+3/8/00  5.31.6	Petrus Vloet <petrus.vloet@siemens.xat> noted that Expect
 		installed tclRegexp.h which included regex.h which of course
 		misbehaves when it reads the system's version.  This is new
 		since 8.0.  Since I need to revise the Clib anyway (which
@@ -125,19 +194,19 @@ Date	Version	Description
 
 3/6/00	5.31.5	Larry Virden noted that configure checked for threads twice.
 
-2/19/00 5.31.4	Omer Azmon <oazmon@telsoft-solutions.com> note errors in
+2/19/00 5.31.4	Omer Azmon <oazmon@telsoft-solutions.xcom> note errors in
 		pty_termios.c in exp_pty_test that caused problems during
 		pty testing.
 
 		Jeffrey Hobbs recommended having configure accept and warn
 		about --enable-threads.
 
-		John Ellson <ellson@lucent.com> noted configure's autoconf
+		John Ellson <ellson@lucent.xcom> noted configure's autoconf
 		testing had leftover debugging code.  Also provided a fix for
 		building w/shared libs on HP - appeared to be leftover from
 		earlier Tcl-required configuration that has now disappeared.
 
-		Susan Muston <smuston@crosskeys.com> noted that exp_wait with
+		Susan Muston <smuston@crosskeys.xcom> noted that exp_wait with
 		no spawned processes exited immediately which is different
 		than 5.29 behavior which reported "no children".  This new
 		behavior was evidentally a gratuitous change during the
@@ -151,23 +220,23 @@ Date	Version	Description
 
 		Scriptics reported memory leak.  Was bug in parse_expect_args.
 
-		"Michael P. Reilly" <arcege@shore.net> noted clib was hanging
+		"Michael P. Reilly" <arcege@shore.xnet> noted clib was hanging
 		in spawn code.  status_pipe wasn't being closed.
 
-		Egil Kvaleberg <egil@kvaleberg.no> provided fix due to new gcc
+		Egil Kvaleberg <egil@kvaleberg.xno> provided fix due to new gcc
 		which defines strchr as a macro.
 
-		Dave Morrison <drmorris@corp.phone.com> noted some printfs
+		Dave Morrison <drmorris@corp.phone.xcom> noted some printfs
 		in exp_log.c that misinterpreted embedded %'s with resulting
 		core dumps.
 
-		Dick Goodwin <goodwin@qosnetics.com> noted that "system echo
+		Dick Goodwin <goodwin@qosnetics.xcom> noted that "system echo
 		foo" returned with no apparent effect.  Due to closeonexec
 		in expect's channel driver.  Added skip if std channel.
 		Fixed similar bug in stty command.  Minor bug left in stty
 		which isn't passing output back from underlying exec.
 
-		Stacy W. Smith <stacy@ixc-comm.com> provided patch that uses
+		Stacy W. Smith <stacy@ixc-comm.xcom> provided patch that uses
 		sigsetjmp instead of setjmp that he says fixes a problem he
 		encountered with C lib where it stopped timing out in expect()
 		as if the signals were corrupted.  The man page doesn't
@@ -192,34 +261,34 @@ Date	Version	Description
 		configure was out-of-date worked when not using the default
 		build dir.
 
-11/1/99 5.31.3	Shlomi Mahlab <shlomi@seagull.co.il> noted all.tcl in CVS
+11/1/99 5.31.3	Shlomi Mahlab <shlomi@seagull.co.xil> noted all.tcl in CVS
 		but not distribution.
 
 		More notes from Keith Brown on HP cc complaints in exp_pty.c.
 
-10/28/99 5.31.2	"Keith Brown" <surely@nortelnetworks.com> noted that HP cc
+10/28/99 5.31.2	"Keith Brown" <surely@nortelnetworks.xcom> noted that HP cc
 		objected to auto aggregate initialization in
 		expLogChannelOpen.
 
 10/22/99 5.31.1 Official release!
 
-		P Darcy Barnett <pdb@cam.nist.gov> noted Makefile could
+		P Darcy Barnett <pdb@cam.nist.xgov> noted Makefile could
 		produce "autoconf not found" for non-developers using CVS.
 		Made configure detect and provide advice on workaround.
 
 		Fixed bug in interact -echo exhibited in rftp example.
 
-		Ryan Murray <rmurray@cyberhqz.com> noted Expect wasn't
+		Ryan Murray <rmurray@cyberhqz.xcom> noted Expect wasn't
 		handling handling 8-bit bytes correctly.  I had accidentally
 		used Tcl_Write instead of Tcl_WriteChar.
 
-		Ashley Pittman <ashley@ilo.dec.com> noted that digital unix
+		Ashley Pittman <ashley@ilo.dec.xcom> noted that digital unix
 		V5.0 prefers openpty (4000 ptys) over ptmx (60 ptys), so I'm
 		reversing the login in pty_termios.c.  This also controls
 		linux, but no linux hackers have weighed in on this subject
 		yet.
 
-		Andrew Tannenbaum <trb@world.std.com> noted exp_internal
+		Andrew Tannenbaum <trb@world.std.xcom> noted exp_internal
 		command and "expect -exact" were broken.
 
 6/29/99 5.31.0	See the NEWS file for this date for an overview.  (I'm
@@ -235,26 +304,27 @@ Date	Version	Description
 
 		Added configure test for 0 vs 2-arg setpgrp.
 
-		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
+		Kenji Kamizono <kenji@math.columbia.xedu> noted it was possible
 		to compile Linux (2.2.5) so that it recognized both openpty
 		and ptmx leading to conflicts.  I arbitrarily chose ptmx.
 
-10/15/99 5.30.2	Herve Tireford <tdes46@email.sps.mot.com> noted extraneous
+10/15/99 5.30.2	Herve Tireford <tdes46@email.sps.mot.xcom> noted extraneous
 		sleep(20) in clib.  Apparently left over from debugging, oops.
 
 8/18/99 5.30.1	Added test for newer versions of Tcl that are incompatible.
 
-		Kenji Kamizono <kenji@math.columbia.edu> noted it was possible
+		Kenji Kamizono <kenji@math.columbia.xedu> noted it was possible
 		to compile Linux (2.2.5) so that it recognized both openpty
 		and ptmx leading to conflicts.  I arbitrarily chose ptmx.
 
-4/1/99	5.30.0  Martin Forssen <maf@crt.se> provided fix to allow configure
+4/1/99	5.30.0  Martin Forssen <maf@crt.xse> provided fix to allow configure
 		to start with LDFLAGS from environment.
 
-		Paul Tazzyman <Paul.Tazzyman@one.at> noted that log_file didn't
-		check for logging twice without turning off logging first.
+		Paul Tazzyman <Paul.Tazzyman@one.xat> noted that log_file
+		didn't check for logging twice without turning off logging
+		first.
 
-		Ben <spy@calvin.iconoclasm.org> provided updated host for
+		Ben <spy@calvin.iconoclasm.xorg> provided updated host for
 		weather example.
 
 		Jonathon Kamens noted that Expect didn't build properly if
@@ -262,7 +332,7 @@ Date	Version	Description
 		hierarchy.  At the same time, I fixed a number of other related
 		problems in Makefile/configure.
 
-		Pierre Pomes <ppomes@it.marseille-innov.assoc.fr> provided fix
+		Pierre Pomes <ppomes@it.marseille-innov.assoc.xfr> provided fix
 		to ftp-inband.  It blew up from an unprotected send that
 		was handed a uuencoded line that started with a -.
 
@@ -272,11 +342,11 @@ Date	Version	Description
 
 1/21/99 5.29.0	Martin Forssen provides mods to support INSTALL_ROOT.
 
-		Bryan Surles <surles@scriptics.com> modified configure.in to
+		Bryan Surles <surles@scriptics.xcom> modified configure.in to
 		map DBGX to the same value as TCL_DBGX so the .so is named
 		correctly.
 
-		Suresh Sastry <suresh@scriptics.com> forced $LIBS to be
+		Suresh Sastry <suresh@scriptics.xcom> forced $LIBS to be
 		added to EXP_SHLIB_LD_LIBS.  It's not clear to me why this is
 		necessary (since Tk doesn't) but he was having a problem
 		with openpty not being found during runtime on Linux.
@@ -287,17 +357,18 @@ Date	Version	Description
 
 		Added another copy to distribution site - with version number.
 
-		Stanislav Shalunov <shalunov@mccme.ru> closed race in pty code.
+		Stanislav Shalunov <shalunov@mccme.xru> closed race in pty
+		code.
 
 		Fixed man page: -brace should be -nobrace.
 
-		Dan O'Brien <dmobrien@lucent.com> noted that Expect needed to
+		Dan O'Brien <dmobrien@lucent.xcom> noted that Expect needed to
 		call Tcl_FindExecutable at startup for info nameofexecutable.
 
-		Robbie Gilbert <rwg@nc.fnc.fujitsu.com> noted indirect spawn
+		Robbie Gilbert <rwg@nc.fnc.fujitsu.xcom> noted indirect spawn
 		ids occasionally failed.  Fixed.
 
-9/30/98	5.28.1	Brian France <franceb@fsj.co.jp> noted that his compiler
+9/30/98	5.28.1	Brian France <franceb@fsj.co.xjp> noted that his compiler
 		rejected label with no statement.
 
 9/28/98	5.28.0	Fixed two bugs in tcl-debugger (see that HISTORY file).
@@ -310,7 +381,7 @@ Date	Version	Description
 		understand new TCL_DBGX feature.  Massaged debugger interface
 		which was recently revised.
 
-		Karun Krishnaswamy <karun@transarc.com> noted that pine didn't
+		Karun Krishnaswamy <karun@transarc.xcom> noted that pine didn't
 		run in term_expect.  The problem was that pine uses curses
 		(or terminfo) directly (!!) and insists on clear-to-eol	(a
 		really dumb thing to insist on since it's so easily emulated).
@@ -319,27 +390,27 @@ Date	Version	Description
 		to passmass to handle ssh protocol and explanation of how to
 		create new password entries.
 
-6/15/98 5.26.1	Dean Sauder <dsauder@dcn.att.com> noted C-preprocessor lines in
+6/15/98 5.26.1	Dean Sauder <dsauder@dcn.att.xcom> noted C-preprocessor lines in
 		configure must start in column 0.
 
-5/18/98 5.26.0	Kevin Schleicher <kms@lucent.com> noted xkibitz leaves xterms
+5/18/98 5.26.0	Kevin Schleicher <kms@lucent.xcom> noted xkibitz leaves xterms
 		if first xterm is HUP'd.  Kevin also noticed a resource leak
 		in dislocate.  Both problems fixed.
 
-		Robbie Gilbert <rwg@fns.com> noted expect_devtty was logging
+		Robbie Gilbert <rwg@fns.xcom> noted expect_devtty was logging
 		devtty (twice) to stdout.  Fixed.
 
 		Added support inttypes.h, required on Solaris 5.6 for termios.h
 
-		Kristina  <kristina@greatbasin.net> noted that tip failed when
+		Kristina  <kristina@greatbasin.xnet> noted that tip failed when
 		spawned from a cgi script (BSDI BSD/OS 3.1 i386) because tip
 		didn't see a definition for SHELL and HOME.  They need to be
 		set.  (Doesn't have to be anything useful; the empty string is
 		fine!)  Solution: documented this in Expect man page.
 
-		Zachariah Baum <zack@studioarchetype.com> noted that config.sub
-		didn't recognize Intel 686.  Found a newer version that did in
-		autoconf-2.11.
+		Zachariah Baum <zack@studioarchetype.xcom> noted that
+		config.sub didn't recognize Intel 686.  Found a newer version
+		that did in autoconf-2.11.
 
 		POTENTIAL INCOMPATIBILITY: Changed interact so that it observes
 		parity while matching.  It used to ignore parity.  This impacts
@@ -364,13 +435,13 @@ Date	Version	Description
 9/28/97	5.25.0	Switched back to hand-generating pkgIndex.tcl file after too
 		many complaints about problems running pkg_mkIndex.
 
-8/12/97 5.24.1	Chris Schanzle <chris@goof2.ncsl.nist.gov> pointed out that
+8/12/97 5.24.1	Chris Schanzle <chris@goof2.ncsl.nist.xgov> pointed out that
 		install fails on a virgin file system because install_shared_
 		lib depends on a directory that hasn't yet been created.
 
 		Larry Virden gave corrections to URLs in README.
 
-8/21/97	5.24.0	Bo Johansson <bo.johansson@mbox2.swipnet.se> noted TclWordEnd
+8/21/97	5.24.0	Bo Johansson <bo.johansson@mbox2.swipnet.xse> noted TclWordEnd
 		had changed and provided fix.  This caused crash in expect.
 
 8/18/97	5.23.0	This version supports Tcl 8.0 and continues support for 7.6.
@@ -382,7 +453,7 @@ Date	Version	Description
 		Finally removed long-deprecated commands "continue -expect",
 		"send_spawn", and "getpid" and their exp_ versions.
 
-		Harold Brauer <harold.brauer@canada.cdev.com> reported problems
+		Harold Brauer <harold.brauer@canada.cdev.xcom> reported problem
 		with an old SCO system (i386-unknown-sco3.2v5.0) that turned
 		out to be due to a typo in the configure script.
 
@@ -403,7 +474,7 @@ Date	Version	Description
 		SunOS.  I had used Tcl's SHLIB_SUFFIX instead of its
 		SHARED_LIB_SUFFIX.
 
-		Qingyi Liao <liao@casabyte.com> encountered core dump when
+		Qingyi Liao <liao@casabyte.xcom> encountered core dump when
 		exp_bg -i $exp_spawn_any was retracted.  Bug in ecmd_remove_fd.
 
 		Fixed a bunch of bugs in example/gethostbyaddr.
@@ -411,14 +482,14 @@ Date	Version	Description
 		Josef Sachs noted that stty cannot be caught when no /dev/tty.
 		It calls exit instead of returning an error.
 
-		Gordon Chaffee <chaffee@plateau.CS.Berkeley.EDU> patched
+		Gordon Chaffee <chaffee@plateau.CS.Berkeley.XEDU> patched
 		Exp_WaitCmd - it was zeroing pid element instead of wait.
 
-		Bob Manson <manson@cygnus.com> provided fix for HP on which it
+		Bob Manson <manson@cygnus.xcom> provided fix for HP on which it
 		was possible for timer to be mistakenly deleted in
 		exp_get_next_event while processing a pty open event.
 
-		Jeff Slonaker <JSlonaker@osc.uscg.mil> noted that exp_poll.c
+		Jeff Slonaker <JSlonaker@osc.uscg.xmil> noted that exp_poll.c
 		had wrong signature and poll had arguments out of order!  That
 		would suggest that no one has ever used exp_poll.c before...
 
@@ -429,31 +500,31 @@ Date	Version	Description
 		code wouldn't support redefinition of TCL_LIBRARY.  Bumped up
 		minor version to avoid package loading mishaps.
 
-		Nigel Standing <nigel@idiom.com> noted lack of C-u binding in
+		Nigel Standing <nigel@idiom.xcom> noted lack of C-u binding in
 		tkpasswd - must be due to change in tk4.2.
 
 		Forced env(SHELL) to be defined inside kibitz for when using
 		with CGI.
 
-		Charles Packer <packer@fermi.gsfc.nasa.gov> noted that CRAY-YMP
-		needed sys/types.h in exp_console.c
+		Charles Packer <packer@fermi.gsfc.nasa.xgov> noted that
+		CRAY-YMP needed sys/types.h in exp_console.c
 
 		Extra / when developing defn of TCL_LIBRARY.  Shouldn't
 		actually cause any problems though.
 
 2/3/97	5.22.0	Fixed package support - again.  Sigh.
 
-		David Pasirstein <dpasirst@sun.cs.wcupa.edu> noted that RedHat
+		David Pasirstein <dpasirst@sun.cs.wcupa.xedu> noted that RedHat
 		Linux 2nd passwd prompt requires slightly different pattern -
 		modified mkpasswd and tkpasswd.
 
-		Toshiaki Nomura <nom@yk.fujitsu.co.jp> provided patch to
+		Toshiaki Nomura <nom@yk.fujitsu.co.xjp> provided patch to
 		config.guess for Fujitsu DS/90.
 
-		Roger Brooks <R.S.Brooks@liverpool.ac.uk> noted C lib passed
+		Roger Brooks <R.S.Brooks@liverpool.ac.xuk> noted C lib passed
 		argv[0] instead of file to first arg of execvp.
 
-		Cary D. Renzema <caryr@mxim.com> noted that a simple puts -nnl
+		Cary D. Renzema <caryr@mxim.xcom> noted that a simple puts -nnl
 		might never appear - Expect closes all of its fds before Tcl
 		gets a chance to flush.  Stdout is the obvious problem since
 		Expect thinks it can cavalierly close that too.  Hmm.
@@ -471,7 +542,7 @@ Date	Version	Description
 		unshared libs from shared objects.  Chose to go with BLT's
 		approach of building shared objs in separate shared directory.
 
-		Buz Owen <ado@bbn.com> noted that "package require Expect"
+		Buz Owen <ado@bbn.xcom> noted that "package require Expect"
 		didn't work because it looked for Expect lib in the wrong
 		place (well, the "documented" place).  The problem is that Tcl
 		insists libraries should be in the same directory as the
@@ -481,13 +552,13 @@ Date	Version	Description
 		common dir.  Sigh.  If this is ever fixed/changed, the
 		instructions in the Makefile should be fixed.
 
-		<Van.Trinh@siemenscom.com> noted that expect library name
+		<Van.Trinh@siemenscom.xcom> noted that expect library name
 		exceed filename max on some systems - like his old SCO.
 
 12/4/96	5.21.5	Michael Schumacher noted new configure wasn't passing on Tcl's
 		shared lib cflags.
 
-10/26/96 5.21.4	Achyutram Bhamidipaty <ram@epic.com> ran into bugs in Expect's
+10/26/96 5.21.4	Achyutram Bhamidipaty <ram@epic.xcom> ran into bugs in Expect's
 		file event handler which prevented expectk from entering
 		implied event loop.  Also found one memory problem - thanks
 		to CenterLine.
@@ -510,33 +581,33 @@ Date	Version	Description
 
 9/28/96	5.21.0	Official Expect release for Tcl 7.5.
 
-		Junio Hamano <junio@twinsun.com> provided fixes for aclocal
+		Junio Hamano <junio@twinsun.xcom> provided fixes for aclocal
 		for with_tcl/tkconfig.
 
-		Roger Billau <rfbilla@amtnet.sandia.gov> noted that C library
+		Roger Billau <rfbilla@amtnet.sandia.xgov> noted that C library
 		didn't work on Solaris 2.5.  Turns out Solaris requires fflush
 		be called between input and output operations on FILE pointers.
 
 		Lots of Cygnus mods - see ChangeLog.
 
-		Sid Cowles <scowles@incyte.com> and Hans Riethmann
-		<hans@F1.telekurs.ch> noted relative path specs of tcl-includes
-		(and others) caused debugger config to fail since it is at a
-		different directory level.
+		Sid Cowles <scowles@incyte.xcom> and Hans Riethmann
+		<hans@F1.telekurs.xch> noted relative path specs of
+		tcl-includes (and others) caused debugger config to fail since
+		it is at a different directory level.
 
-		Al Snow <asnow@fuwutai.att.com> noted -C failed due to typo.
+		Al Snow <asnow@fuwutai.att.xcom> noted -C failed due to typo.
 
-8/17/96 5.20b18	Andrew Rakowski <andrew.rakowski@nr.usu.edu> noted no defn of
+8/17/96 5.20b18	Andrew Rakowski <andrew.rakowski@nr.usu.xedu> noted no defn of
 		LIB_RUNTIME_DIR, a creation of Tcl7.5p1.
 
 		Tom Tromey added -v to Expect and -version to Expectk.
 
-		Ben Boule <bboule@xylogics.com> noted that Interactive (IUNIX)
+		Ben Boule <bboule@xylogics.xcom> noted that Interactive (IUNIX)
 		requires 9 char max length after -l.  Looks like squeezing out
 		the "." is sufficient.  He also noted that IUNIX needs -Xp in
 		LIBS to find strftime.  This test should really be done by Tcl.
 
-8/12/96 5.20b17 Glen Biagioni <glen@prosoft.com> noted interact -re "A(xx)"
+8/12/96 5.20b17 Glen Biagioni <glen@prosoft.xcom> noted interact -re "A(xx)"
 		failed to match.  Problem turned out to be that Tcl 7.5 changed
 		a constant which in the regexp code, which Expect didn't see
 		because it provides its own defn for interact.  Alas, the one
@@ -545,7 +616,7 @@ Date	Version	Description
 		way, but there's no point in putting in a lot of work on regexp
 		when we're anticipating a new one soon anyway.
 
-		Bjorn S. Nilsson <nilsson@nbivms.nbi.dk> noted fixcat hangs.
+		Bjorn S. Nilsson <nilsson@nbivms.nbi.xdk> noted fixcat hangs.
 		Turned out that new Tcl (7.5p1) now waits for all children to
 		disappear.  But Expect still had a handle to a child.  I added
 		an exit handler to close the connections before Tcl's exit
@@ -554,7 +625,7 @@ Date	Version	Description
 		Tom Tromey provided patch to support augmenting CFLAGS on
 		Makefile invocation.
 
-		Gary Merinstein <gmerin@panix.com> noted that configure failed
+		Gary Merinstein <gmerin@panix.xcom> noted that configure failed
 		on his linux unless it had --enabled-shared.  Not quite sure
 		about how this can be, but the flag wasn't being passed to the
 		debugger's configure, so I've fixed that and hopefully this
@@ -568,17 +639,18 @@ Date	Version	Description
 		expect_comm.h so that it no longer required expect_cf.h (which
 		should be renamed to indicate it is no longer public).
 
-		Bart Robinson <lomew@cs.utah.edu> provides mods to support
+		Bart Robinson <lomew@cs.utah.xedu> provides mods to support
 		openpty() in FreeBSD/NetBSD.  Without openpty, Expect doesn't
 		see the full pty namespace (ptyX[0-v]).
 
-7/15/96 5.20b16	Nathan Estey <nfe@the-hermes.net> noted that Makefile failed
+7/15/96 5.20b16	Nathan Estey <nfe@the-hermes.xnet> noted that Makefile failed
 		on SunOS when shared libs were enabled due to incomplete dot
 		stripping in lib prefix.
 
-7/6/96	5.20b15	Malcolm Tredinnick <malcolmt@geko.net.au> noted that shared lib
-		has to be installed before building expect.  Also noted that
-		ldconfig should be run on Linux 2.0 systems and maybe others.
+7/6/96	5.20b15	Malcolm Tredinnick <malcolmt@geko.net.xau> noted that shared
+		lib has to be installed before building expect.  Also noted
+		that ldconfig should be run on Linux 2.0 systems and maybe
+		others.
 
 6/25/96 5.20b14 Tim Mooney provided fixes to obey --includedir and similar
 		configure conventions.
@@ -590,12 +662,12 @@ Date	Version	Description
 		(and Tk's configure seems to have bugs as well) so fixing
 		these is like throwing darts.
 
-		Stan Brown <stanb@netcom.com> noted noidle example broke when
+		Stan Brown <stanb@netcom.xcom> noted noidle example broke when
 		fed "-".
 
-		Gordon Irlam <gordoni@cygnus.com> noted typo in install-sh.
+		Gordon Irlam <gordoni@cygnus.xcom> noted typo in install-sh.
 
-		David Sheinberg <sheinb@bcmvision.neusc.bcm.tmc.edu> noted no
+		David Sheinberg <sheinb@bcmvision.neusc.bcm.tmc.xedu> noted no
 		args test for spawn -open/leaveopen.
 
 		Misc patches from Tim Mooney to pacify much of gcc -wall.
@@ -606,7 +678,7 @@ Date	Version	Description
 		not a problem in interact.  In the meantime, added extra stty
 		to xkibitz to do what was missed.
 
-5/30/96 5.20b11	Kayvan Sylvan <kayvan@sylvan.com> noted quoting bug in
+5/30/96 5.20b11	Kayvan Sylvan <kayvan@sylvan.xcom> noted quoting bug in
 		autoexpect.
 
 5/22/96 5.20.b10 Patches from Larry Virden in Makefile.in and exp_int.h
@@ -621,14 +693,14 @@ Date	Version	Description
 		on SCO OpenServer.  (He says SVR4 ptys are broken on that
 		platform.)
 
-		Simon J. Gerraty <sjg@zen.void.oz.au> says that write() returns
-		0 inside of exact_write on SunOS.  This is outside the SunOS
-		spec so of course we have no idea what's going on.  So I added
-		code to try and recover from (or at least warn of) this.
+		Simon J. Gerraty <sjg@zen.void.oz.xau> says that write()
+		returns	0 inside of exact_write on SunOS.  This is outside the
+		SunOS spec so of course we have no idea what's going on.  So I
+		added code to try and recover from (or at least warn of) this.
 
 		Tom Tromey unified decls of errno to #includes.
 
-5/13/96	5.20b8	Tim Mooney <mooney@dogbert.cc.ndsu.NoDak.edu> pointed out
+5/13/96	5.20b8	Tim Mooney <mooney@dogbert.cc.ndsu.NoDak.xedu> pointed out
 		backwards stty test - this would have corrupted every platform!
 		He also pointed out that alpha-dec-osf3.2  (3.2c) complained
 		too many args to sed.  Someone earlier said similarly about
@@ -641,10 +713,10 @@ Date	Version	Description
 
 		Upgraded to autoconf 2.10.
 
-		Matthias Kurz <mk@baerlap.north.de> noted Makefile problems
+		Matthias Kurz <mk@baerlap.north.xde> noted Makefile problems
 		with final Tcl7.5.
 
-		Blair Zajac <blair@gps.caltech.edu> noted configure mishandled
+		Blair Zajac <blair@gps.caltech.xedu> noted configure mishandled
 		stty defaults on HP and shared lib must be installed executable
 		on HP.
 
@@ -652,7 +724,7 @@ Date	Version	Description
 
 3/23/96 5.20b1	Beta release 1 of Expect for Tcl 7.5.
 
-		Michael Hunter <mphunter@qnx.com> provided misc mods for QNX.
+		Michael Hunter <mphunter@qnx.xcom> provided misc mods for QNX.
 
 		Various people reported problems with IRIX.  Removing from the
 		stty list fixed the problem.  Similar problem with Solaris.
@@ -660,7 +732,7 @@ Date	Version	Description
 		Added explicit close to autoexpect.  Added a mechanism for
 		enabling conservative mode after script is generated.
 
-		Hal Schechner <hal-j@netusa.net> pointed out passwd.cgi must
+		Hal Schechner <hal-j@netusa.xnet> pointed out passwd.cgi must
 		meet passwd's requirement that it not be run by an unrelated
 		user.  Easy enough - just do an su first.
 
@@ -668,7 +740,7 @@ Date	Version	Description
 
 		Added example passwd.{html,cgi} to change a password.
 
-		Many fixes from Stephen Williams <steve@icarus.com>
+		Many fixes from Stephen Williams <steve@icarus.xcom>
 		and Jonathon Kamens for Makefile and configure.
 
 3/22/96 5.20a4	Alpha release 4 of Expect for Tcl 7.5b3.
@@ -679,7 +751,7 @@ Date	Version	Description
 		Revised gethostbyaddr example - evidentally hadn't worked for
 		some time!
 
-		Jan Nijtmans <nijtmans@nici.kun.nl> provided pkgIndex.tcl.in.
+		Jan Nijtmans <nijtmans@nici.kun.xnl> provided pkgIndex.tcl.in.
 		Renamed Exp_Init to Expect_Init to support package cmd.
 		Provided #define so that Exp_Init will continue to work.
 
@@ -690,7 +762,7 @@ Date	Version	Description
 
 3/15/96	5.20a3	Alpha release 3 of Expect for Tcl 7.5b3.
 
-		Edward Haletky <elh@astroarch.com> noted that Machten required
+		Edward Haletky <elh@astroarch.xcom> noted that Machten required
 		inclusion of types.h in exp_tty_in.h.
 
 		Added various patches from Rob Savoye.  One incompatibility
@@ -698,12 +770,12 @@ Date	Version	Description
 
 		Added support for TCL_SHLIB_{LD_LIBS,VERSION} in Tcl b3.
 
-		Jonathan Karges <J.Karges@dkfz-heidelberg.de> found that clib
+		Jonathan Karges <J.Karges@dkfz-heidelberg.xde> found that clib
 		was timing out immediately on -1.
 
 3/6/96	5.20a2	Alpha release 2 of Expect for Tcl 7.5b2.
 
-		Leland Joseph <leland@tec.tetd.bellcore.com> noted
+		Leland Joseph <leland@tec.tetd.bellcore.xcom> noted
 		expect-tests.exp exceeds the 14 character filename length.
 
 		Added config.{sub,guess} to support AC_CANONICAL_....
@@ -728,17 +800,17 @@ Date	Version	Description
 
 		Removed all support for earlier versions of Tcl and Tk.
 
-		Numerous misc patches from Paul Eggert <eggert@twinsun.com>
+		Numerous misc patches from Paul Eggert <eggert@twinsun.xcom>
 		most to support Tcl 7.5.
 
 		Arnold Robbins supplied yet another patch to fix earlier
 		problem noted by Hume Smith.
 
-		David Engel <david@ods.com> reported problem with Linux dumping
-		core.  CenterLine, of course, immediately found the problem -
-		uninit'd lowercase buffer.
+		David Engel <david@ods.xcom> reported problem with Linux
+		dumping	core.  CenterLine, of course, immediately found the
+		problem - uninit'd lowercase buffer.
 
-		Peter Haggerty <haggerty@borg.lib.vt.edu> noted that his Next
+		Peter Haggerty <haggerty@borg.lib.vt.xedu> noted that his Next
 		died in cron.  It seems that Next doesn't support O_NOCTTY
 		(even though the man pages says it does) and so during pty
 		testing, control terminal would get allocated and then kill
@@ -747,12 +819,12 @@ Date	Version	Description
 
 1/3/96	5.19.0	Fixed bug that made expect report wrong string when using
 		a terminating anchor in a positive-length glob match,
-		reported by Graham L. Randall <grandall@nit.airtouch.com>.
+		reported by Graham L. Randall <grandall@nit.airtouch.xcom>.
 
 		Added rlogin-display to included examples.  rlogin-display
 		automatically propagates your $DISPLAY when you rlogin.
 
-		Hume Smith <hclsmith@localhost.isisnet.com> noted problem
+		Hume Smith <hclsmith@localhost.isisnet.xcom> noted problem
 		with day of the week calc at year end/start.  Arnold Robbins
 		supplied fixes.
 
@@ -766,14 +838,14 @@ Date	Version	Description
 		  for finding tclInt.h and private libraries.
 		- Added support for Tcl_AsyncReady.
 
-		Paul Townsend <aab@aab.cc.purdue.edu> noted that distclean did
+		Paul Townsend <aab@aab.cc.purdue.xedu> noted that distclean did
 		not remove some config cruft.  Also recommended unsetting
 		M*FLAGS that cause make called from configure to fail.
 
 		Various fixes from Cygnus.  See Changelog.
 
 		Deleted "-" before rm in loop in deinstall in Makefile as per
-		Doug Claar <dclaar@hprtnyc.ptp.hp.com>.  Doug also found prob
+		Doug Claar <dclaar@hprtnyc.ptp.hp.xcom>.  Doug also found prob
 		involving recent STTY fix.  Symptom was that pty wasn't
 		correctly inited in cgi scripts on HPs - and Cray pty support
 		blew up entirely.
@@ -781,7 +853,7 @@ Date	Version	Description
 		Added exp_ prefix to tests so that they can be run with other
 		extensions.
 
-		Seth Ornstein <pp001465@pop3.interramp.com> noted bug in the
+		Seth Ornstein <pp001465@pop3.interramp.xcom> noted bug in the
 		way rftp detected symlinks.
 
 		Upgraded to autoconf 2.4.  This fixes a bug in AC_PROC_CPP
@@ -793,7 +865,7 @@ Date	Version	Description
 
 		Added vrfy example.
 
-		Przemek Klosowski <przemek@rrdjazz.nist.gov> Irix 6.0 fails
+		Przemek Klosowski <przemek@rrdjazz.nist.xgov> Irix 6.0 fails
 		to use ptys that have been used by someone else.  SGI admitted
 		this is a bug and the solution is to upgrade to 6.1.
 
@@ -804,18 +876,18 @@ Date	Version	Description
 		modifies the original argv makes the ICEM Tcl compiler unhappy
 		so I rewrote it to avoid that.
 
-		Ian Zimmerman <itz@rahul.net> found that a braced arg list of
+		Ian Zimmerman <itz@rahul.xnet> found that a braced arg list of
 		a single pattern beginning with a \n caused expect to reeval
 		for multiple args twice.  I added a -nobrace flag that expect
 		and/interact can use internally to prevent this.
 
-		Florian La Roche <florian@jurix.jura.uni-sb.de> noted a few
+		Florian La Roche <florian@jurix.jura.uni-sb.xde> noted a few
 		glitches in the way -ltcl was searched for in aclocal.
 
-		Joachim Posegga <posegga@ira.uka.de> noted lack of Tcl internal
-		includes should be an error during configure.
+		Joachim Posegga <posegga@ira.uka.xde> noted lack of Tcl
+		internal includes should be an error during configure.
 
-8/10/95 5.17.8	Martin Wunderli <wunderli@baloo.limmat.net.ch> found missing
+8/10/95 5.17.8	Martin Wunderli <wunderli@baloo.limmat.net.xch> found missing
 		quote in config.
 
 		Danny Faught noted problems in Makefile when passing STTY defn
@@ -825,7 +897,7 @@ Date	Version	Description
 		Danny Faught noted bug in error handling for checking
 		permission problem with /tmp.
 
-8/1/95	5.17.7	Todd Rimmer <trimmer@mantis.ssw.com> noted that HP 10 with
+8/1/95	5.17.7	Todd Rimmer <trimmer@mantis.ssw.xcom> noted that HP 10 with
 		optional streams package has both PTYM and PTMX which conflict
 		in pty_termios.
 
@@ -833,41 +905,42 @@ Date	Version	Description
 		distclean target used Makefile after deleting, and many fixes
 		to man pages.
 
-		Saad Mufti <mufti@hobbit.pls.com> noted bug in how C library
+		Saad Mufti <mufti@hobbit.pls.xcom> noted bug in how C library
 		handled polling (when handling multiple fds).
 
 		Jeff Bowyer noted more autoexpect bugs.
 
 7/22/95 5.17.6	More features added to autoexpect (now version 1.3).
 
-		Sanjay <sanjay@clef.lcs.mit.edu> noted bug in TCLH config macro
-		which caused it to use 7.3 instead of 7.4.
+		Sanjay <sanjay@clef.lcs.mit.xedu> noted bug in TCLH config
+		macro which caused it to use 7.3 instead of 7.4.
 
-		Rodney Barnett <rlb@us.teltech.com> noted expectd.proto had a
+		Rodney Barnett <rlb@us.teltech.xcom> noted expectd.proto had a
 		few refs to interact_out where it should've had expect_out.
 
-		Terry Rhodes <tbr@88open.org> noted that Expect returned a 0
+		Terry Rhodes <tbr@88open.xorg> noted that Expect returned a 0
 		exit status upon syntax error unlike tclsh and wish.
 
-		Fred Obermann <fredo@conan.ids.net> noted that Unixware 2.01
+		Fred Obermann <fredo@conan.ids.xnet> noted that Unixware 2.01
 		native development tools don't permit configure to find memcpy
 		because memcpy is handled specially by the compiler and it
 		complains when it finds configure's default test with no args.
 		Changed to a hand-crafted test with args.
 
-7/12/95	5.17.5	Jeff Bowyer <jbowyer@muni.cz> noted minor bugs in autoexpect.
+7/12/95	5.17.5	Jeff Bowyer <jbowyer@muni.xcz> noted minor bugs in autoexpect.
 
-		Rob Saul <robs@sco.com> noted that configure failed on SCO OSR5
-		because trap requested by Cygnus (to allow config in bg) used
-		higher traps than SCO sh knows about.
+		Rob Saul <robs@sco.xcom> noted that configure failed on SCO
+		OSR5 because trap requested by Cygnus (to allow config in bg)
+		used higher traps than SCO sh knows about.
 
 		Changed "can't happen" to "xmkmf is broken" when configure
 		fails to compile simple	C-Tk program.
 
-		John H. Chauvin <jchauvin@netcom.com> noted exp_tty_current and
-		cooked raised multiple def errors on SGI 5.3 with native cc.
+		John H. Chauvin <jchauvin@netcom.xcom> noted exp_tty_current
+		and cooked raised multiple def errors on SGI 5.3 with native
+		cc.
 
-7/9/95	5.17.4	Wolfhardt Lotz <s11@blue.lrw.uni-bremen.de> noted Solaris
+7/9/95	5.17.4	Wolfhardt Lotz <s11@blue.lrw.uni-bremen.xde> noted Solaris
 		doesn't do case-insensitive man page lookups so I lowerized
 		the beginning of the .SH lines.
 
@@ -883,35 +956,35 @@ Date	Version	Description
 6/30/95	5.17.2	select-based dsleep() was returning an internal expect-style
 		return code instead of a Tcl-style.
 
-6/30/95 5.17.1	Kannan Varadhan <kannan@isi.edu> noted aclocal didn't
+6/30/95 5.17.1	Kannan Varadhan <kannan@isi.xedu> noted aclocal didn't
 		look in right directories to find Tk.
 
 6/30/95	5.17.0	Modified regexp interfaces to support Tcl 7.4b4.
 
-		Mods from Tony Isles <ittony@traf.com> for Sequent Dynix/ptx
+		Mods from Tony Isles <ittony@traf.xcom> for Sequent Dynix/ptx
 		V2.1.5 (which is really old).
 
-		Michael Schumacher <hightec@rz.uni-sb.de> noted that Solaris
+		Michael Schumacher <hightec@rz.uni-sb.xde> noted that Solaris
 		2.4 header files require __EXTENSIONS__ for all sorts of
 		traditional but non-standard definitions.
 
 		Modified aclocal to support new Tcl/Tk library names.
 
-		George Forman <forman@cs.washington.edu> requested support in
+		George Forman <forman@cs.washington.xedu> requested support in
 		C lib for fds that already exist.  I added exp_spawnfd.
 
 		Fixed bug preventing signal rearming on Linux (using SV-style
 		signal handling).
 
-		Wayne Christopher <wayne@pmac.icemcfd.com> noted missing interp
-		in call to exp_error.
+		Wayne Christopher <wayne@pmac.icemcfd.xcom> noted missing
+		interp in call to exp_error.
 
 		Added null support to interact's exact matching.
 
 		Bruce Jerrick noted INSTALL was being used rather than
 		INSTALL_PROGRAM/DATA.
 
-		Dennis Ferguson <dennis@mci.net> noted that on Solaris 2.4
+		Dennis Ferguson <dennis@mci.xnet> noted that on Solaris 2.4
 		close(pty) occasionally returns EINVAL.
 
 		Added tests so that if we can't get a pty, we can give the user
@@ -924,36 +997,36 @@ Date	Version	Description
 		but I've added as a fail-safe mechanism to catch people who
 		use preposterous patterns.
 
-		Alan Heckert <heckert@tiber.nist.gov> noted missing decl in
+		Alan Heckert <heckert@tiber.nist.xgov> noted missing decl in
 		Convex pty support.
 
 		Fixed all expectk examples for Tk4.
 
-		Bryan S. So <so@cs.wisc.edu> noted that interact -o eof failed
+		Bryan S. So <so@cs.wisc.xedu> noted that interact -o eof failed
 		if an unbuffered pattern was partially in progress.
 
 		Added -timeout flag to expect command to override timeout var.
 
-		John Pfuntner <pfuntner@VNET.IBM.COM> noted that OpenMVS did
+		John Pfuntner <pfuntner@VNET.IBM.XCOM> noted that OpenMVS did
 		not notice @ inside of Makefile SETUID macro as suppression
 		but instead treated it as part of the program name.
 
-		Jim Porter <James.W.Porter@att.com> noted that exp_free_i freed
-		the variable name even if not allocated.
+		Jim Porter <James.W.Porter@att.xcom> noted that exp_free_i
+		freed the variable name even if not allocated.
 
 		Yet more mods to aclocal and various .in files from Rob Savoye.
 
-4/21/95 5.16.3	Matija Grabnar <Matija.Grabnar@ijs.si> noted that sleep maxed
+4/21/95 5.16.3	Matija Grabnar <Matija.Grabnar@ijs.xsi> noted that sleep maxed
 		out after about 36 minutes.  Turned out to be a poor assumption
 		in some interfacing code.
 
-4/19/95	5.16.2	rbd <uport@netcom.com> noted tcl_RcFileName multiply defined
+4/19/95	5.16.2	rbd <uport@netcom.xcom> noted tcl_RcFileName multiply defined
 		when compiling with Tk4.
 
-4/16/95	5.16.1	Robert Nicholson <robert@steffi.dircon.co.uk> noted NextStep's
+4/16/95	5.16.1	Robert Nicholson <robert@steffi.dircon.co.xuk> noted NextStep's
 		sys/wait.h is not POSIX-like so WNOHANG fails to get a defn.
 
-		Alexandre Rafalovitch <arafalov@socs.uts.edu.au> discovered
+		Alexandre Rafalovitch <arafalov@socs.uts.edu.xau> discovered
 		example on dislocate man page didn't work.  I fixed it.
 
 4/8/95	5.16.0	gcc 2.3.3 complains about internal errors so I figure: time to
@@ -962,14 +1035,14 @@ Date	Version	Description
 		status configure code and adopted autoconf's suggestion about
 		refusing to use sys/wait.h if not POSIX.1 compatible.  Nice!
 
-		Jeffrey C Honig <jch@nr-tech.cit.cornell.edu> requested a -gmt
+		Jeffrey C Honig <jch@nr-tech.cit.cornell.xedu> requested a -gmt
 		flag for timestamp command.
 
-		Chuck Ocheret <chuck@gigadactyl.com> noted that expect -pty
+		Chuck Ocheret <chuck@gigadactyl.xcom> noted that expect -pty
 		fails.  Problem is that Tcl's exec blindly closes all the fds
 		between 3 and its own highest fd.  See comments in code.
 
-		Loris Caren <loris@caren.demon.co.uk> noted eof in fg bombs on
+		Loris Caren <loris@caren.demon.co.xuk> noted eof in fg bombs on
 		Linux.  Turns out to be analogous to eof in bg problem fixed
 		in 5.14.0.
 
@@ -980,7 +1053,7 @@ Date	Version	Description
 
 3/31/95 5.15.3	Forgot to export TCLHDIR defn when configuring debugger.
 
-3/29/95 5.15.2	Steve Simmons <scs@aisinc.com> noted Makefile multiple defined
+3/29/95 5.15.2	Steve Simmons <scs@aisinc.xcom> noted Makefile multiple defined
 		distclean and it might be nice to provide aclocal.m4 even
 		though it isn't normally used.
 
@@ -988,18 +1061,18 @@ Date	Version	Description
 
 3/27/95	5.15.1	Fixed tkterm script - inadvertently left tic debugging on.
 		Also add support for Ctrl-space and Ctrl-@ as requested by
-		Zbigniew Wieckowski <wieckows@cs.umn.edu>.
+		Zbigniew Wieckowski <wieckows@cs.umn.xedu>.
 
 		Larry Virden asked that configure also check for .so libs.
 
-3/23/95	5.15.0	Everitt Beers <ebeers@scf.usc.edu> noted that Linux doesn't
+3/23/95	5.15.0	Everitt Beers <ebeers@scf.usc.xedu> noted that Linux doesn't
 		support kill -STOP 0.  Changed 0 to [pid].
 
-		zhengping (z.) you <you@bnr.ca> found bug where a bg expect did
-		not rearm a spawn id after a first bg expect (and another one)
-		to clear it.
+		zhengping (z.) you <you@bnr.xca> found bug where a bg expect
+		did not rearm a spawn id after a first bg expect (and another
+		one) to clear it.
 
-		Elliott Wolin <wolin@physics.wm.edu> noted that tkterm
+		Elliott Wolin <wolin@physics.wm.xedu> noted that tkterm
 		complained if tic wasn't found.  I'll have it override the
 		user misconfig in that case.  Also noted that interact failed
 		on AIX.  Evidentally, my new config tests for ISC found that
@@ -1015,18 +1088,18 @@ Date	Version	Description
 
 		Disabled configure's file-caching.
 
-		Kannan Varadhan <kannan@isi.edu> noted incorrect diag reporting
-		TCLHDIR in configure.
+		Kannan Varadhan <kannan@isi.xedu> noted incorrect diag
+		reporting TCLHDIR in configure.
 
-		Marty Olevitch <marty@howdy.wustl.edu> noted that DEC Alpha
+		Marty Olevitch <marty@howdy.wustl.xedu> noted that DEC Alpha
 		did not sleep correctly because configure didn't find sleep
 		and found poll (which is broken).  Problem turned out to be a
 		bug in autoconf's AC_CHECK_FUNC.  Got patch from Jim Meyering
-		<meyering@comco.com>
+		<meyering@comco.xcom>
 
-		Fixed config probs for Edward Huie <huie@net.com> on Mac SE/30,
-		System 7.1, Tenon Intersystems' MachTen 2.1.1-G (BSD 4.3 on
-		Mach kernel) and MachTen X11R4 3.1.
+		Fixed config probs for Edward Huie <huie@net.xcom> on Mac
+		SE/30, System 7.1, Tenon Intersystems' MachTen 2.1.1-G (BSD 4.3
+		on Mach kernel) and MachTen X11R4 3.1.
 
 		Moved libraries forward in configure to allow for AC_CHECK_FUNC
 		to succeed when funcs are in other libraries.
@@ -1047,16 +1120,16 @@ Date	Version	Description
 2/23/95	5.14.1	Hal Peterson noted that configure.in checked incorrectly for
 		tcllib.
 
-2/22/95 5.14.0	Jamal <root@lonestar.tlug.org> noted Linux has tic in a
+2/22/95 5.14.0	Jamal <root@lonestar.tlug.xorg> noted Linux has tic in a
 		different place than on my system - affected tkterm script.
 
-		Xiaokun Zhu <xiaokun@stats.gla.ac.uk> noted problem on DEC
+		Xiaokun Zhu <xiaokun@stats.gla.ac.xuk> noted problem on DEC
 		Alpha OSF/1.3 evidentally due to backwards decl of index macro.
 
-		Greg McFarlane <gregm@nms.otc.com.au> noted that large args in
+		Greg McFarlane <gregm@nms.otc.com.xau> noted that large args in
 		send cmd cannot be passed blindly to exp_error.
 
-		david d `zoo' zuhn <zoo@armadillo.com> requested modifying
+		david d `zoo' zuhn <zoo@armadillo.xcom> requested modifying
 		configure so that it did not require Tcl/Tk to be built - only
 		configured.  This means that it may not find installed
 		libraries.  Hopefully, this won't cause anyone problems but its
@@ -1069,18 +1142,18 @@ Date	Version	Description
 		file.  Finally got my hands on an ISC box and fixed configure
 		for that.
 
-		Tony Booker <tb@sequent.com> provides mods for Sequent ptx 2
+		Tony Booker <tb@sequent.xcom> provides mods for Sequent ptx 2
 		and 4.
 
-		Jeffrey Friedl <jfriedl@nff.ncl.omron.co.jp> provided fixes for
-		timezone handling in config and exp_strf.c.
+		Jeffrey Friedl <jfriedl@nff.ncl.omron.co.xjp> provided fixes
+		for timezone handling in config and exp_strf.c.
 
-		David Schmitt <dschmitt@netcom.com> noted that library did
+		David Schmitt <dschmitt@netcom.xcom> noted that library did
 		not detect eof on HP.  I didn't think this was necessary for
 		read() but it evidentally is.  I added the support for raw fds
 		although it is not obvious to me how to do it for FILEs.
 
-		James Carter <jimc@math.ucla.edu> noted expect_after couldn't
+		James Carter <jimc@math.ucla.xedu> noted expect_after couldn't
 		worked in the exp_bg because I had accidentally written BEFORE
 		instead of AFTER when checking the cases.  He also found that
 		the eof body could be trashed in an exp_bg.
@@ -1088,21 +1161,22 @@ Date	Version	Description
 		Ousterhout apologized for the Tcl7.4 change I noted in 5.13.1
 		and said he will undo it.
 
-		Eric Frias <efrias@vt.edu> found library bombed after timeouts.
-		exp_match_end was not updated - which makes sense since there
-		was no match - however the following expect call assumed that
-		exp_match_end was meaningful in order to do its buffer
-		shuffling.
+		Eric Frias <efrias@vt.xedu> found library bombed after
+		timeouts.  exp_match_end was not updated - which makes sense
+		since there was no match - however the following expect call
+		assumed that exp_match_end was meaningful in order to do its
+		buffer shuffling.
 
 		Jonathan Kamens supplied new configure test for REARM_SIG after
 		noting old could fail if limit prevented creation of core file.
 		He also noted REARM_SIG had accidentally been commented out
 		of cf file.
 
-		Vincent D. Skahan <vds7789@aw101.iasl.ca.boeing.com> noted that
-		Apollo's stty reads stdout and doesn't complain if its bogus.
+		Vincent D. Skahan <vds7789@aw101.iasl.ca.boeing.xcom> noted
+		that Apollo's stty reads stdout and doesn't complain if its
+		bogus.
 
-		Yoad Grinberg <grinberg@vnet.ibm.com> noted that SIGCHLD does
+		Yoad Grinberg <grinberg@vnet.ibm.xcom> noted that SIGCHLD does
 		not work for forked processes, only spawned processes.  Fixed
 		this and added counting to make sure none get lost.
 
@@ -1111,7 +1185,7 @@ Date	Version	Description
 		On the Cray, non-existent libs generate warnings which are not
 		detected by configure but which annoy make.
 
-		Bela Gazdy <bela@euch3e.chem.emory.edu> noted /etc/resolv.conf
+		Bela Gazdy <bela@euch3e.chem.emory.xedu> noted /etc/resolv.conf
 		misspelled in kibitz.
 
 		Rainer Wilcke noted that "send -null/break" mishandled return
@@ -1119,14 +1193,14 @@ Date	Version	Description
 
 		Dvorak example was missing -- in send -.
 
-1/12/95 5.13.2	Peter Wassenaar <peterw@stack.urc.tue.nl> noted that kibitz
+1/12/95 5.13.2	Peter Wassenaar <peterw@stack.urc.tue.xnl> noted that kibitz
 		didn't work on AIX.  My fixcat script assumed that AIX's cat
 		was like HP's cat - buffered by default.
 
-1/7/95	5.13.1	Marc Bouron <mbouron@lhr-sys.bru-ro.DHL.COM> noted I forgot to
+1/7/95	5.13.1	Marc Bouron <mbouron@lhr-sys.bru-ro.DHL.XCOM> noted I forgot to
 		add virterm to distribution.
 
-		Marc W. Mengel <mengel@dcdmwm.fnal.gov> noted that configure
+		Marc W. Mengel <mengel@dcdmwm.fnal.xgov> noted that configure
 		must be run in the foreground due to the stty tests.  Added
 		this to documentation.
 
@@ -1137,25 +1211,25 @@ Date	Version	Description
 		Changed ptys to be initialized based on current tty setting
 		rather than original tty setting.
 
-		Stephen Melvin <melvin@zytek.fr> noted that set -e is the real
+		Stephen Melvin <melvin@zytek.xfr> noted that set -e is the real
 		problem with ash (see 5.13).  I bet "[" is returning a value
 		and triggering it.  It appears that the script can live without
 		the set, so out it goes.
 
-		Braun Brelin <bbrelin@netcom.com> noted pipe allocs in spawn
+		Braun Brelin <bbrelin@netcom.xcom> noted pipe allocs in spawn
 		could fail with meaningless error message.
 
 12/15/94 5.13.0 Synchronize with appearance of "Exploring Expect".  This
 		distribution corresponds to the book both in description of
 		Expect and in containing all the substantive examples.
 
-		Graham Mark <gam@lanl.gov> noted that his Cray (Unicos 7.0.6.1)
-		didn't recognize TCSETCTTY.  Since this was in some Cray-
-		specific code, I guess Unicos must have changed some .h files.
-		I made it include either termios or termio.  It, at least,
-		works on our Cray (Unicos 8.0.2.4).
+		Graham Mark <gam@lanl.xgov> noted that his Cray (Unicos
+		7.0.6.1) didn't recognize TCSETCTTY.  Since this was in some
+		Cray-specific code, I guess Unicos must have changed some .h
+		files.  I made it include either termios or termio.  It, at
+		least, works on our Cray (Unicos 8.0.2.4).
 
-		Robert Withrow <witr@rwwa.com> noted that FreeBSD 1.1.5.1
+		Robert Withrow <witr@rwwa.xcom> noted that FreeBSD 1.1.5.1
 		supplied union wait but waitpid doesn't use it!  So I modified
 		configure to be smarter.  He also noted that its /bin/sh is
 		really ash which blows up on install.sh.  It appears that it
@@ -1172,7 +1246,7 @@ Date	Version	Description
 		expect_term but without relying on Tk), gethostbyaddr, and
 		expectd.proto for telnet daemon.
 
-		Matt DiMeo <mdimeo@brooktree.com> noted that expect_background
+		Matt DiMeo <mdimeo@brooktree.xcom> noted that expect_background
 		failed to detect eof on HP.  I had forgotten to pass the mask.
 
 		Josef Sachs noted that expect_background put Tk's event	handler
@@ -1180,7 +1254,7 @@ Date	Version	Description
 		killed.  I had aborted the cleanup procedure if Tcl's close
 		reported an error.  That was a mistake.
 
-		Rick Lyons <rick@razorback.brisnet.org.au> noted a bug.  C lib
+		Rick Lyons <rick@razorback.brisnet.org.xau> noted a bug.  C lib
 		expect would turn a normal read into a poll if remtime reached
 		zero on the nose.
 
@@ -1199,14 +1273,14 @@ Date	Version	Description
 		Wait fix in previous version broke system() whose return value
 		is horribly overloaded.
 
-11/10/94 5.11.0	Stephen Fitzpatrick <sfitzp@cs.qub.ac.uk> noted that NeXT wait
+11/10/94 5.11.0	Stephen Fitzpatrick <sfitzp@cs.qub.ac.xuk> noted that NeXT wait
 		macros do not accept int wait status.  Switched to using Tcl's
 		detection of wait status type.
 
 		Made log_file -leaveopen leave file id open until close like
 		spawn -leaveopen did.
 
-		Bruce Jerrick <bruce@cse.ogi.edu> noted public include dir
+		Bruce Jerrick <bruce@cse.ogi.xedu> noted public include dir
 		wasn't getting created.
 
 		Karl Vogel noted 1) Pyramid has index instead of strchr, strf.c
@@ -1220,7 +1294,7 @@ Date	Version	Description
 		forgotten chars even when full_buffer isn't explicitly
 		specified.
 
-		Bert Robben <Bert.Robben@CS.kuleuven.ac.be> noted that the
+		Bert Robben <Bert.Robben@CS.kuleuven.ac.xbe> noted that the
 		debugger needs to know about the presence of stdlib.h.  I was
 		hoping to avoid this because it's a pain getting configure to
 		call another configure.
@@ -1232,31 +1306,31 @@ Date	Version	Description
 		tkpasswd.  Created standalone script to generate and set
 		passwords - good for all those adduser shell scripts.
 
-		Rick Cady <rickc@NSD.3Com.COM> found a bug when switching log
+		Rick Cady <rickc@NSD.3Com.XCOM> found a bug when switching log
 		files.
 
-		Rainer Wilcke <wilcke@esrf.fr> noted that xkibitz died when
+		Rainer Wilcke <wilcke@esrf.xfr> noted that xkibitz died when
 		closing a connection.  stdin was mistakenly being closed.  He
 		also noted that killing xterms under HPUX 9 requires kill -9.
 
-		Enzo Michelangeli <enzo@airhk.air.org> noted that SCO 3.2.1
+		Enzo Michelangeli <enzo@airhk.air.xorg> noted that SCO 3.2.1
 		defined window size structure in ptem.h.
 
-		Josef Sachs <sachs@panix.com> found a bug when calling fg
+		Josef Sachs <sachs@panix.xcom> found a bug when calling fg
 		expects repeatedly between bg expects.  On the first fg	expect,
 		it cached the fact that the filehandler was armed.  The next
 		background expect disarmed it but failed to update the cache.
 
-		John P. Rouillard" <rouilj@dstar.iddis.com> provided configure
+		John P. Rouillard" <rouilj@dstar.iddis.xcom> provided configure
 		support for --with-{tcl,tk}{lib,include}.
 
-		Mike Figg <figg@pencom.com> noted that man page used old style
+		Mike Figg <figg@pencom.xcom> noted that man page used old style
 		of continue command.
 
 8/23/94	5.9.1	Adrian Mariano noted it would be useful to have exp_continue
 		not reset the timer.  Added flag to support this.
 
-		Morris Gasser <gasser@ksr.com> noted that lowering match_max
+		Morris Gasser <gasser@ksr.xcom> noted that lowering match_max
 		didn't work (lib was broken too).
 
 		Keith Hanlan provided a fix for exp_exact.
@@ -1275,12 +1349,12 @@ Date	Version	Description
 
 		Missed deletion of last line of out macro in exp_inter.c
 
-		Simon Warfield <simonw@bwh.harvard.edu> noted bug in xkibitz
+		Simon Warfield <simonw@bwh.harvard.xedu> noted bug in xkibitz
 		help message.
 
 		Fixed exp_background to use global scope instead of current.
 
-		Steve Diamond <sdd@aplcomm.jhuapl.edu> noted that -i "4 5"
+		Steve Diamond <sdd@aplcomm.jhuapl.xedu> noted that -i "4 5"
 		only used spawn id 5.
 
 		Rob Nagler found yet another bug in log_file when called
@@ -1291,7 +1365,7 @@ Date	Version	Description
 7/25/94 5.8.1	Made exp_interp external.   Users should be able to set this
 		explicitly.
 
-		David Barnett <davidb@cats.ucsc.edu> found that Linux was not
+		David Barnett <davidb@cats.ucsc.xedu> found that Linux was not
 		getting a controlling terminal.  The original test for doing
 		that was based on Stevens and tested in a very nonspecific way
 		for the presence of a Sun via CIBAUD.  Replaced this with a
@@ -1302,7 +1376,7 @@ Date	Version	Description
 		Ousterhout would stop all of those translations.  If the user
 		wants them, they can do so themselves, but now they're forced.
 
-		Martin Buchhoz <buchhlz@vnet.ibm.com> suggested adding
+		Martin Buchhoz <buchhlz@vnet.ibm.xcom> suggested adding
 		XKIBITZ_XTERM_ARGS environment variable to xkibitz.  He also
 		noted that stty rows/columns support doesn't seem to work on
 		AIX.  I haven't yet looked into this.
@@ -1316,10 +1390,10 @@ Date	Version	Description
 		signals default.  Also added extra information to return value
 		of wait if caused by signal.
 
-		Dan MacDonald <hfvstud@bcarh80a.bnr.ca> noted that exp_continue
-		didn't cause timeout to get reread.
+		Dan MacDonald <hfvstud@bcarh80a.bnr.xca> noted that
+		exp_continue didn't cause timeout to get reread.
 
-		Ting Tan <utan@cisco.com> noted that when using -b, expect
+		Ting Tan <utan@cisco.xcom> noted that when using -b, expect
 		hangs if open brace and doesn't stop in case of error.
 
 		Oops, broke "log_file" with no args.
@@ -1331,19 +1405,19 @@ Date	Version	Description
 		before attempting to read more.  He also suggested I avoid
 		forcing the user to do save/restores of per-fd globals.
 
-6/24/94 5.8.0	Hubert Halkin <hhalkin@ucsd.edu> pointed out that interleaved
+6/24/94 5.8.0	Hubert Halkin <hhalkin@ucsd.xedu> pointed out that interleaved
 		expect_bgs and spawns dump core.  I had used the exp_f ptrs
 		as handles to TkCreateFileHandler but realloc shuffled them
 		around.
 
-		Rick Lyons <pclink@qus102.qld.tne.oz.au> provided misc. mods
+		Rick Lyons <pclink@qus102.qld.tne.oz.xau> provided misc. mods
 		for Pyramid.
 
-		Keith Hanlan <keithh@bnr.ca> noted that HP-UX C compiler causes
-		odd behavior in Expect when it is compiled with -O.  -g works
-		fine.
+		Keith Hanlan <keithh@bnr.xca> noted that HP-UX C compiler
+		causes odd behavior in Expect when it is compiled with "-O.
+		-g" works fine.
 
-		Peter Gasche <zrspg01@compserv.zdv.uni-tuebingen.de> pointed
+		Peter Gasche <zrspg01@compserv.zdv.uni-tuebingen.xde> pointed
 		out that Convex 10.2 fails to build.  New version of Convex OS
 		added getpty().  Naturally, it differs from old one.  Testing
 		is tricky because there is no header file for it.  Even worse,
@@ -1357,14 +1431,14 @@ Date	Version	Description
 
 		Added -nowait flag to wait command.
 
-		Upon suggestions from David Vezie <dv@xnet.ssl.berkeley.edu>:
+		Upon suggestions from David Vezie <dv@xnet.ssl.berkeley.xedu>:
 		Added -noappend, -open, and -leaveopen to log_file command.
 		Added -leaveopen flag to spawn and exp_open.
 		Modified spawn to close -open immediately.
 		Modified exp_open to close spawn_id immediately.
 
-		Between Jeff Wright <wright@spock.cen.encompass.com>, Brad
-		Skrbec, Arup Mukherjee <arup+@cmu.edu>, and the anonymous
+		Between Jeff Wright <wright@spock.cen.encompass.xcom>, Brad
+		Skrbec, Arup Mukherjee <arup+@cmu.xedu>, and the anonymous
 		Mach support group at CMU, finally got hard answers about Mach.
 		It is no longer supported and there is no intention to provide
 		full POSIX support.  Now, at least, I can fix the configure
@@ -1372,13 +1446,13 @@ Date	Version	Description
 
 		Added "unbuffer" example.
 
-		Dana Chee <dana@dino.bellcore.com> provided configure hooks
+		Dana Chee <dana@dino.bellcore.xcom> provided configure hooks
 		for finding -lnsl and -lsocket.
 
-		Henry Spencer <henry@zoo.toronto.edu> noted timestamp doc did
+		Henry Spencer <henry@zoo.toronto.xedu> noted timestamp doc did
 		not jive with C defn.  Fixed doc and added timezone support.
 
-		Steve Pynes <fb@steve@ucsd.edu> noted that exp_win.c needs
+		Steve Pynes <fb@steve@ucsd.xedu> noted that exp_win.c needs
 		_IBCS2 (Intel Binary Compat Standard #2!?!) before it will
 		recognize winsize.  He also noted #out was redefined in inter
 		code if using simple_event.
@@ -1398,7 +1472,7 @@ Date	Version	Description
 		problem simply wouldn't happen in practice.  Alas, Jonathon
 		Kamens found a case where it does.
 
-		Jimmy Aitken <jimmy@pyra.co.uk> noted problem on Pyramid.  My
+		Jimmy Aitken <jimmy@pyra.co.xuk> noted problem on Pyramid.  My
 		original code only looked for /dev/tty##.  On pyramid, ptys
 		look like /dev/pts/4.  term wants the last two characters, but
 		on the Pyramid, the first of the last two characters can be a
@@ -1408,7 +1482,7 @@ Date	Version	Description
 		problem - xterm has no way of telling it to which pid to send
 		the SIGWINCH.
 
-		Poul-Henning Kamp <phk@TFS.COM> noted that -lm would make
+		Poul-Henning Kamp <phk@TFS.XCOM> noted that -lm would make
 		autoconf forget about other libs.
 
 		Ram Bhamidipaty noted I forgot to document sleep.
@@ -1417,7 +1491,7 @@ Date	Version	Description
 
 		Mods from Rob Savoye.  See ChangeLog.
 
-		Earnest Hua <eh@c-cube.com> noted expectk.man need wasn't
+		Earnest Hua <eh@c-cube.xcom> noted expectk.man need wasn't
 		installed.
 
 		Bogus arguments to expectk were not reported correctly.
@@ -1427,7 +1501,7 @@ Date	Version	Description
 
 		Rewrote timestamp to get rid of 200 char limit.
 
-		Ram Bhamidipaty <ram@xor.epi.wisc.edu> noted NetBSD .9 stty
+		Ram Bhamidipaty <ram@xor.epi.wisc.xedu> noted NetBSD .9 stty
 		complained "stdout appears redirected, but stdin is the
 		control descriptor".  It compares dev(stdout) to dev(stderr)
 		and assumes if they are different then user thinks stty
@@ -1437,7 +1511,7 @@ Date	Version	Description
 		from child (in getptyslave) since this now went back to the
 		proc as child output rather than original stderr, sigh.
 
-		Stephan Winokur <swinokur@pinky.trevose.sgi.com> noted that
+		Stephan Winokur <swinokur@pinky.trevose.sgi.xcom> noted that
 		IRIX 4.2 had problems with gcc.  While diagnosing, I found
 		PTY_TYPE was used before set.  Make doesn't mind (how odd)
 		but I changed it anyway.
@@ -1452,11 +1526,11 @@ Date	Version	Description
 
 		Finally deleted old shar file.  Revised README.
 
-3/22/94 5.6.3	Phil Moore <phil@signals.geol.scarolina.edu> noted termios.h
+3/22/94 5.6.3	Phil Moore <phil@signals.geol.scarolina.xedu> noted termios.h
 		should not come from sys even if it exists.  (SGI doesn't have
 		sys/termios.h.)
 
-3/21/94 5.6.2	Paul Kinzelman <pkinz@cougar.tandem.com> noted that I forgot
+3/21/94 5.6.2	Paul Kinzelman <pkinz@cougar.tandem.xcom> noted that I forgot
 		to remove -update from documentation.
 
 		Fixed interact's -i so it understands indirect spawn ids.
@@ -1487,7 +1561,7 @@ Date	Version	Description
 		Added functions to allow user flexibility closing fds in child.
 
 3/8/93	5.5.1	Integrated bug fixes from Arnold Robbins <arnold@skeeve.atl.
-		ga.us> for his own strftime code.
+		ga.xus> for his own strftime code.
 
 		Rob Savoye passed back a patch from OSF to cast ptsname.
 
@@ -1506,7 +1580,7 @@ Date	Version	Description
 		Added decl of exp_tty_original to pty_sgtty.c.
 		Added error_spawn_id
 
-		Alon Albert <al@mercury.co.il> provided a bug fix for new
+		Alon Albert <al@mercury.co.xil> provided a bug fix for new
 		buffer handling code in C library.
 
 		Fix fd leak related to spawn -open.
@@ -1527,17 +1601,17 @@ Date	Version	Description
 		Fixed exp_version so it fails if the major #s are not equal
 		(which is what the man page said).
 
-1/18/94 5.3.4	Jim Meyering <meyering@idefix.comco.com> gave config fixes
+1/18/94 5.3.4	Jim Meyering <meyering@idefix.comco.xcom> gave config fixes
 		of X handling on Irix-4.0.5 and suggested that tknewsbiff
 		observe DOTDIR.
 
-1/18/94	5.3.3	Kevin Short <short@gdc.com> noted some remaining use of malloc
+1/18/94	5.3.3	Kevin Short <short@gdc.xcom> noted some remaining use of malloc
 		and free instead of ck versions.
 
 		Initialize tcl_interactive to 0 while processing -c flag to
 		avoid unreliable handling of unknown proc.
 
-1/17/94	5.3.2	Jeffry Abramson <jra@hrcms.att.com> noted that "spawn -pty"
+1/17/94	5.3.2	Jeffry Abramson <jra@hrcms.att.xcom> noted that "spawn -pty"
 		hung on an HP.  Problem was trapping was enabled so as soon
 		as I tried to open the slave, Expect blocked waiting for ack!
 
@@ -1552,7 +1626,7 @@ Date	Version	Description
 		new switch cmd.  Also sped it up by replacing split/join
 		nonsense with a single regexp.
 
-		Danny Faught <faught@convex.com> noted that glob patterns
+		Danny Faught <faught@convex.xcom> noted that glob patterns
 		returned shortest matches.  While fixing this, found that glob
 		patterns ending in $ were broken, too.
 
@@ -1566,28 +1640,28 @@ Date	Version	Description
 		Made unmatched chars from previous expects remain for future
 		matches.
 
-		Chen <johnny@e0sun3.ccl.itri.org.tw> found bug in exp_pid when
+		Chen <johnny@e0sun3.ccl.itri.org.xtw> found bug in exp_pid when
 		-i had no arg.
 
 		Rewrote expect_bg, after, and before so they all handle args
 		the same.  Interact and all the expect variables now handle
 		indirects.  exp_bg now handles -brace flag.
 
-		Geoff Bullen <geoff@itx.nsg.com.au> noted that interact put
+		Geoff Bullen <geoff@itx.nsg.com.xau> noted that interact put
 		terminal into raw mode even if stdin was redirected.
 
 		Rob Savoye provided more configure mods to better find Tcl/Tk.
 
 		Fixed bug in wait that didn't close down "busied" fds.
 
-		Kazuro Furukawa <furukawa@apricot.kek.jp> provided a better
+		Kazuro Furukawa <furukawa@apricot.kek.xjp> provided a better
 		default for SHORT_BINDIR in the Makefile and noted that DEC
 		doesn't understand "test -x".
 
 12/3/93	5.2.0	Recent fix was buggy and blew up when eof case still had data
 		in buffer.
 
-11/23/93 5.1.4	At request of Rod Beckwith <rodb@slugo.corp.sgi.com> fix some
+11/23/93 5.1.4	At request of Rod Beckwith <rodb@slugo.corp.sgi.xcom> fix some
 		minor things to which SGI cc was sensitive.
 
 		Fixed bug in dvorak script where eof could occur in nested
@@ -1596,14 +1670,14 @@ Date	Version	Description
 		Forgot to change -flush to -nobuffer in man page.
 
 		Added some more places to search for X11 for Jeff Moore
-		<jbm@internet.sbi.com> note.
+		<jbm@internet.sbi.xcom> note.
 
 		Added yet more fixes and notes for NeXT for Brad Skrbec
-		<skrbec@motcid.rtsg.mot.com> who found that NeXT has POSIX
+		<skrbec@motcid.rtsg.mot.xcom> who found that NeXT has POSIX
 		include files but NOT the functions that go with them.  Sigh.
 		Needless to say, configure is thrown off by this.
 
-11/14/93 5.1.3	John Pierce <jpierce@chem.UCSD.EDU> noted several declarations
+11/14/93 5.1.3	John Pierce <jpierce@chem.UCSD.XEDU> noted several declarations
 		that AIX's cc couldn't handle include a struct with same elt
 		name at two different levels.  Also _IO is declared twice
 		in AIX include files but only checked once.
@@ -1611,7 +1685,7 @@ Date	Version	Description
 		Fixed bad args in exp_spawnl call in chesslib examples.  Can't
 		imagine how it ever worked before.
 
-		Richard Weidner <richard@cicero.jpl.nasa.gov> found a bug in
+		Richard Weidner <richard@cicero.jpl.nasa.xgov> found a bug in
 		configure (test always treats a bare string as true!) that
 		caused NeXT to be declared as POSIX.
 
@@ -1620,7 +1694,7 @@ Date	Version	Description
 		are handled, and came right from Tcl.  Reported to John.
 		Switched Expect library to use T_SM2 from Expect itself.
 
-		Blair Zajac <blair@olympia.gps.caltech.edu> noted expectk used
+		Blair Zajac <blair@olympia.gps.caltech.xedu> noted expectk used
 		CLFLAGS instead of CFLAGS.
 
 		Forgot to fix mishandling of parens inside of alternation in
@@ -1629,7 +1703,7 @@ Date	Version	Description
 11/9/93	5.1.2	Added "null" keyword and remove_nulls command to allow matching
 		ASCII 0 in expect/interact.
 
-		Rob Nagler <nagler@olsen.ch> noted that expect_background
+		Rob Nagler <nagler@olsen.xch> noted that expect_background
 		failed if pattern didn't consume all data.  event handler
 		knows nothing about data already arrived but not processed.
 
@@ -1639,7 +1713,7 @@ Date	Version	Description
 
 11/6/93	5.1.0	Provided support to work with Tcl 7.[0-1] and Tk 3.[3-4].
 
-		Pasi Kaara <ppk@atk.tpo.fi> found an off-by-one in the buffer
+		Pasi Kaara <ppk@atk.tpo.xfi> found an off-by-one in the buffer
 		shuffling when buffers fill up during an expect.
 
 		Changed \\\$ to \\$ in patterns that search for literal $.
@@ -1656,15 +1730,15 @@ Date	Version	Description
 		Switched from from explicit refs of sys_errlist to Tcl's
 		strerror.
 
-		As per Adrian Mariano <adrian@cam.cornell.edu>, added exp_sleep
-		command primarily to allow sleeping by sub-second intervals.
-		Also avoids exec overhead.  Not yet documented.
+		As per Adrian Mariano <adrian@cam.cornell.xedu>, added
+		exp_sleep command primarily to allow sleeping by sub-second
+		intervals.  Also avoids exec overhead.  Not yet documented.
 
-		Kartik Subbarao <subbarao@concorde.fc.hp.com> noted that on
+		Kartik Subbarao <subbarao@concorde.fc.hp.xcom> noted that on
 		HPUX 9, SC_OPEN_MAX should be ifdef'd on itself rather than
 		HAVE_SYSCONF.
 
-		Karl Vogel <vogelke@c-17igp.wpafb.af.mil> noted Pyramid
+		Karl Vogel <vogelke@c-17igp.wpafb.af.xmil> noted Pyramid
 		didn't like varargs included twice in exp_command.c.
 
 		Deleted expect_version variable (was never documented) and
@@ -1696,10 +1770,10 @@ Date	Version	Description
 		Renamed "debug" as exp_internal" and made debugger available
 		as "debug" and "exp_debug".
 
-		Milan Gupta <mbg0@bunny.gte.com> noted that system() (at least
+		Milan Gupta <mbg0@bunny.gte.xcom> noted that system() (at least
 		on his HP) hangs when SIGCLD is ignored.
 
-		<jason@vicor.com> noted that Tcl's exec command doesn't bother
+		<jason@vicor.xcom> noted that Tcl's exec command doesn't bother
 		to close fds, so force them with close on exec.
 
 		Renamed "continue -expect" as "exp_continue".  "continue
@@ -1720,11 +1794,11 @@ Date	Version	Description
 		Modified fork to fail on failure instead of returning -1.  This
 		made spawn failure match disconnect failure.
 
-		Dan Hyde <drh@citi.umich.edu> noted missing arg in exp_error.
+		Dan Hyde <drh@citi.umich.xedu> noted missing arg in exp_error.
 
-		Jerry Whelan <guru@stasi.bradley.edu> noted -buffer was botched
-		in man page.  Hal Peterson noted that bug in man page caused
-		groff to choke.
+		Jerry Whelan <guru@stasi.bradley.xedu> noted -buffer was
+		botched in man page.  Hal Peterson noted that bug in man page
+		caused groff to choke.
 
 		wait now returns {pid, spawn_id, 0|-1, status (or error msg).
 		errorCode is now set if appropriate.  wait -i -1 waits for any.
@@ -1733,7 +1807,7 @@ Date	Version	Description
 
 		Documented "-open".
 
-		Quentin Stafford-Fraser <Fraser@europarc.xerox.com> noted that
+		Quentin Stafford-Fraser <Fraser@europarc.xerox.xcom> noted that
 		interact -u was broken.
 
 		Fixed interact's default actions "return"/"interpreter" to be
@@ -1766,7 +1840,7 @@ Date	Version	Description
 		/dev/tty.  Better for /dev/tty, too.  This should fix
 		security complaint from BSD's Net2 stty.
 
-		<R.K.Lloyd@csc.liv.ac.uk> gave fixes for configure and noted
+		<R.K.Lloyd@csc.liv.ac.xuk> gave fixes for configure and noted
 		exp_main_tk was missing exp_conf.h.
 
 		Added "exp_timestamp" command.  Fixed bug in interpreter cmd.
@@ -1791,7 +1865,7 @@ Date	Version	Description
 
 8/21/93 4.7.7	Cygnus added support for OSF/1 style ptys.
 
-		Brian Bebeau <brian@cblph.att.com> found bug in PTC support,
+		Brian Bebeau <brian@cblph.att.xcom> found bug in PTC support,
 		HAVE__GETPTY, timestamp doc, and provides some mods for config
 		AT&T StarServer.
 
@@ -1801,10 +1875,10 @@ Date	Version	Description
 		Removed getpid confusion.
 		Once again, added "cat -u" into kibitz (this time for AIX 3.2).
 
-8/18/93 4.7.5	De Clarke <de@lick.UCSC.EDU> hit error in exp_global.h because
+8/18/93 4.7.5	De Clarke <de@lick.UCSC.XEDU> hit error in exp_global.h because
 		tcl.h had not been included.
 
-8/16/93 4.7.4	Richard Kasperowski <richk@icad.COM> found that Ultrix 4.1-2
+8/16/93 4.7.4	Richard Kasperowski <richk@icad.XCOM> found that Ultrix 4.1-2
 		failed to allocate controlling terminal.  Ultrix's setsid is
 		evidentally buggy.  Switched back to setpgrp - which fixed it.
 
@@ -1828,13 +1902,13 @@ Date	Version	Description
 		Made log_user return previous value irrespective of args.
 
 		Fixed mishandling of parens inside of alternation noted by
-		Bud Bach <bachww@rtsg.mot.com>.
+		Bud Bach <bachww@rtsg.mot.xcom>.
 
 		Added -timestamp, -iread, and -iwrite to interact and
 		expect.
 
 		Added -onexec flag to close to solve problem posed by
-		Bellave Jayaram <bjayaram@slee01.srl.ford.com>.
+		Bellave Jayaram <bjayaram@slee01.srl.ford.xcom>.
 
 		Added -0 to send.  Removed capability of send to send multiple
 		strings.
@@ -1858,20 +1932,21 @@ Date	Version	Description
 
 6/8/93	4.7.2	Added debugger to public release.
 
-6/7/93	4.7.1	Ed Oskiewicz <eo@ansa.co.uk> noted prototype botch - exp_cook.
-		Owen Rees <rtor@ansa.co.uk> noted missing decl - tclRegexpError
+6/7/93	4.7.1	Ed Oskiewicz <eo@ansa.co.xuk> noted prototype botch - exp_cook.
+		Owen Rees <rtor@ansa.co.xuk> noted missing decl for
+		tclRegexpError.
 
-6/6/93	4.7.0	Gert Bultman <bultman@dgw.rws.nl> exposed a bug in interact's
+6/6/93	4.7.0	Gert Bultman <bultman@dgw.rws.xnl> exposed a bug in interact's
 		-update.
 
-5/27/93	4.6.0	Rick Sladkey <jrs@world.std.com> fixed a bug in send_log -
+5/27/93	4.6.0	Rick Sladkey <jrs@world.std.xcom> fixed a bug in send_log -
 		checking a master needlessly and indexing off the end of an
 		array.
 
 		Rob Savoye made change for detecting libpt.a, modified
 		autoconf for better handling of X, exec_prefix, and ranlib.
 
-		Kris Woeppel <krisw@cs.athabascau.ca> said SVR3 doesn't have
+		Kris Woeppel <krisw@cs.athabascau.xca> said SVR3 doesn't have
 		wait.h.
 
 		Made libexpect.a understand regexp.  Reorganized code.  It
@@ -1879,9 +1954,10 @@ Date	Version	Description
 		a few utility routines.  Hopefully this isn't a problem for
 		anyone.
 
-		Zack Xu <zack@cs.wisc.edu> noted exp_main.h needed C++ support.
+		Zack Xu <zack@cs.wisc.xedu> noted exp_main.h needed C++
+		support.
 
-		Pascal Meheut <pascal@cnam.cnam.fr> gave fix for skipping over
+		Pascal Meheut <pascal@cnam.cnam.xfr> gave fix for skipping over
 		null bytes while interact is pattern matching.
 
 		Added "--" to expect, interact, and send.
@@ -1894,21 +1970,21 @@ Date	Version	Description
 		Added code and #defines for debugger.  Debugger itself is not
 		yet available.
 
-4/19/93	4.5.2	Achim Flammenkamp <achim@HRZ.Uni-Bielefeld.DE> noted that I
+4/19/93	4.5.2	Achim Flammenkamp <achim@HRZ.Uni-Bielefeld.XDE> noted that I
 		documented full_buffer as buffer_full.
 
-		Ted Stockwell <ted@sirius.aggregate.com> noted that wait arg
+		Ted Stockwell <ted@sirius.aggregate.xcom> noted that wait arg
 		was missing an & in configure test.
 
 		Scott Hess noted that systems can have wait4 without waitpid.
 
-		Jonathan Kamens <jik@gza.com> noted/fixed some things that
+		Jonathan Kamens <jik@gza.xcom> noted/fixed some things that
 		weren't autoconf'd correctly: pid_t, RETSIGTYPE, malloc.
 
 		Gary Shea noted that a recent change to expectk made it not
 		default to interactive.		
 
-4/12/93	4.5.1	At request of Rusty Wilson <zrlw05@hou.amoco.com>, added
+4/12/93	4.5.1	At request of Rusty Wilson <zrlw05@hou.amoco.xcom>, added
 		"-console" to spawn.
 
 		Pang Wai Man Raymond <wmpang@cuse1.se.cuhk.hk> reported that
@@ -1917,7 +1993,7 @@ Date	Version	Description
 4/7/93	4.5.0	Fixed bug in interact regexp preventing match of multichar
 		literals.
 
-4/6/93	4.4.3	Bennett Todd <bet@sbi.com> noted missing example scripts
+4/6/93	4.4.3	Bennett Todd <bet@sbi.xcom> noted missing example scripts
 		timed-read and time-run.
 
 3/29/93	4.4.2	Bill Houle <Bill.House@SanDiego.NCR.COM reported fixes
@@ -1926,13 +2002,13 @@ Date	Version	Description
 		Made string matcher understand *$.  Documented tty_spawn_id.
 		Made command line -i override -f.
 
-		For Tuan Doan <tdoan@bnr.ca> on HP, make kibitz use domainname
+		For Tuan Doan <tdoan@bnr.xca> on HP, make kibitz use domainname
 		as fallback and used whoami instead of env(USER).
 
 		Fixed bug in the generic pty code that could report out of ptys
 		because an earlier slave slowly deleted the lock file.
 
-3/25/93 4.4.1	Stephen House <sdhouse@bnr.ca> reported exp_tk.c wouldn't
+3/25/93 4.4.1	Stephen House <sdhouse@bnr.xca> reported exp_tk.c wouldn't
 		compile on HP.  Fixed.
 
 3/24/93	4.4.0	Added back SVR4-style pty allocation which got omitted in the
@@ -1958,22 +2034,22 @@ Date	Version	Description
 
 		Interact mishandled new -eof flag.  Added -update.
 
-		Gary Shea <shea@cs.ukans.edu> noted that tkwait hung if
+		Gary Shea <shea@cs.ukans.xedu> noted that tkwait hung if
 		expect had been called.  Rewrote most of tk_event.c and fixed
 		some other problems related to efficiency & multiple timeouts.
 
-		E Beck <beck@qtp.ufl.edu> suggested mods to more easily support
-		Extended Tcl.
+		E Beck <beck@qtp.ufl.xedu> suggested mods to more easily
+		support	Extended Tcl.
 
-		Bill Mitchell <mitchell@mdd.comm.mot.com> reported problems on
+		Bill Mitchell <mitchell@mdd.comm.mot.xcom> reported problems on
 		4.3+BSD.  Added	support for TIOCSCTTY.
 
-		Dana Burd <dana@wrs.com> noted that "exit" caused by ^C during
+		Dana Burd <dana@wrs.xcom> noted that "exit" caused by ^C during
 		expect didn't work - just returning to expect.  Fixed, and then
 		removed "feature" of ^C to abort a timeout.  This feature
 		proved a lot less useful than I thought it would.
 
-2/21/93 4.1.0	Bill Tierney <wtierney@leland.stanford.edu> noted that double
+2/21/93 4.1.0	Bill Tierney <wtierney@leland.stanford.xedu> noted that double
 		close dumped core.  Rewrote fd_to_f and close/adjust functions.
 
 		Interactive interpreter() didn't properly wait in
@@ -1984,14 +2060,14 @@ Date	Version	Description
 1/26/93	4.0.1	Added eof check to xpstat.  Removed incorrect and unnec.
 		#includes from exp_main_exp.c
 
-		Chip Rosenthal <chip@chinacat.unicom.com> found my refs to
+		Chip Rosenthal <chip@chinacat.unicom.xcom> found my refs to
 		tclRegexpError need externs on systems that don't use Tcl's
 		string.h.  string.h should probably be changed not to refer to
 		tclInt.h.
 
 		Added FAQ about Expect's copyright status.
 
-		Mark Christopher <christo@bnr.ca> pointed out some really
+		Mark Christopher <christo@bnr.xca> pointed out some really
 		stupid errors in the HP support for select.	
 
 12/16/92 4.0.0	Rewrote interact.  Made re-entrant thru event-handler for Tk.
@@ -2013,12 +2089,12 @@ Date	Version	Description
 		and other routines for use as libraries.  Added appropriate
 		glue to Makefile.
 
-		At request of Rob Savoye <rob@cygnus.com> added "send_log" and
+		At request of Rob Savoye <rob@cygnus.xcom> added "send_log" and
 		disabled buffering on all output.  The only affect unbuffered
 		output will cause users is if they pass large strings in
 		multiple args to send.
 
-		Ray Davis <rdavis@masschaos.de.convex.com> reported Convex 
+		Ray Davis <rdavis@masschaos.de.convex.xcom> reported Convex 
 		could not do job control from spawned procs.  I added a symbol
 		DO_SETSID to force this.
 
@@ -2028,22 +2104,22 @@ Date	Version	Description
 11/17/92 3.24.1	Martin Leisner suggested Makefile use $(MAKE) and support Tcl
 		as a Sun shared library.
 
-		Seth Perlman <seth@welchgate.welch.jhu.edu> suggested interact
+		Seth Perlman <seth@welchgate.welch.jhu.xedu> suggested interact
 		support timeout.  I've added this as "-timeout" in inter_select
 		but left undocumented while we experiment with interface.
 
-		Joe VanAndel <vanandel@ncar.ucar.edu> pointed out that su2
+		Joe VanAndel <vanandel@ncar.ucar.xedu> pointed out that su2
 		script still used old syntax.  Fixed.
 
-		Konrad Haedener <haedener@iacrs1.unibe.ch> fixed a bug in
+		Konrad Haedener <haedener@iacrs1.unibe.xch> fixed a bug in
 		POSIX tty handling on AIX.  Surprisingly, we discovered AIX
 		worked just fine when pty_bsd is used and without -DPOSIX!
 
-		Doug (George Jetson) <pynq@midway.uchicago.edu> pointed out
+		Doug (George Jetson) <pynq@midway.uchicago.xedu> pointed out
 		that a spawn_id for /dev/tty would be really handy.  I added
 		tty_spawn_id for this purpose.
 
-11/4/92 3.24.0	After problem reported by James Ward <jew@sunquest.com> added
+11/4/92 3.24.0	After problem reported by James Ward <jew@sunquest.xcom> added
 		to man page describing delays required by hardware such as for
 		UART switching.
 
@@ -2055,26 +2131,26 @@ Date	Version	Description
 		includes entire stack, this should be very helpful.
 
 		J. Cazander <cazander:pasichva via serigate@phcoms.seri.
-		philips.nl> reported that purify found a write beyond the end
+		philips.xnl> reported that purify found a write beyond the end
 		of an input buffer.  Lucked, it was just before a double-word
 		boundary, so it probably isn't a problem.  I fixed it anyway.
 
-10/9/92	3.23.1	Tor Lillqvist <tml@tik.vtt.fi> supplied support for HP 8.0.7 in
-		POSIX-mode, and a bugfix for POSIX tty mode switching
+10/9/92	3.23.1	Tor Lillqvist supplied support for HP 8.0.7 in POSIX-mode, and
+		a bugfix for POSIX tty mode switching
 
-10/8/92	3.23.0	Larry Rogers <lrr@Princeton.EDU> reported that "weather" blew
+10/8/92	3.23.0	Larry Rogers <lrr@Princeton.XEDU> reported that "weather" blew
 		up in spawn.  I'll add a catch-all to the script to report
 		similar problems (out of ptys, processes, etc.)
 
-		Ting Leung <tleung@bnr.ca> notes that log() in human_write can
+		Ting Leung <tleung@bnr.xca> notes that log() in human_write can
 		receive a 0 (domain error).  Fixed unit_random to avoid that.
 
-		Tony Primavera <aprima@xox.ssc.af.mil> notes that the sample
+		Tony Primavera <aprima@xox.ssc.af.xmil> notes that the sample
 		archie script needs to understand mcgill's limit of 10 users.
-		Tor Lillqvist <tml@tik.vtt.fi> noted that a lesser-used pattern
-		("unknown...") is incorrect.
+		Tor Lillqvist <tml@tik.vtt.xfi> noted that a lesser-used
+		pattern	("unknown...") is incorrect.
 
-		Grant Taylor <gat@pecan.cray.com> found a problem when forking
+		Grant Taylor <gat@pecan.cray.xcom> found a problem when forking
 		(using Expect's fork) multiple processes, each of which spawned
 		something.  In the BSD pty support, I had used the pid to build
 		a temporary file for testing the pty before actual use.  When
@@ -2087,14 +2163,14 @@ Date	Version	Description
 		fifos could be a security problem.  He gave a fix for this and
 		also a fix to force ptys to be put into raw mode.
 
-		Terrence Brannon <tb06@pl122e.eecs.lehigh.edu> reported rftp
+		Terrence Brannon <tb06@pl122e.eecs.lehigh.xedu> reported rftp
 		referenced the undefined variable 'transfer'.  Turned out to be
 		a bug in the code to handle symbolic links.
 
 7/20/92 3.22.12	Added O_NOCTTY (if defined) in pty_bsd.c to avoid gaining
 		control terminal while testing pty when running as daemon.
 
-		At request of Michael D. Riley <riley@mbeya.research.att.com>
+		At request of Michael D. Riley <riley@mbeya.research.att.xcom>
 		added explanation to man page - how expect_after/before deal
 		with spawn_id.
 
@@ -2115,11 +2191,11 @@ Date	Version	Description
 		stdio and devtty.  Eventually, I'd like to add a separate
 		spawn_id for devtty (expect_devtty?).
 
-6/5/92	3.22.9	Hansel Wan <hhw0@gte.com> noted that $errorInfo was clobbered
+6/5/92	3.22.9	Hansel Wan <hhw0@gte.xcom> noted that $errorInfo was clobbered
 		by prompt1.  To prevent this, I added a default definition
 		for prompt1 (and prompt2 while I was at it).
 
-		Unnati Amin <uxa@po.cwru.edu> noted that the example scripts
+		Unnati Amin <uxa@po.cwru.xedu> noted that the example scripts
 		checked for $ in prompts which didn't work.  This bug was
 		created when $ was turned into a "match end-of-input" char
 		in the transition from v2 to v3.  Solution: backslash the $.
@@ -2142,7 +2218,7 @@ Date	Version	Description
 		USENIX San Antonio Proceedings.
 
 		Swapped setpgrp and fork in disconnect command for sysV88.
-		According to Dave Schmitt <daves@techmpc.csg.gss.mot.com>,
+		According to Dave Schmitt <daves@techmpc.csg.gss.mot.xcom>,
 		original code (right out of Stevens) starts the child with
 		closed stdio fds.
 
@@ -2152,13 +2228,13 @@ Date	Version	Description
 		that actually calls interact from cron!  Also, copied the
 		experimental fix from 3.22.5 to inter_poll.
 
-		Jeremy Nussbaum <jeremy@world.std.com> says cat needs "-u" in
+		Jeremy Nussbaum <jeremy@world.std.xcom> says cat needs "-u" in
 		kibitz for his HP 8.0 system to work.  I wonder why this has
 		never been a problem on earlier HP and other systems?
 
 		Forced Makefile to mark scripts executable.
 
-4/12/92	3.22.5	Fixed bugs reported by Matt Ranney <mjr@uther.Calvin.EDU>
+4/12/92	3.22.5	Fixed bugs reported by Matt Ranney <mjr@uther.Calvin.XEDU>
 		including a syntax error (!) in expect.c on ecases_inuse.
 		I didn't even compile this before pushing out?  He also noted
 		some # were not in column 1.
@@ -2176,26 +2252,26 @@ Date	Version	Description
 3/29/92	3.22.3	Jay Schmidgall gave me yet another pty_aix3.c.  He also gave
 		ifdefs for POSIX terminal support.
 
-3/18/92	3.22.2	Jay Schmidgall <shmdgljd+@rchland.ibm.com> modified pty_sgi3.c
+3/18/92	3.22.2	Jay Schmidgall <shmdgljd+@rchland.ibm.xcom> modified pty_sgi3.c
 		to make a pty interface for recent versions of AIX.
 
-		Steve Summit <scs@adam.mit.edu> noted that "trap 0" could
+		Steve Summit <scs@adam.mit.xedu> noted that "trap 0" could
 		actually call signal(0...)
 
-		Martin Leisner <Martin_A._Leisner.Henr801C@xerox.com> noted
+		Martin Leisner <Martin_A._Leisner.Henr801C@xerox.xcom> noted
 		that rftp was broken.  It seems I never handled symlinks.  They
 		are interesting.  You can't tell from the listing whether they
 		are files or directories, so you just have to blindly go ahead
 		and assume it's one or the other and see what happens!
 
-3/11/92 3.22.1	In talking to Dave Schmitt ,daves@techmpc.csg.gss.mot.com>,
+3/11/92 3.22.1	In talking to Dave Schmitt ,daves@techmpc.csg.gss.mot.xcom>,
 		realized the documentation for wait had never been updated
 		from the way it used to work in v2 (returning any pid).
 
 3/11/92	3.22.0	Another question from Ron, prompted me to find another bug.
 		interact -o wrongly manipulated the user buffer at one point.
 
-3/10/92	3.21.0	Ron Young <ron@nevada.edu> found that spawn failed on a
+3/10/92	3.21.0	Ron Young <ron@nevada.xedu> found that spawn failed on a
 		DECstation 3100 running Ultrix 4.2.  I had forgotten to test
 		that cmdfile was valid before comparing against stdin in fix
 		related to fflush in 3.20.0.
@@ -2203,7 +2279,7 @@ Date	Version	Description
 		While I was on a DECstation, I noticed that it does not accept
 		setpgrp(...,0).  Changed 2nd arg to getpid().
 
-3/6/92	3.20.2	Stefan Farestam <farestam@orion.cerfacs.fr> provided a new
+3/6/92	3.20.2	Stefan Farestam <farestam@orion.cerfacs.xfr> provided a new
 		version of pty_sgi.c which uses _getpty.  I renamed the old
 		one pty_sgi3.c
 
@@ -2218,7 +2294,7 @@ Date	Version	Description
 
 		John Sellens gave me some more fixes for non-DEC MIPS OS.
 
-2/22/92	3.19.1	John Sellens <jmsellen@watmath.waterloo.edu> gave me a bug
+2/22/92	3.19.1	John Sellens <jmsellen@watmath.waterloo.xedu> gave me a bug
 		fix for NOWAITPID.
 
 2/21/92 3.19.0	Found a bug in HPUX fclose!!  It moves the I/O pointer in the
@@ -2260,17 +2336,17 @@ Date	Version	Description
 		Michael Grant gave me a mod to recognize ~ in the logfile and
 		debug commands.
 
-2/17/92	3.17.1	Brian Keves <keves@meaddata.com> pointed out that the man page
+2/17/92	3.17.1	Brian Keves <keves@meaddata.xcom> pointed out that the man page
 		still referred to "expect_match" instead of "expect_out".
 
-2/12/92	3.17.0	Eric Arnold <Eric.Arnold@corp.sun.com> ran into a problem
+2/12/92	3.17.0	Eric Arnold <Eric.Arnold@corp.sun.xcom> ran into a problem
 		when running in the background.  interact did ioctl(0...)s to
 		change the terminal mode, ignoring the -u flag.
 
 		Fixed a bug in kibitz which blew up when asking for a password
 		due to a spelling error.  The drawbacks of interpreters...
 
-2/4/92	3.16.3	Dongchul Lim <lim@doctor.chem.yale.edu> noted that scripts can
+2/4/92	3.16.3	Dongchul Lim <lim@doctor.chem.yale.xedu> noted that scripts can
 		hang in the background.  I had assumed isatty(0) was enough to
 		contrast bg/fg but it returns 1 if the script was started with
 		a & from the terminal.  I added code to watch if any ioctl(0)s
@@ -2280,11 +2356,11 @@ Date	Version	Description
 1/28/92	3.16.2	Fixed a bug on SV systems causing errors when trying to do
 		further reads after a SIGCLD had already arrived on a spawn_id.
 
-		Peter Funk <pf@artcom0.north.de> gave mods for SCO XENIX 386.
+		Peter Funk <pf@artcom0.north.xde> gave mods for SCO XENIX 386.
 
 1/24/92	3.16.1	Oops.  Forgot to add pty_svr4.c to shar.
 
-1/13/92 3.16.0	Karl Lehenbauer <karl@sugar.NeoSoft.Com> a tiny change for
+1/13/92 3.16.0	Karl Lehenbauer <karl@sugar.NeoSoft.xcom> a tiny change for
 		getting a clean compile on SCO 3.2.2.
 
 		My getimeofday-avoidance code wasn't right, sigh.  Kibitz
@@ -2299,12 +2375,12 @@ Date	Version	Description
 
 		Redid support for stdlib.h including making it default to fix
 		problem in Ultrix 4.2 reported by Oliver Kretzschmar <viskretz
-		@ikesg1.energietechnik.uni-stuttgart.de>.		
+		@ikesg1.energietechnik.uni-stuttgart.xde>.		
 
-		Ian Johnstone <ianj@sequent.com> said his system (DYNIX 3.2)
+		Ian Johnstone <ianj@sequent.xcom> said his system (DYNIX 3.2)
 		needed an additional include <ctype.h> in inter_select.
 
-		Dave Coombs <cme.nist.gov> added logic to test/weather to
+		Dave Coombs <cme.nist.xgov> added logic to test/weather to
 		accomodate a new feature in the weather server.
 
 		Hal Peterson fixed some SV code that I just added for handling
@@ -2312,7 +2388,7 @@ Date	Version	Description
 		the normal timeout to allow distinguishing between eof and real
 		timeout.  Finished rest of Jeff Okamoto's fixes for HPUX.  
 
-		Wally Strzelec <packman@tamuts.tamu.edu> provided mods for
+		Wally Strzelec <packman@tamuts.tamu.xedu> provided mods for
 		Amdahl which has its own pty-handling functions.  Ifdef'd into
 		pty_usg.
 
@@ -2320,12 +2396,12 @@ Date	Version	Description
 		multiple processes simultaneously and no user-supplied eof
 		handler.
 
-12/26/91 3.14.1	Ted Gibson <tgibson@logdis11.hq.aflc.af.mil> gave me some mods
+12/26/91 3.14.1	Ted Gibson <tgibson@logdis11.hq.aflc.af.xmil> gave me some mods
 		for a 3B2 having to do with termio vs termios, etc.
 
 12/24/91 3.14.0	Deprecated expect 2.  Expect 3 is now the official version.
 
-		Parag Patel <parag@netcom.netcom.com> gave me some #includes
+		Parag Patel <parag@netcom.netcom.xcom> gave me some #includes
 		necessary for A/UX 2.
 
 		Brian Woodson noticed "send a b" generates incorrect debug
@@ -2345,7 +2421,7 @@ Date	Version	Description
 		where to get expect when invoking fixline1.  He suggested defs
 		for supporting install and multiple MAN targets.
 
-12/12/91 3.13.0	Matthew Freedman <mattf@cac.washington.edu> noted mismatch
+12/12/91 3.13.0	Matthew Freedman <mattf@cac.washington.xedu> noted mismatch
 		between lib man page (said "stty_init") and lib code (said
 		"exp_stty").  He also found a screwup in the library such that
 		the pty slave wasn't being set up correctly.
@@ -2363,12 +2439,12 @@ Date	Version	Description
 		calling domainname(1) for systems upon which NIS domainname
 		differs from Internet.
 
-		Pete Siemsen <siemsen@barnard.usc.edu> noted slight error in
+		Pete Siemsen <siemsen@barnard.usc.xedu> noted slight error in
 		libexpect man page.
 
 12/10/91 3.11.1	A couple tiny mods to the Makefile courtesy of James B. Davis
 		and Michael Grant (guest worker from Sun, temporarily at
-		<mgrant@xdr.ncsl.nist.gov>.  Both of them also noted a problem
+		<mgrant@xdr.ncsl.nist.xgov>.  Both of them also noted a problem
 		caused by incorrect installation of gcc that caused expect to
 		say "ioctl(set): Invalid something or other" upon exit.
 
@@ -2401,8 +2477,8 @@ Date	Version	Description
 12/4/91	3.10.0	Tightened up arg checking for "wait" - it core dumped when it
 		should've said "syntax error".
 
-		Rick Cady <rickc@nsd.3com.com> noted minor inconsistency in man
-		page describing strace.
+		Rick Cady <rickc@nsd.3com.xcom> noted minor inconsistency in
+		man page describing strace.
 
 		I fixed a bug that prevented "system stty -echo raw" from
 		working.  The raw data was clobbering the -echo data.
@@ -2413,7 +2489,7 @@ Date	Version	Description
 		After the nth request, I finally set up pub/expect/scripts as
 		a directory for scripts.
 
-12/2/91 3.8.0	Phil Sheperd <pshepher@loki.uni.edu.au> fixed a major bug in
+12/2/91 3.8.0	Phil Sheperd <pshepher@loki.uni.edu.xau> fixed a major bug in
 		exp_spawnv() preventing one side of the pty from being set up
 		correctly.  Thus nothing worked!  He also reported that his
 		system didn't have strdup, so I added an explicit defn of it.
@@ -2421,14 +2497,14 @@ Date	Version	Description
 		James B. Davis fixed a couple nroff-bugs on the man page, and
 		said someone already gave him a dump script (see below).
 
-		Richard (R.C.) Vieregge <richv@bnr.ca> found a $ was missing
+		Richard (R.C.) Vieregge <richv@bnr.xca> found a $ was missing
 		from test/ftp.exp.
 
-11/22/91 3.7.2	James B. Davis <james@solbourne.com> straightened out a couple
+11/22/91 3.7.2	James B. Davis <james@solbourne.xcom> straightened out a couple
 		things in the Makefile and asked if anyone had written a script
 		for dump.
 
-		Jeff Okamoto <okamoto@hpcc25.corp.hp.com> had a couple changes
+		Jeff Okamoto <okamoto@hpcc25.corp.hp.xcom> had a couple changes
 		for HPUX 7 and 8 compat, involving termio stuff.
 
 		Prompted by Andy Norman, added note to man page describing how
@@ -2450,7 +2526,7 @@ Date	Version	Description
 
 		Brian Woodson noted I forgot to document the -i flag of close.
 
-11/12/91 3.6.0	Sean Cunningham <sean@moorenet.com> reported that he couldn't
+11/12/91 3.6.0	Sean Cunningham <sean@moorenet.xcom> reported that he couldn't
                 open /dev/tty from 'at'.  'spawn' was incorrectly not executing
 		code to claim it was a controlling tty.  BSD only.
 
@@ -2477,14 +2553,14 @@ Date	Version	Description
 		to the beginning of any proc that calls spawn and needs the
 		value of spawn_id implicitly defined outside of the proc.
 
-11/6/91	3.5.0	Drew Whitehouse <Drew.Whitehouse@anu.edu.au> hit a bad pointer.
+11/6/91	3.5.0	Drew Whitehouse <Drew.Whitehouse@anu.edu.xau> hit a bad pointer.
 		I forgot an initialization in expect.c which caused problems
 		when an EOF occurred which had no eof pattern.
 
 11/2/91	3.4.0	Added FAQ from various questions people have sent me and my
 		replies.  Made CONVERTING file on converting from 2 to 3.
 
-		Nelson H. F. Beebe <beebe@math.utah.edu> found a missing
+		Nelson H. F. Beebe <beebe@math.utah.xedu> found a missing
 		declaration for exp_tty_original in bye() of main.c.  How come
 		the Sun C compiler doesn't complain about this!?!!?
 
@@ -2669,13 +2745,13 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		incompatible changes to Expect that I've wanted to do for a
 		long time.
 
-9/11/91 2.67	Ed Klein <eklein@syrinx.umd.edu> added support for SVR4 in the
+9/11/91 2.67	Ed Klein <eklein@syrinx.umd.xedu> added support for SVR4 in the
 		form of pty_svr4.c and mods to command.c.
 
 		Added explanation to man page of how to create unreadable but
 		executable scripts.  (No, chmod 111 doesn't work.)
 
-		Mark Diekhans <markd@grizzly.COM> pointed out to me that there
+		Mark Diekhans <markd@grizzly.XCOM> pointed out to me that there
 		is a potential problem with the trap command:
 
 		"There is no control over when the signal will cause Tcl_Eval
@@ -2690,14 +2766,14 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		such as: "SIGINT signal received".  Signals may then be caught
 		with the catch command and processed."
 
-9/10/91 2.66	Don Jackson <Don.Jackson@Eng.Sun.COM> found a syntax error in
+9/10/91 2.66	Don Jackson <Don.Jackson@Eng.Sun.XCOM> found a syntax error in
 		the usage error message of the example ftp-rfc script.
 
-		Marty Olevitch <marty%cosray@wuphys.wustl.edu> provided mods to
-		support MORE/bsd.  Namely, added #include types.h to expect.c
-		and extern int errno to a number of files.
+		Marty Olevitch <marty%cosray@wuphys.wustl.xedu> provided mods
+		to support MORE/bsd.  Namely, added #include types.h to
+		expect.c and extern int errno to a number of files.
 
-		Scott Hess <scott@nic.gac.edu> noted a potential problem in
+		Scott Hess <scott@nic.gac.xedu> noted a potential problem in
 		interact.  Since interact only checks patterns at beginning
 		of reads, user can conceivably type fast enough so that
 		patterns are typed in the middle of a read.  In reality this
@@ -2726,7 +2802,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		all expect-related things to separate expect directory in our
 		ftp directory.
 
-8/5/91	2.64	Achille Petrilli <achille@miss.cern.ch> found that on an SGI,
+8/5/91	2.64	Achille Petrilli <achille@miss.cern.xch> found that on an SGI,
 		the expect command ocassionally returned "no more processes".
 		He traced the problem back to O_NDELAY in the open, which was
 		taken as-is from the man page, by someone else who's code I
@@ -2735,7 +2811,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		was first installed, but I cannot find it.  I evidentally
 		screwed up.
 
-7/31/91	2.63	Steve Legowik <legowik@cme.nist.gov> wanted to implement
+7/31/91	2.63	Steve Legowik <legowik@cme.nist.xgov> wanted to implement
 		callback by having a modem dial out and NOT go away, but
 		interact in the reverse direction.  I added "interact -u" to
 		support the idea of changing the user from the default stdio
@@ -2753,12 +2829,12 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		suppose they are illustrative (at the very least of how to
 		generate truly random numbers).  Ha.
 
-7/20/91	2.62	Carl Witty <cwitty@jessica.stanford.edu> pointed out my fdset
+7/20/91	2.62	Carl Witty <cwitty@jessica.stanford.xedu> pointed out my fdset
 		implementation (for systems that don't have it) wasted some
 		space.  I had commented it correctly, however, making the
 		incorrect code obvious (except to me).
 
-		Robert Howland <howland@rahjr.ame.nd.edu> pointed out that
+		Robert Howland <howland@rahjr.ame.nd.xedu> pointed out that
 		expect complained about not running from a real terminal under
 		cron.  Oops!  So I added a test to skip saving/restoring
 		terminal modes when fd 0 is not a tty, since this is obviously
@@ -2779,7 +2855,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		works ok.  Unfortunately, there was an error in inter_poll
 		(bad_io was uninitialized).  Silicon Graphics works now.
 
-		Andy Norman <ange@hplb.hpl.hp.com> notes that linking expect
+		Andy Norman <ange@hplb.hpl.hp.xcom> notes that linking expect
 		with the BSD compatibility library under HP-UX, libc.a must
 		be loaded before libBSD.a.  Modified Makefile to reflect this.
 		He notes that there is a problem with expect not reading an EOF
@@ -2787,7 +2863,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		when select has been enhanced to flag exceptions in the readfds
 		argument.  Probably inter_poll would work.
 
-		Edward Haines <haines@bbn.com> notes that close returns EPERM
+		Edward Haines <haines@bbn.xcom> notes that close returns EPERM
 		("Not owner") on his Sun 4.0.3.  This is rather startling!
 		(That's what I get for checking the return value of close!)
 		He said it is possible that they have modified things (viz.
@@ -2825,19 +2901,19 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 
 		Fixed bug in expect library (lib_exp.c) which caused output to
 		be copied to stderr instead of logfile when logfile_all was
-		set.  Per Sreedhar Muppala <muppalla@nssdca.gsfc.nasa.gov>.
+		set.  Per Sreedhar Muppala <muppalla@nssdca.gsfc.nasa.xgov>.
 
 5/16/91	2.54	Fixed weather script to accomodate occasional Weather Watch
 		that would cause an unexpected initial question to pop up.
 
 5/15/91 2.53	Added comment to BUG section of man page describing pty
 		misbehavior with non-interactive programs (search for "553061"
-		below), as per Hal Peterson <hrp@cray.com>.
+		below), as per Hal Peterson <hrp@cray.xcom>.
 
 		Removed note from README about asking Ousterhout for SV TCL
 		at his request.
 
-5/11/91	2.52	Fixed a syntax error that Bruce Larson <ires@kaspar.ires.com>
+5/11/91	2.52	Fixed a syntax error that Bruce Larson <ires@kaspar.ires.xcom>
 		found in inter_poll.c
 
 4/23/91		Computing Systems accepted paper on Expect for issue 4.2.
@@ -2852,7 +2928,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		script started listening to a modem than spit out 1 spurious
 		character every 10 seconds (very consistently).
 
-		Hal Peterson <hrp@pecan.cray.com> noted that exp_spawnv's args
+		Hal Peterson <hrp@pecan.cray.xcom> noted that exp_spawnv's args
 		didn't match documentation.  Fixed in favor of documentation.
 		Several other funcs don't match header file (but typechecking
 		is avoided during compilation), because it was too hard for me
@@ -2869,10 +2945,10 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		sleep at all for large values!
 
 		Added support for systems without dup2 (SVR2) per
-		<elston@edwards-tems.af.mil>.
+		<elston@edwards-tems.af.xmil>.
 
 		Added test/Makefile to shar as per Chris Pribe
-		<cpribe@park.bu.edu>.
+		<cpribe@park.bu.xedu>.
 
 4/4/91	2.48	Fixed possible problem with poll in inter_poll.c for systems
 		that check for a valid address even though no members are used.
@@ -2892,7 +2968,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 3/16/91	2.45	Added my own definition of FD_SET, fd_set, etc, test for
 		SIGABRT, and support different types of signal arg func
 		definitions to support SunOS 3.5 as requested by William Waite
-		<waite@scotty.colorado.edu>.
+		<waite@scotty.colorado.xedu>.
 
 3/14/91	2.44	Removed redundant def'n of pty_stty in pty_usg.c, redef of
 		sprintf and added signal.h to command.c to make compiles
@@ -2907,14 +2983,14 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		requested both!  Thanks to NIST statistician, Keith Eberhardt,
 		who taught me about the Weibull Distribution.
 
-		According to Jim Thomas <jthomas@nmsu.edu>, 3b2 requires
+		According to Jim Thomas <jthomas@nmsu.xedu>, 3b2 requires
 		defines for R_OK and W_OK.  Added to pty_usg.c.
 
 		Added support for "-" as file name on command line to mean
-		stdin as requested by Steve Clark <clark@cme.nist.gov>.
+		stdin as requested by Steve Clark <clark@cme.nist.xgov>.
 
 		Wrote passmass (change root password on a set of machines) as
-		requested by Ken Manheimer <klm@cme.nist.gov>.  Added to test
+		requested by Ken Manheimer <klm@cme.nist.xgov>.  Added to test
 		directory.
 
 2/21/91 2.42	Removed reinstallation of signal 0 in signal handler.
@@ -3016,7 +3092,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		timed_read) and put in another tip in the TCL HINTS section of
 		the man page.
 
-11/18/90 2.26	Fixed mismatched comment per Craig Warren (ccw@deakin.oz.au).
+11/18/90 2.26	Fixed mismatched comment per Craig Warren (ccw@deakin.oz.xau).
 		Also improved man page entry for "interact".
 
 11/17/90 2.25	Added -f (fast) on interact options, and made default case a
@@ -3024,7 +3100,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		SIG_DFL in trap command.  Added ability to specify signals
 		symbolically for portability.
 
-11/15/90 2.24	Craig Warren (ccw@deakin.oz.au) wanted to exit expect while in
+11/15/90 2.24	Craig Warren (ccw@deakin.oz.xau) wanted to exit expect while in
 		interact with a single character.  Dan Bernstein
 		(brnstnd@kramden.acf.nyu.edu) wanted to suspend with a single
 		character.  So I generalized interact's escape character to
@@ -3052,7 +3128,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		the args, so I could do it all in one write.  But to send
 		variables bigger than the buffer didn't work.  I didn't think
 		about this before.  But Joe Gorman
-		(Joe.Gorman@elab-runit.sintef.no) asked me if you could "send"
+		(Joe.Gorman@elab-runit.sintef.xno) asked me if you could "send"
 		a file in one command, and of course you can using [exec cat]
 		as the argument to send, but the buffering prevented big
 		files from being sent.  Anyway, now it works.
@@ -3063,7 +3139,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 
 9/4/90	2.18	Added trap command to catch signals.  This is nice as (among
 		other things) it allows you to turn off the conversion of ^C to
-		timeout which was requested by John Conti <jconti@cisco.com>.
+		timeout which was requested by John Conti <jconti@cisco.xcom>.
 
 8/21/90 2.17	Fixed bug in printify.  Forgot to reset ptr to beginning of
 		print buffer.  Made debugging info wrong.  Possibly screwing up
@@ -3134,7 +3210,7 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		"select".
 
 6/25/90	2.7	Test that cmdfile and logfile are open before fclosing in child
-		while spawning.  Per Corey Satten <corey@cac.washington.edu>
+		while spawning.  Per Corey Satten <corey@cac.washington.xedu>
 
 6/24/90	2.6	Pty master returns EIO instead of EOF when pty slave closes.
 		Bug in pty driver?  Until I figure this out, I have put in code
