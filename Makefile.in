@@ -506,22 +506,22 @@ uninstall:
 # Targets for Makefile and configure
 ###################################
 
-Makefile: $(srcdir)/Makefile.in $(host_makefile_frag) config.status
-	@echo "Rebuilding the Makefile..."
-	$(SHELL) ./config.status
-
+#Makefile: $(srcdir)/Makefile.in $(host_makefile_frag) config.status
+#	@echo "Rebuilding the Makefile..."
+#	$(SHELL) ./config.status
+#
 # Let "make -f Makefile.in" produce a configure file
-configure: $(srcdir)/configure.in $(srcdir)/Makefile.in \
-		$(srcdir)/expect_cf.h.in $(srcdir)/aclocal.m4
-	@echo "Rebuilding configure..."
-	if [ x"${srcdir}" = x"@srcdir@" ] ; then \
-	  srcdir=. ; export srcdir ; \
-	else true ; fi ; \
-	(cd $${srcdir}; autoconf)
-
-config.status: $(srcdir)/configure
-	@echo "Rebuilding config.status..."
-	$(SHELL) ./config.status --recheck
+#configure: $(srcdir)/configure.in $(srcdir)/Makefile.in \
+#		$(srcdir)/expect_cf.h.in $(srcdir)/aclocal.m4
+#	@echo "Rebuilding configure..."
+#	if [ x"${srcdir}" = x"@srcdir@" ] ; then \
+#	  srcdir=. ; export srcdir ; \
+#	else true ; fi ; \
+#	(cd $${srcdir}; autoconf)
+#
+#config.status: $(srcdir)/configure
+#	@echo "Rebuilding config.status..."
+#	$(SHELL) ./config.status --recheck
 
 check:
 	@if [ -f testsuite/Makefile ]; then \

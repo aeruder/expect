@@ -1,5 +1,6 @@
 2003-02-17  Andreas Kupries  <andreask@activestate.com>
 
+	* Makefile.in:
 	* configure.in: Removed the check of configure against
 	  configure.in and Makefile.in. It is a hassle to deal with when
 	  trying to build straight from CVS, making unsupervised automatic
