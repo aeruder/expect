@@ -260,9 +260,9 @@ int fd;
 /* to write send_user strings without always putting in \r. */
 /* If len == 0, use strlen to compute it */
 /* NB: if terminal is not in raw mode, nothing is done. */
-char *
+CONST char *
 exp_cook(s,len)
-char *s;
+CONST char *s;
 int *len;	/* current and new length of s */
 {
 	static int destlen = 0;
@@ -723,7 +723,7 @@ char **argv;
 			(char *) NULL);
 		abnormalExit = TRUE;
 	    } else if (WIFSIGNALED(waitStatus)) {
-		char *p;
+		CONST char *p;
 	
 		p = Tcl_SignalMsg((int) (WTERMSIG(waitStatus)));
 		Tcl_SetErrorCode(interp, "CHILDKILLED", msg1,
@@ -732,7 +732,7 @@ char **argv;
 		Tcl_AppendResult(interp, "child killed: ", p, "\n",
 			(char *) NULL);
 	    } else if (WIFSTOPPED(waitStatus)) {
-		char *p;
+		CONST char *p;
 
 		p = Tcl_SignalMsg((int) (WSTOPSIG(waitStatus)));
 		Tcl_SetErrorCode(interp, "CHILDSUSP", msg1,

@@ -44,7 +44,7 @@ static struct trap {
 				/* is processed */
 	int code;		/* return our new code instead of code */
 				/* available when signal is processed */
-	char *name;		/* name of signal */
+	CONST char *name;	/* name of signal */
 	int reserved;		/* if unavailable for trapping */
 } traps[NSIG];
 
@@ -60,7 +60,7 @@ static int got_sig;		/* this records the last signal received */
 
 static Tcl_AsyncHandler async_handler;
 
-static char *
+static CONST char *
 signal_to_string(sig)
 int sig;
 {
@@ -274,7 +274,7 @@ Tcl_Interp *interp;
 char *s;
 {
 	int sig;
-	char *name;
+	CONST char *name;
 
 	/* try interpreting as an integer */
 	if (1 == sscanf(s,"%d",&sig)) {
@@ -349,7 +349,9 @@ Tcl_Obj *CONST objv[];
 		}
 		if (show_name) {
 		  /* skip over "SIG" */
-		  Tcl_SetResult(interp,signal_to_string(current_sig) + 3,TCL_STATIC);
+		  /* TIP 27: Casting away the CONST should be ok because of TCL_STATIC
+		   */
+		  Tcl_SetResult(interp,(char*)signal_to_string(current_sig) + 3,TCL_STATIC);
 		} else {
 		  Tcl_SetObjResult(interp,Tcl_NewIntObj(current_sig));
 		}

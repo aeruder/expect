@@ -147,7 +147,7 @@ Tcl_Interp *interp;
        maintain our own static version */
 
     static int nextid = 0;
-    char *nextidstr = Tcl_GetVar2(interp,"tcl::history","nextid",0);
+    CONST char *nextidstr = Tcl_GetVar2(interp,"tcl::history","nextid",0);
     if (nextidstr) {
 	/* intentionally ignore failure */
 	(void) sscanf(nextidstr,"%d",&nextid);
@@ -215,7 +215,7 @@ handle_eval_error(interp,check_for_nostack)
 Tcl_Interp *interp;
 int check_for_nostack;
 {
-	char *msg;
+	CONST char *msg;
 
 	/* if errorInfo has something, print it */
 	/* else use what's in interp->result */
@@ -366,7 +366,7 @@ Tcl_Obj *eofObj;
 	code = Tcl_RecordAndEvalObj(interp, commandPtr, 0);
 	Tcl_SetObjLength(commandPtr, 0);
 	switch (code) {
-	    char *str;
+	    CONST char *str;
 
 	    case TCL_OK:
 	        str = Tcl_GetStringResult(interp);
@@ -683,7 +683,7 @@ char **argv;
 					exp_cmdfilename = 0;
 					expCloseOnExec(fileno(exp_cmdfile));
 				} else {
-					char *msg;
+					CONST char *msg;
 
 					if (errno == 0) {
 						msg = "could not read - odd file name?";

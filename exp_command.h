@@ -22,7 +22,7 @@ would appreciate credit if this program or parts of it are used.
 
 #define EXP_CHANNELNAMELEN (16 + TCL_INTEGER_SPACE)
 
-EXTERN char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
+EXTERN CONST char *		exp_get_var _ANSI_ARGS_((Tcl_Interp *,char *));
 
 EXTERN int exp_default_match_max;
 EXTERN int exp_default_parity;
@@ -294,7 +294,7 @@ EXTERN void		exp_init_tty_cmds();
 
 EXTERN ExpState *	expStateCheck _ANSI_ARGS_((Tcl_Interp *,ExpState *,int,int,char *));
 EXTERN ExpState *       expStateCurrent _ANSI_ARGS_((Tcl_Interp *,int,int,int));
-EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,char *,int,int,int,char *));
+EXTERN ExpState *       expStateFromChannelName _ANSI_ARGS_((Tcl_Interp *,CONST char *,int,int,int,char *));
 EXTERN void		expStateFree _ANSI_ARGS_((ExpState *));
 
 EXTERN ExpState *	expCreateChannel _ANSI_ARGS_((Tcl_Interp *,int,int,int));

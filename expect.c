@@ -841,7 +841,7 @@ char *suffix;
 	    return(EXP_MATCH);
 	} else expDiagLogU(no);
     } else if (e->use == PAT_NULL) {
-	char *p;
+	CONST char *p;
 	expDiagLogU("null? ");
 	p = Tcl_UtfFindFirst(str, 0);
 
@@ -1460,7 +1460,7 @@ ExpState *esPtr;
     char *string;
     int excessBytes;
     char *excessGuess;
-    char *p;
+    CONST char *p;
 
     /*
      * Resize buffer to user's request * 2 + 1.
@@ -1839,7 +1839,12 @@ char *caller_name;
     /* crawl our way into the middle of the string
      * to make sure we are at a UTF char boundary
      */
-    for (p=str;*p;p = Tcl_UtfNext(p)) {
+
+    /* TIP 27: We cast CONST away to allow the restoration the lostByte later on
+     * See 'restore damage' below.
+     */
+
+    for (p=str;*p;p = (char*) Tcl_UtfNext(p)) {
 	if (p > middleGuess) break;   /* ok, that's enough */
     }
 
@@ -1917,12 +1922,12 @@ which looks in the global space if they are not in the local space.
 This allows the user to localize them if desired, and also to
 avoid having to put "global" in procedure definitions.
 */
-char *
+CONST char *
 exp_get_var(interp,var)
 Tcl_Interp *interp;
 char *var;
 {
-    char *val;
+    CONST char *val;
 
     if (NULL != (val = Tcl_GetVar(interp,var,0 /* local */)))
 	return(val);
@@ -1934,7 +1939,7 @@ get_timeout(interp)
 Tcl_Interp *interp;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
-    char *t;
+    CONST char *t;
 
     if (NULL != (t = exp_get_var(interp,EXPECT_TIMEOUT))) {
 	tsdPtr->timeout = atoi(t);

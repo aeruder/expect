@@ -3,6 +3,12 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+		Ryan Schmidt <rschmidt@mac.com> noted configure didn't
+		recognize MacOS X.  Downloaded new config.guess.
+
+		Andreas Kupries <andreask@activestate.com> provided CONST
+		patches to accomodate Tcl changes per TIP 27.
+
 2/25/02 5.35.0	Joe Eggleston <joe@arbor.net> noted bug in full_buffer test.
 		The test hadn't been I18'd properly and was testing chars
 		instead of bytes.  Also fixed diagnostics so it printed when
@@ -40,8 +46,8 @@ Date	Version	Description
 		Dieter Fiebelkorn <dieter@fiebelkorn.net> requested addition
 		to config.guess for Power*Macintosh:Darwin for MacOSX.
 		Aside - to download latest config.guess:
-		 cvs -d :pserver:anoncvs@subversions.gnu.org:/cvs checkout \
-		 config
+		 cvs -d :pserver:anoncvs@subversions.gnu.org:/cvs co \
+		 autoconf/config
 
 		Added pipeline example to unbuffer man page.
 

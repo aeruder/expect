@@ -183,7 +183,7 @@ int any;
 {
     static char *user_spawn_id = "exp0";
 
-    char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
+    CONST char *name = exp_get_var(interp,SPAWN_ID_VARNAME);
     if (!name) name = user_spawn_id;
 
     return expStateFromChannelName(interp,name,opened,adjust,any,SPAWN_ID_VARNAME);
@@ -208,14 +208,14 @@ expStateCheck(interp,esPtr,open,adjust,msg)
 ExpState *
 expStateFromChannelName(interp,name,open,adjust,any,msg)
     Tcl_Interp *interp;
-    char *name;
+    CONST char *name;
     int open;
     int adjust;
     char *msg;
 {
     ExpState *esPtr;
     Tcl_Channel channel;
-    char *chanName;
+    CONST char *chanName;
 
     if (any) {
 	if (0 == strcmp(name,EXP_SPAWN_ID_ANY_LIT)) {
@@ -581,7 +581,7 @@ char **argv;
     char *chanName = 0;
     int leaveopen = FALSE;
     int rc, wc;
-    char *stty_init;
+    CONST char *stty_init;
     int slave_write_ioctls = 1;
 		/* by default, slave will be write-ioctled this many times */
     int slave_opens = 3;
@@ -1312,7 +1312,7 @@ Tcl_Interp *interp;
 struct slow_arg *x;
 {
 	int sc;		/* return from scanf */
-	char *s = exp_get_var(interp,"send_slow");
+	CONST char *s = exp_get_var(interp,"send_slow");
 	if (!s) {
 		exp_error(interp,"send -s: send_slow has no value");
 		return(-1);
@@ -1374,7 +1374,7 @@ Tcl_Interp *interp;
 struct human_arg *x;
 {
 	int sc;		/* return from scanf */
-	char *s = exp_get_var(interp,"send_human");
+	CONST char *s = exp_get_var(interp,"send_human");
 
 	if (!s) {
 		exp_error(interp,"send -h: send_human has no value");
@@ -1705,7 +1705,7 @@ exp_i_update(interp,i)
 Tcl_Interp *interp;
 struct exp_i *i;
 {
-  char *p;	/* string representation of list of spawn ids */
+  CONST char *p;	/* string representation of list of spawn ids */
 
   if (i->direct == EXP_INDIRECT) {
     p = Tcl_GetVar(interp,i->variable,TCL_GLOBAL_ONLY);

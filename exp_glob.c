@@ -25,7 +25,7 @@ char *pattern;
 int nocase;
 int *offset;	/* offset in bytes from beginning of string where pattern matches */
 {
-	char *s;
+	CONST char *s;
 	int sm;	/* count of bytes matched or -1 */
 	int caret = FALSE;
 	int star = FALSE;
@@ -74,16 +74,16 @@ Like Tcl_StringCaseMatch except that
 */
 
 int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
-    register char *string;	/* String. */
-    register char *pattern;	/* Pattern, which may contain
+    register CONST char *string;	/* String. */
+    register CONST char *pattern;	/* Pattern, which may contain
 				 * special characters. */
     int nocase;
 {
     Tcl_UniChar ch1, ch2;
     int match = 0;	/* # of bytes matched */
-    char *oldString;
+    CONST char *oldString;
 
-    char *pstart = pattern;
+    CONST char *pstart = pattern;
 
     while (1) {
 	/* If at end of pattern, success! */
@@ -106,7 +106,7 @@ int Exp_StringCaseMatch2(string,pattern, nocase)	/* INTL */
 	 */
 	
 	if (*pattern == '*') {
-	    char *tail;
+	    CONST char *tail;
 
 	    pattern += 1;
 	    if (*pattern == 0) {

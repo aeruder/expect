@@ -2311,6 +2311,13 @@ char *argv[];	/* some compiler complains about **argv? */
 		exp_init_pty();
 		exp_init_tty();
 		expDiagLogPtrSet(expDiagLogU);
+
+		/*
+		 * TIP 27; It is unclear why this code produces a
+		 * warning. The equivalent code in exp_main_sub.c
+		 * (line 512) does not generate a warning !
+		 */
+
 		expErrnoMsgSet(Tcl_ErrnoMsg);
 	}
 

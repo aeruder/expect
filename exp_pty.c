@@ -302,11 +302,11 @@ char *num;	/* string representation of number */
  * ones that call expDiagLog from the two different environments.
  */
 
-static void		(*expDiagLogPtrVal) _ANSI_ARGS_((char *));
+static void		(*expDiagLogPtrVal) _ANSI_ARGS_((CONST char *));
 
 void
 expDiagLogPtrSet(fn)
-     void (*fn) _ANSI_ARGS_((char *));
+     void (*fn) _ANSI_ARGS_((CONST char *));
 {
   expDiagLogPtrVal = fn;
 }
@@ -351,9 +351,9 @@ expDiagLogPtrStrStr(fmt,str1,str2)
   (*expDiagLogPtrVal)(buf);
 }
 
-static char *		(*expErrnoMsgVal) _ANSI_ARGS_((int));
+static CONST char *		(*expErrnoMsgVal) _ANSI_ARGS_((int));
 
-char *
+CONST char *
 expErrnoMsg(errorNo)
 int errorNo;
 {
@@ -362,7 +362,7 @@ int errorNo;
 
 void
 expErrnoMsgSet(fn)
-     char * (*fn) _ANSI_ARGS_((int));
+     CONST char * (*fn) _ANSI_ARGS_((int));
 {
   expErrnoMsgVal = fn;
 }

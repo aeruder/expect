@@ -177,7 +177,7 @@ expStdoutLog TCL_VARARGS_DEF(int,arg1)
 /* use this function for logging the parent/child conversation */
 void
 expStdoutLogU(buf,force_stdout)
-char *buf;
+CONST char *buf;
 int force_stdout;	/* override value of logUser */
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
@@ -219,7 +219,7 @@ expErrorLog TCL_VARARGS_DEF(char *,arg1)
 /*ARGSUSED*/
 void
 expErrorLogU(buf)
-char *buf;
+CONST char *buf;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -262,7 +262,7 @@ expDiagLog TCL_VARARGS_DEF(char *,arg1)
    this also takes care of arbitrary large strings */
 void
 expDiagLogU(str)
-    char *str;
+    CONST char *str;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -358,7 +358,7 @@ expDiagWriteObj(obj)
 /* write 8-bit bytes */
 void
 expDiagWriteBytes(str,len)
-    char *str;
+    CONST char *str;
     int len;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
@@ -371,7 +371,7 @@ expDiagWriteBytes(str,len)
 /* write UTF chars */
 void
 expDiagWriteChars(str,len)
-    char *str;
+    CONST char *str;
     int len;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);

@@ -1181,7 +1181,7 @@ Tcl_Interp *interp;
 			   version */
 
 			static int nextid = 0;
-			char *nextidstr = Tcl_GetVar2(interp,"tcl::history","nextid",0);
+			CONST char *nextidstr = Tcl_GetVar2(interp,"tcl::history","nextid",0);
 			if (nextidstr) {
 				sscanf(nextidstr,"%d",&nextid);
 			}

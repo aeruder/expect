@@ -158,7 +158,7 @@ static int numMainWindows;
  */
 
 static int synchronize;
-static char *name;
+static CONST char *name;
 static char *display;
 static char *geometry;
 static char *colormap;
@@ -237,7 +237,8 @@ int
 Tk_Init2(interp)
     Tcl_Interp *interp;		/* Interpreter to initialize. */
 {
-    char *p;
+    CONST char *p;
+    char* alist, *cstr;
     int argc, code;
     char **argv, *args[20];
     Tcl_DString class;
@@ -273,11 +274,11 @@ Tk_Init2(interp)
 	    Tcl_Exit(0);
 	}
 
-	p = Tcl_Merge(argc, argv);
-	Tcl_SetVar2(interp, "argv", (char *) NULL, p, TCL_GLOBAL_ONLY);
+	alist = Tcl_Merge(argc, argv);
+	Tcl_SetVar2(interp, "argv", (char *) NULL, alist, TCL_GLOBAL_ONLY);
 	sprintf(buffer, "%d", argc);
 	Tcl_SetVar2(interp, "argc", (char *) NULL, buffer, TCL_GLOBAL_ONLY);
-	ckfree(p);
+	ckfree(alist);
     }
 
     /*
@@ -297,9 +298,9 @@ Tk_Init2(interp)
     }
     Tcl_DStringInit(&class);
     Tcl_DStringAppend(&class, name, -1);
-    p = Tcl_DStringValue(&class);
-    if (islower(*p)) {
-	*p = toupper((unsigned char) *p);
+    cstr = Tcl_DStringValue(&class);
+    if (islower(*cstr)) {
+	*cstr = toupper((unsigned char) *cstr);
     }
 
     /*
