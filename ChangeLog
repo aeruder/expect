@@ -1,3 +1,8 @@
+2002-02-25  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* expect.c: Applied patch by Don Libes fixing improper
+	  internationalization.
+
 2002-02-21  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* expect.man: Changed the paragraph about [exp_continue] to

@@ -855,10 +855,11 @@ char *suffix;
 	}
 	expDiagLogU(no);
     } else if (e->use == PAT_FULLBUFFER) {
-      if ((Tcl_GetCharLength(esPtr->buffer) == esPtr->msize)
+      expDiagLogU(Tcl_GetString(e->pat));
+      expDiagLogU("? ");
+      /* this must be the same test as in expIRead */
+      if ((expSizeGet(esPtr) + TCL_UTF_MAX >= esPtr->msize)
 	    && (length > 0)) {
-	expDiagLogU(Tcl_GetString(e->pat));
-	expDiagLogU("? ");
 	o->e = e;
 	o->match = length;
 	o->buffer = esPtr->buffer;
