@@ -743,8 +743,11 @@ FAQ:	FAQ.src FAQ.tcl
 	FAQ.src text > FAQ
 
 # generate Expect home page
-homepage.html:	homepage.src homepage.tcl
+homepage.html:	homepage.src homepage.tcl expect.tar.gz.md5
 	homepage.src > homepage.html
+
+expect.tar.gz.md5:	$(FTPDIR)/expect.tar.gz
+	md5 $(FTPDIR)/expect.tar.gz > expect.tar.gz.md5
 
 # install various html docs on our web server
 install-html:	FAQ.html homepage.html

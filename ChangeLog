@@ -1,3 +1,15 @@
+2002-08-08  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+	
+	* Merged changes from the official version 5.38 of expect into the
+	  SF sources. See details below.
+
+	* Makefile.in: Added generation of MD5 checksum for distributed
+	  archive.
+	* rftp:         Bugfix by Curt Schroeder, see HISTORY
+	* HISTORY:      Updated with new info.
+	* configure:    Updated version info.
+	* configure.in: Updated version info.
+
 2002-06-26  David Gravereaux <davygrvy@pobox.com>
 
 	* example/weather: Updated script to use rainmaker.wunderground.com

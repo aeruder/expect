@@ -3,12 +3,19 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+7/18/02 5.38.0	At request of Hugh Sasse <hgs@dmu.ac.uk> added md5 hash of gz
+		to homepage.
+
 		Dave Schooler <dave@stashtea.com> reported that send -s wasn't
 		handling certains chars correctly.  Turned out to be those
 		that had multibyte UTF8 reps.  send -s was just pumping out
 		hunks of bytes without regard to UTF boundaries and evidentally
 		Tcl's I/O engine thought that it should translate a partial
 		UTF8 character into, uh, something else.
+
+		Curt Shroeder <c.schroeder@computer.org> fixed bug in rftp - a
+		a filename looked enough like a 3-digit diagnostic that the
+		script got confused.
 
 4/16/02 5.37.2	Multixterm couldn't find man page all the time.
 

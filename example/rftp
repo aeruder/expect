@@ -148,7 +148,7 @@ proc getdirectory {name transfer} {
     send "cd $name\r"
     # this can fail normally if it's a symbolic link, and we are just
     # experimenting
-    expect "550*ftp>*" {
+    expect "550*$name*ftp>*" {
 	send_user "failed to cd to remote directory $name\n"
 	return 0
     } timeout {
