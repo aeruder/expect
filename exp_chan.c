@@ -36,6 +36,7 @@
 #include "exp_command.h"
 #include "exp_log.h"
 
+extern int		expSetBlockModeProc _ANSI_ARGS_((int fd, int mode));
 static int		ExpBlockModeProc _ANSI_ARGS_((ClientData instanceData,
 			    int mode));
 static int		ExpCloseProc _ANSI_ARGS_((ClientData instanceData,
@@ -108,12 +109,30 @@ ExpBlockModeProc(instanceData, mode)
 					 * TCL_MODE_NONBLOCKING. */
 {
     ExpState *esPtr = (ExpState *) instanceData;
+
+    if (esPtr->fdin == 0) {
+        /* Forward status to debugger. Required for FIONBIO systems,
+	 * which are unable to query the fd for its current state.
+	 */
+        Dbg_StdinMode (mode);
+    }
+
+    return expSetBlockModeProc (esPtr->fdin, mode);
+}
+
+int
+expSetBlockModeProc(fd, mode)
+    int fd;
+    int mode;				/* The mode to set. Can be one of
+					 * TCL_MODE_BLOCKING or
+					 * TCL_MODE_NONBLOCKING. */
+{
     int curStatus;
     /*printf("ExpBlockModeProc(%d)\n",mode);
-      printf("fdin = %d\n",esPtr->fdin);*/
+      printf("fdin = %d\n",fd);*/
 
 #ifndef USE_FIONBIO
-    curStatus = fcntl(esPtr->fdin, F_GETFL);
+    curStatus = fcntl(fd, F_GETFL);
     /*printf("curStatus = %d\n",curStatus);*/
     if (mode == TCL_MODE_BLOCKING) {
 	curStatus &= (~(O_NONBLOCK));
@@ -121,17 +140,17 @@ ExpBlockModeProc(instanceData, mode)
 	curStatus |= O_NONBLOCK;
     }
     /*printf("new curStatus %d\n",curStatus);*/
-    if (fcntl(esPtr->fdin, F_SETFL, curStatus) < 0) {
+    if (fcntl(fd, F_SETFL, curStatus) < 0) {
 	return errno;
     }
-    curStatus = fcntl(esPtr->fdin, F_GETFL);
+    curStatus = fcntl(fd, F_GETFL);
 #else /* USE_FIONBIO */
     if (mode == TCL_MODE_BLOCKING) {
 	curStatus = 0;
     } else {
 	curStatus = 1;
     }
-    if (ioctl(esPtr->fdin, (int) FIONBIO, &curStatus) < 0) {
+    if (ioctl(fd, (int) FIONBIO, &curStatus) < 0) {
 	return errno;
     }
 #endif /* !USE_FIONBIO */

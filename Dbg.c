@@ -45,6 +45,7 @@ static ClientData interdata = 0;
 static Dbg_IgnoreFuncsProc *ignoreproc = zero;
 static Dbg_OutputProc *printproc = 0;
 static ClientData printdata = 0;
+static int stdinmode;
 
 static void print _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
 
@@ -1155,6 +1156,8 @@ char *string;
 	return 0;
 }
 
+extern int expSetBlockModeProc _ANSI_ARGS_((int fd, int mode));
+
 static int
 simple_interactor(interp)
 Tcl_Interp *interp;
@@ -1167,6 +1170,12 @@ Tcl_Interp *interp;
 
 	Tcl_DString dstring;
 	Tcl_DStringInit(&dstring);
+
+	/* Force blocking if necessary */
+
+	if (stdinmode == TCL_MODE_NONBLOCKING) {
+	  expSetBlockModeProc(0, TCL_MODE_BLOCKING);
+	}
 
 	newcmd = TRUE;
 	while (TRUE) {
@@ -1192,7 +1201,8 @@ Tcl_Interp *interp;
 		}
 		fflush(stdout);
 
-		if (0 >= (rc = read(0,line,BUFSIZ))) {
+		rc = read(0,line,BUFSIZ);
+		if (0 >= rc) {
 			if (!newcmd) line[0] = 0;
 			else exit(0);
 		} else line[rc] = '\0';
@@ -1259,6 +1269,10 @@ Tcl_Interp *interp;
  done:
 	Tcl_DStringFree(&dstring);
 
+	/* Restore old blocking mode */
+	if (stdinmode == TCL_MODE_NONBLOCKING) {
+	  expSetBlockModeProc(0, TCL_MODE_NONBLOCKING);
+	}
 	return(rc);
 }
 
@@ -1332,4 +1346,13 @@ Tcl_Interp *interp;
 	/* initialize for next use */
 	debug_cmd = step;
 	step_count = 1;
+}
+
+/* allows any other part of the application to tell the debugger where the Tcl channel for stdin is. */
+/*ARGSUSED*/
+void
+Dbg_StdinMode(mode)
+     int mode;
+{
+  stdinmode = mode;
 }

@@ -1,3 +1,25 @@
+2005-03-29  Andreas Kupries <andreask@activestate.com>
+
+	* exp_chan.c: Fixed problem with debugger introduced at '2004-06-14'.
+	* tcldbg.h:   For a nonblocking stdin the debugger blowed up on the
+	* Dbg.c:      empty reads it could get, exiting the application. I
+	              guess that this was an implicit 'panic'. Fix:
+
+		      - Split ExpBlockmodeProc into high- and lowlevel
+		        code, the latter for use by the debugger. The
+		        high-level code tells the debugger which state
+		        stdin is in (doing this explicitly because if
+		        FIONBIO is used it is not possible to query the fd
+		        directly, and I saw no reason to #ifdef for fcntl
+		        which can).
+
+		      - Debugger now exports a function for use by the
+		        blockmode proc, and in each interaction it checks
+		        for nonblocking input, forces blocking if
+		        necessary. At the end of each interaction the true
+		        mode is restored. Both operations use the
+		        low-level blockmode code.
+
 2005-03-07  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* exp_tty.c (Exp_SttyCmd): fix from Libes that controlling

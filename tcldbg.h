@@ -57,4 +57,6 @@ EXTERN Dbg_OutputStruct Dbg_Output _ANSI_ARGS_((
 					Dbg_OutputProc *,
 					ClientData data));
 
+EXTERN void Dbg_StdinMode _ANSI_ARGS_((int mode));
+
 #endif /* _NIST_DBG */
