@@ -3,9 +3,8 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-8/7/00	5.32.0	TclPro 1.4 is finally getting out the door.  The configure
-		version has never advanced beyond 5.32.0 as far as I
-		can tell.  
+8/4/00 5.32.2	Allen J. Newton <anewton@alturia.fleet.org> provided code for
+		generating passwords with special characters in mkpasswd.
 
 		Brent Welch <welch@ajubasolutions.com> changed the fix1line
 		install script so that "autoexpect" and other scripts that
@@ -16,13 +15,13 @@ Date	Version	Description
 7/13/00	5.32.1	Uwe Klein <uwe-klein@foni.net> reported segfaults from reading
 		nulls.  Due to code rewrite in 5.30->5.31 transition.
 
-5/14/00 5.32.0	New version for timing with Ajuba TclPro 1.4.  This new version
+5/14/00 5.32.0	New version for timing with Ajuba TclPro 1.4.  This version
 		of Expect has no new features or behaviors but a lot has been
 		fixed since 5.31.0.
 
 		Martin Buchholz <martin@xemacs.org> noted that his
-		alphaev56-dec-osf4.0e has ptmx and ptmx_bsd (and ptm, pts, pty,
-		ptym).  He suggested that BSD things are now usually
+		alphaev56-dec-osf4.0e has ptmx and ptmx_bsd (and ptm, pts,
+		pty, ptym).  He suggested that BSD things are now usually
 		deprecated so to skip ptmx_bsd if ptmx avail.
 
 		Chang Li <changl@neatware.com> noted that debugger's bp cmd
