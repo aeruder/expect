@@ -101,6 +101,7 @@ wait
 
 set filename /tmp/null.[pid]
 set fid [open $filename w]
+fconfigure $fid -encoding iso8859-1
 puts $fid "a\u0000b"
 close $fid
 
