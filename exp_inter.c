@@ -1669,7 +1669,7 @@ got_action:
 		if (attempt_match) {
 		    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
 		    if ((rc == EXP_MATCH) && km && km->re) {
-			intRegExpMatchProcess(interp,u,km,&reInfo);
+			intRegExpMatchProcess(interp,u,km,&reInfo,skip);
 		    }
 		} else {
 		    attempt_match = TRUE;
@@ -1908,7 +1908,7 @@ got_action:
 		if (attempt_match) {
 		    rc = intMatch(u,inp->keymap,&km,&matchLen,&skip,&reInfo);
 		    if ((rc == EXP_MATCH) && km && km->re) {
-			intRegExpMatchProcess(interp,u,km,&reInfo);
+			intRegExpMatchProcess(interp,u,km,&reInfo,skip);
 		    }
 		} else {
 		    attempt_match = TRUE;

@@ -1,3 +1,17 @@
+2002-01-16  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* Resynchronization of SourceForge with Don's sources to Expect
+	  version 5.34. The changes are
+
+	  Don Porter <don.porter@nist.gov> provided package-related fixes
+	  for test suite.
+
+	  Brian Theado <brian.theado@usa.net> noted that interact's -re
+	  support broke when offsets kicked in.  Turned out that the
+	  regexp engine supports them during execution but the results are
+	  delivered RELATIVE to the offset.  (I suspect this was done
+	  due to expediency.)
+
 2001-12-05  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* exp_inter.c: Applied patch posted by Don libes to c.l.t. on his

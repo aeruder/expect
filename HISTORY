@@ -3,6 +3,15 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
+12/20/01 5.34.0	Don Porter <don.porter@nist.gov> provided package-related
+		fixes for test suite.
+
+		Brian Theado <brian.theado@usa.net> noted that interact's -re
+		support broke when offsets kicked in.  Turned out that the
+		regexp engine supports them during execution but the results
+		are delivered RELATIVE to the offset.  (I suspect this was done
+		due to expediency.)
+
 10/1/01 5.33.0	<mark@doradosoftware.com> found that expect's diagnostics
 		didn't include the "no" after testing for a full buffer.
 
