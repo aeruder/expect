@@ -1606,7 +1606,8 @@ Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 }
 
 /* generate a descriptor for a "-i" flag */
-/* cannot fail */
+/* can only fail on bad direct descriptors */
+/* indirect descriptors always succeed */
 struct exp_i *
 exp_new_i_complex(interp,arg,duration,updateproc)
 Tcl_Interp *interp;
@@ -1639,7 +1640,10 @@ Tcl_VarTraceProc *updateproc;	/* proc to invoke if indirect is written */
 	}
 
 	i->state_list = 0;
-	exp_i_update(interp,i);
+	if (TCL_ERROR == exp_i_update(interp,i)) {
+	  exp_free_i(interp,i,(Tcl_VarTraceProc *)0);
+	  return 0;
+	}
 
 	/* if indirect, ask Tcl to tell us when variable is modified */
 
@@ -1665,7 +1669,9 @@ ExpState *esPtr;
 }
 
 /* this routine assumes i->esPtr is meaningful */
-static void
+/* returns TCL_ERROR only on direct */
+/* indirects always succeed */
+static int
 exp_i_parse_states(interp,i) /* INTL */
 Tcl_Interp *interp;
 struct exp_i *i;
@@ -1684,15 +1690,17 @@ struct exp_i *i;
 	exp_i_add_state(i,esPtr);
     }
     ckfree((char*)argv);
-    return;
+    return TCL_OK;
 error:
     expDiagLogU("exp_i_parse_states: ");
     expDiagLogU(Tcl_GetStringResult(interp));
-    return;
+    return TCL_ERROR;
 }
 	
 /* updates a single exp_i struct */
-void
+/* return TCL_ERROR only on direct variables */
+/* indirect variables always succeed */
+int
 exp_i_update(interp,i)
 Tcl_Interp *interp;
 struct exp_i *i;
@@ -1708,7 +1716,7 @@ struct exp_i *i;
     }
     
     if (i->value) {
-      if (streq(p,i->value)) return;
+      if (streq(p,i->value)) return TCL_OK;
       
       /* replace new value with old */
       ckfree(i->value);
@@ -1723,8 +1731,7 @@ struct exp_i *i;
     /* "direct" i's once */
     i->state_list = 0;
   }
-  exp_i_parse_states(interp, i);
-  return;
+  return exp_i_parse_states(interp, i);
 }
 
 struct exp_i *
@@ -1896,6 +1903,7 @@ getString:
 	i = exp_new_i_simple(esPtr,EXP_TEMPORARY);
     } else {
 	i = exp_new_i_complex(interp,chanName,FALSE,(Tcl_VarTraceProc *)0);
+	if (!i) return TCL_ERROR;
     }
 
 #define send_to_stderr	(clientData == &sendCD_error)

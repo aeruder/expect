@@ -517,6 +517,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		ec.i_list = exp_new_i_complex(interp,
 				      Tcl_GetString(objv[i]),
 				      eg->duration, exp_indirect_update2);
+		if (!ec.i_list) goto error;
 		ec.i_list->cmdtype = eg->cmdtype;
 
 		/* link new i_list to head of list */

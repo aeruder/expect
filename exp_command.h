@@ -263,7 +263,7 @@ EXTERN void		exp_free_i _ANSI_ARGS_((Tcl_Interp *,struct exp_i *,
 					Tcl_VarTraceProc *));
 EXTERN void		exp_free_state _ANSI_ARGS_((struct exp_state_list *));
 EXTERN void		exp_free_state_single _ANSI_ARGS_((struct exp_state_list *));
-EXTERN void		exp_i_update _ANSI_ARGS_((Tcl_Interp *,
+EXTERN int		exp_i_update _ANSI_ARGS_((Tcl_Interp *,
 					struct exp_i *));
 
 /*

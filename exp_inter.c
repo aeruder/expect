@@ -889,6 +889,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    }
 		    inp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
 			    EXP_TEMPORARY,inter_updateproc);
+		    if (!inp->i_list) return TCL_ERROR;
 		    break;
 		case EXP_SWITCH_OUTPUT: {
 		    struct output *tmp;
@@ -910,7 +911,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    }
 		    outp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
 			    EXP_TEMPORARY,inter_updateproc);
-
+		    if (!outp->i_list) return TCL_ERROR;
 		    outp->action_eof = &action_eof;
 		    action_eof_ptr = &outp->action_eof;
 		    break;
@@ -1175,6 +1176,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	} else {
 	    o->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
 		    EXP_TEMPORARY,inter_updateproc);
+	    if (!o->i_list) return TCL_ERROR;
 	}
 	o->next = 0;	/* no one else */
 	o->action_eof = &action_eof;
@@ -1200,9 +1202,11 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	input_user->i_list = exp_new_i_complex(interp,
 		Tcl_GetString(replace_user_by_process),
 		EXP_TEMPORARY,inter_updateproc);
+	if (!input_user->i_list) return TCL_ERROR;
 	input_default->output->i_list = exp_new_i_complex(interp,
 		Tcl_GetString(replace_user_by_process),
 		EXP_TEMPORARY,inter_updateproc);
+	if (!input_default->output->i_list) return TCL_ERROR;
     }
 
     /*
@@ -1226,6 +1230,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    exp_free_i(interp,input_default->i_list,inter_updateproc);
 	    input_default->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
 		    EXP_TEMPORARY,inter_updateproc);
+	    if (!input_default->i_list) return TCL_ERROR;
 	}
     }
 

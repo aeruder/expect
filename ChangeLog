@@ -1,3 +1,8 @@
+2002-02-07  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
+
+	* Applied patch for SF #514590 to correct behaviour of expect when
+	  expecting and send from and to bogus spawn id's.
+
 2002-01-16  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
 
 	* Resynchronization of SourceForge with Don's sources to Expect
