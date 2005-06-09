@@ -28,9 +28,12 @@
 #include "tcldbg.h"
 #endif
 
+#ifndef EXP_VERSION
+#define EXP_VERSION PACKAGE_VERSION
+#endif
 #ifdef __CENTERLINE__
 #undef	EXP_VERSION
-#define	EXP_VERSION		"5.0.3"		/* I give up! */
+#define	EXP_VERSION		"5.43.0"		/* I give up! */
 					/* It is not necessary that number */
 					/* be accurate.  It is just here to */
 					/* pacify Centerline which doesn't */
@@ -41,7 +44,7 @@
 #undef	EXECSCRIPTDIR
 #define EXECSCRIPTDIR	"example/"
 #endif
-char exp_version[] = EXP_VERSION;
+char exp_version[] = PACKAGE_VERSION;
 #define NEED_TCL_MAJOR		7
 #define NEED_TCL_MINOR		5
 
@@ -549,7 +552,7 @@ Tcl_Interp *interp;
         return TCL_ERROR;
     }
  
-    if (Tcl_PkgProvide(interp, "Expect", EXP_VERSION) != TCL_OK) {
+    if (Tcl_PkgProvide(interp, "Expect", PACKAGE_VERSION) != TCL_OK) {
       return TCL_ERROR;
     }
 

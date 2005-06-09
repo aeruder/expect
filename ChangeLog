@@ -1,3 +1,12 @@
+2005-06-09  Andreas Kupries <andreask@activestate.com>
+
+	* Makefile.in:  Upgraded build system to TEA 3.2.
+	* configure.in:
+	* config.guess:
+	* config.sub
+	* exp_main_sub.c:
+	* aclocal.m4:
+
 2005-03-29  Andreas Kupries <andreask@activestate.com>
 
 	* exp_chan.c: Fixed problem with debugger introduced at '2004-06-14'.
