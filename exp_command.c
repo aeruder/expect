@@ -134,9 +134,17 @@ typedef struct ThreadSpecificData {
     ExpState *devtty;
     ExpState *any; /* for any_spawn_id */
 
-    Tcl_Channel *diagChannel;
-    Tcl_DString diagDString;
-    int diagEnabled;
+    Tcl_Channel *diagChannel; /* Unused - exp_log.c has its own. */
+    Tcl_DString diagDString;  /* Unused */
+    int diagEnabled;          /* Unused */
+
+    /* Table of structures for all Tcl channels used as -open argument
+     * in a exp_spawn call. For refCounting of Tcl channels used by
+     * more than one Expect channel.
+     */
+
+    Tcl_HashTable origins;
+
 } ThreadSpecificData;
 
 static Tcl_ThreadDataKey dataKey;
@@ -342,14 +350,27 @@ ExpState *esPtr;
     if (esPtr->fd_slave != EXP_NOFD) close(esPtr->fd_slave);
     if (esPtr->fdin != esPtr->fdout) close(esPtr->fdout);
 
-    if (esPtr->channel_orig && !esPtr->leaveopen) {
-	/*
-	 * Ignore close errors from Tcl channels.  They indicate things
-	 * like broken pipelines, etc, which don't affect our
-	 * subsequent handling.
-	 */
-	Tcl_VarEval(interp,"close ",Tcl_GetChannelName(esPtr->channel_orig),
-		(char *)0);
+    if (esPtr->chan_orig) {
+        esPtr->chan_orig->refCount --;
+	if (esPtr->chan_orig->refCount <= 0) {
+	    /*
+	     * Ignore close errors from Tcl channels.  They indicate things
+	     * like broken pipelines, etc, which don't affect our
+	     * subsequent handling.
+	     */
+
+	    ThreadSpecificData* tsdPtr = TCL_TSD_INIT(&dataKey);
+	    char*               cName  = Tcl_GetChannelName(esPtr->chan_orig->channel_orig);
+	    Tcl_HashEntry*      entry  = Tcl_FindHashEntry(&tsdPtr->origins,cName);
+	    ExpOrigin*          orig   = (ExpOrigin*) Tcl_GetHashValue(entry);
+
+	    Tcl_DeleteHashEntry(entry);
+	    ckfree ((char*)orig);
+
+	    if (!esPtr->leaveopen) {
+	      Tcl_VarEval(interp,"close ", cName, (char *)0);
+	    }
+	}
     }
 
 #ifdef HAVE_PTYTRAP
@@ -382,6 +403,7 @@ ExpState *esPtr;
 /* report whether this ExpState represents special spawn_id_any */
 /* we need a separate function because spawn_id_any is thread-specific */
 /* and can't be seen outside this file */
+int
 expStateAnyIs(esPtr)
     ExpState *esPtr;
 {
@@ -390,6 +412,7 @@ expStateAnyIs(esPtr)
     return (esPtr == tsdPtr->any);
 }
 
+int
 expDevttyIs(esPtr)
     ExpState *esPtr;
 {
@@ -472,6 +495,12 @@ exp_init_spawn_ids(interp)
     /* set up a dummy channel to give us something when we need to find out if
        people have passed us "any_spawn_id" */
     tsdPtr->any = &any_placeholder;
+
+    /* Set up the hash table for managing the channels used via
+     * -open.
+     */
+
+    Tcl_InitHashTable (&tsdPtr->origins, TCL_STRING_KEYS);
 }
 
 void
@@ -845,7 +874,25 @@ when trapping, see below in child half of fork */
 	esPtr = expCreateChannel(interp,master,write_master,EXP_NOPID);
 	    
 	if (chanName) {
-	    esPtr->channel_orig = channel;
+	    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+	    Tcl_HashEntry *entry = Tcl_FindHashEntry(&tsdPtr->origins,chanName);
+
+	    if (entry) {
+	        esPtr->chan_orig = (ExpOrigin*) Tcl_GetHashValue(entry);
+		esPtr->chan_orig->refCount ++;
+
+	    } else {
+	        int newptr;
+		ExpOrigin* orig = (ExpOrigin*) ckalloc (sizeof (ExpOrigin));
+
+		esPtr->chan_orig   = orig;
+		orig->channel_orig = channel;
+		orig->refCount     = 1;
+
+		entry = Tcl_CreateHashEntry(&tsdPtr->origins,chanName,&newptr);
+		Tcl_SetHashValue(entry, (ClientData) orig);
+	    }
+
 	    esPtr->leaveopen = leaveopen;
 	}
 

@@ -1,3 +1,12 @@
+2005-06-22  Andreas Kupries <andreask@activestate.com>
+
+	* exp_chan.c:    Fixed bug causing crash of expect on exit when a
+	* exp_command.c: Tcl channel is used with -(leave)open more than
+	* exp_command.h: once. It tried to close such channels multiple
+	  times, going through already freed memory. Added data structures
+	  to track and refcount all such channels, to close them only when
+	  the last user goes away.
+
 2005-06-09  Andreas Kupries <andreask@activestate.com>
 
 	* Makefile.in:  Upgraded build system to TEA 3.2.

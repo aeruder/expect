@@ -80,6 +80,11 @@ EXTERN int exp_flageq_code _ANSI_ARGS_((char *,char *,int));
  * This structure describes per-instance state of an Exp channel.
  */
 
+typedef struct ExpOrigin {
+  int         refCount;       /* Number of times this channel is used. */
+  Tcl_Channel channel_orig;   /* If opened by someone else, i.e. tcl::open */
+} ExpOrigin;
+
 typedef struct ExpState {
     Tcl_Channel channel;	/* Channel associated with this file. */
     char name[EXP_CHANNELNAMELEN+1]; /* expect and interact set variables
@@ -88,7 +93,7 @@ typedef struct ExpState {
     int fdin;		/* input fd */
     int fdout;		/* output fd - usually the same as fdin, although
 			   may be different if channel opened by tcl::open */
-    Tcl_Channel channel_orig;   /* If opened by someone else, i.e. tcl::open */
+    ExpOrigin* chan_orig;   /* If opened by someone else, i.e. tcl::open */
     int fd_slave;	/* slave fd if "spawn -pty" used */
 
     /* this may go away if we find it is not needed */

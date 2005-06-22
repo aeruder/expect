@@ -628,7 +628,7 @@ expCreateChannel(interp,fdin,fdout,pid)
     esPtr->key = expect_key++;
     esPtr->force_read = FALSE;
     esPtr->fg_armed = FALSE;
-    esPtr->channel_orig = 0;
+    esPtr->chan_orig = 0;
     esPtr->fd_slave = EXP_NOFD;
 #ifdef HAVE_PTYTRAP
     esPtr->slave_name = 0;
