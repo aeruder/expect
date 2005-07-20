@@ -1,3 +1,16 @@
+2005-07-07  Andreas Kupries <andreask@activestate.com>
+
+	* exp_chan.c (ExpBlockModeProc): [Expect SF Bug 1108551]. Excluded
+	  manipulation of the blocking status for stdin/stderr. This is
+	  handled by the Tcl core itself and we must absolutely not pull
+	  the rug out from under it. The standard setting to non-blocking
+	  will mess with the core which had them set to blocking, and
+	  makes all its decisions based on that assumption. Setting to
+	  non-blocking can cause hangs and crashes. Stdin is ok however,
+	  apparently.
+
+	  This problem was introduced at '2004-06-14'.
+
 2005-06-22  Andreas Kupries <andreask@activestate.com>
 
 	* exp_chan.c:    Fixed bug causing crash of expect on exit when a
