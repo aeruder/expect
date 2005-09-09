@@ -1,3 +1,8 @@
+2005-09-09  Andreas Kupries <andreask@activestate.com>
+
+	* exp_chan.c (ExpBlockModeProc): No, stdin is not ok (See last
+	  entry). Fixed.
+
 2005-07-07  Andreas Kupries <andreask@activestate.com>
 
 	* exp_chan.c (ExpBlockModeProc): [Expect SF Bug 1108551]. Excluded

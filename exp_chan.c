@@ -117,7 +117,7 @@ ExpBlockModeProc(instanceData, mode)
         Dbg_StdinMode (mode);
     }
 
-    /* [Expect SF Bug 1108551]
+    /* [Expect SF Bug 1108551] (July 7 2005)
      * Exclude manipulation of the blocking status for stdin/stderr.
      *
      * This is handled by the Tcl core itself and we must absolutely
@@ -127,9 +127,11 @@ ExpBlockModeProc(instanceData, mode)
      * Setting to non-blocking can cause hangs and crashes.
      *
      * Stdin is ok however, apparently.
+     * (Sep 9 2005) No, it is not.
      */
 
-    if ((esPtr->fdin == 1) ||
+    if ((esPtr->fdin == 0) ||
+	(esPtr->fdin == 1) ||
 	(esPtr->fdin == 2)) {
       return 0;
     }
