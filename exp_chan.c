@@ -262,6 +262,9 @@ ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
     *errorCodePtr = 0;
 
     if (toWrite < 0) Tcl_Panic("ExpOutputProc: called with negative char count");
+    if (toWrite ==0) {
+        return 0;
+    }
 
     written = write(esPtr->fdout, buf, (size_t) toWrite);
     if (written == 0) {
