@@ -1,3 +1,9 @@
+2006-01-24  Andreas Kupries <andreask@activestate.com>
+
+	* tclconfig/tcl.m4: Updated to TEA 3.5
+	* configure.in:     Ditto.
+	* configure:        Regenerated.
+
 2005-09-19  Andreas Kupries <andreask@activestate.com>
 
 	* exp_chan.c (ExpOutputProc): Added guard to intercept and ignore

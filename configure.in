@@ -5,7 +5,7 @@ AC_REVISION($Id$)
 
 AC_INIT([expect],[5.43.0])
 
-TEA_INIT([3.2])
+TEA_INIT([3.5])
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
