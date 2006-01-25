@@ -1940,10 +1940,6 @@ dnl AC_CHECK_TOOL(AR, ar)
     fi
     LDFLAGS="$LDFLAGS $LDFLAGS_ARCH"
 
-    # For TEA, CC_SEARCH_FLAGS becomes LD_SEARCH_FLAGS:
-    LD_SEARCH_FLAGS="${CC_SEARCH_FLAGS}"
-    CC_SEARCH_FLAGS=""
-
     # If we're running gcc, then change the C flags for compiling shared
     # libraries to the right flags for gcc, instead of those for the
     # standard manufacturer compiler.
@@ -3956,3 +3952,5 @@ AC_DEFUN(TEA_PATH_CELIB, [
 # Local Variables:
 # mode: autoconf
 # End:
+
+# BASED ON TEA 1.89 2006/01/25 21:25:02

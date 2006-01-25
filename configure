@@ -8908,10 +8908,6 @@ fi;
     fi
     LDFLAGS="$LDFLAGS $LDFLAGS_ARCH"
 
-    # For TEA, CC_SEARCH_FLAGS becomes LD_SEARCH_FLAGS:
-    LD_SEARCH_FLAGS="${CC_SEARCH_FLAGS}"
-    CC_SEARCH_FLAGS=""
-
     # If we're running gcc, then change the C flags for compiling shared
     # libraries to the right flags for gcc, instead of those for the
     # standard manufacturer compiler.

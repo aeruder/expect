@@ -1,8 +1,22 @@
+2006-01-25  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tclconfig/tcl.m4, configure: Fix LD_SEARCH_FLAGS setting in tcl.m4
+
+	* example/unbuffer: whitespace police
+
+	* example/beer.exp: brace exprs
+
+	* expect.man: use clock instead of exec date, minor nroff fixes.
+
 2006-01-24  Andreas Kupries <andreask@activestate.com>
 
 	* tclconfig/tcl.m4: Updated to TEA 3.5
 	* configure.in:     Ditto.
 	* configure:        Regenerated.
+
+2006-01-10  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tests/expect.test: ensure iso8859-1 for /tmp/null (steffen).
 
 2005-09-19  Andreas Kupries <andreask@activestate.com>
 
