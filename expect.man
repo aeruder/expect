@@ -1125,7 +1125,7 @@ interpreter runs interactively.
         \\001   {send_user "you typed a control\-A\\n";
                 send "\\001"
                }
-        $      {send_user "The date is [exec date]."}
+        $      {send_user "The date is [clock format [clock seconds]]."}
         \\003   exit
         foo    {send_user "bar"}
         ~~
@@ -1315,7 +1315,7 @@ logs the rest of the line.
 
     proc lognumber {} {
         interact -nobuffer -re "(.*)\\r" return
-        puts $log "[exec date]: dialed $interact_out(1,string)"
+        puts $log "[clock format [clock seconds]]: dialed $interact_out(1,string)"
     }
 
     interact -nobuffer "atd" lognumber
@@ -2428,7 +2428,7 @@ the command (i.e., sleep).
 The expect_background command ignores -timeout arguments and has no
 concept of timeouts in general.
 
-.SH EXPECT HINTS
+.SH "EXPECT HINTS"
 There are a couple of things about
 .B Expect
 that may be non-intuitive.
@@ -2550,7 +2550,7 @@ The result is a script which may be executed (and read) by anyone.
 When invoked, it runs the
 .B Expect
 script.
-.SH SEE ALSO
+.SH "SEE ALSO"
 .BR Tcl (3),
 .BR libexpect (3)
 .br
