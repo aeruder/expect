@@ -23,7 +23,7 @@
 # For an even fancier version, see http://expect.nist.gov/scripts/superbeer.exp
 
 proc bottles {i} {
-    return "$i bottle[expr $i!=1?"s":""] of beer"
+    return "$i bottle[expr {$i!=1?"s":""}] of beer"
 }
 
 proc line123 {i} {
@@ -50,7 +50,7 @@ proc out {i s} {
 	# +3 prevents it from degenerating too far
 	# /2 makes it degenerate faster though
 
-	set r [rand [expr $i/2+3]]
+	set r [rand [expr {$i/2+3}]]
 	if {$r} {append d $c; continue}
 
 	# do something strange
@@ -77,11 +77,11 @@ proc out {i s} {
 	}
     }
 
-    set arr1 [expr .4 - ($i/333.)]
-    set arr2 [expr .6 - ($i/333.)]
-    set shape [expr log(($i+2)/2.)+.1]
+    set arr1 [expr {.4 - ($i/333.)}]
+    set arr2 [expr {.6 - ($i/333.)}]
+    set shape [expr {log(($i+2)/2.)+.1}]
     set min 0
-    set max [expr 6-$i/20.]
+    set max [expr {6-$i/20.}]
 
     set send_human "$arr1 $arr2 $shape $min $max"
 
@@ -94,8 +94,8 @@ proc rand {m} {
     global _ran
 
     set period 259200
-    set _ran [expr ($_ran*7141 + 54773) % $period]
-    expr int($m*($_ran/double($period)))
+    set _ran [expr {($_ran*7141 + 54773) % $period}]
+    expr {int($m*($_ran/double($period)))}
 }
 
 for {set i 99} {$i>0} {} {
@@ -105,12 +105,12 @@ for {set i 99} {$i>0} {} {
 
     # get bored and skip ahead
     if {$i == 92} {
-	set i [expr 52+[rand 5]]
+	set i [expr {52+[rand 5]}]
     }
     if {$i == 51} {
-	set i [expr 12+[rand 5]]
+	set i [expr {12+[rand 5]}]
     }
     if {$i == 10} {
-	set i [expr 6+[rand 3]]
+	set i [expr {6+[rand 3]}]
     }
 }
