@@ -5,11 +5,11 @@
 if {[string compare [lindex $argv 0] "-p"] == 0} {
     # pipeline
     set stty_init "-echo"
-    eval spawn -noecho [lrange $argv 1 end]
+    eval [list spawn -noecho] [lrange $argv 1 end]
     interact
 } else {
-set stty_init "-opost"
-eval spawn -noecho $argv
-set timeout -1
-expect
+    set stty_init "-opost"
+    eval [list spawn -noecho] $argv
+    set timeout -1
+    expect
 }
