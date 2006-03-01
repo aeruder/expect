@@ -476,6 +476,14 @@ expWriteChars(esPtr,buffer,lenBytes)
   rc = Tcl_WriteChars(esPtr->channel,buffer,lenBytes);
   if ((rc == -1) && (errno == EAGAIN)) goto retry;
 
+  if (!exp_strict_write) {
+    /*
+     * 5.41 compatbility behaviour. Ignore any and all write errors
+     * the OS may have thrown.
+     */
+    return 0;
+  }
+
   /* just return 0 rather than positive byte counts */
   return ((rc > 0) ? 0 : rc);
 }

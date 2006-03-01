@@ -30,6 +30,8 @@ EXTERN char *exp_cmdfilename;
 EXTERN int exp_getpid;	/* pid of Expect itself */
 EXTERN int exp_buffer_command_input;
 
+EXTERN int exp_strict_write;
+
 EXTERN int exp_tcl_debugger_available;
 
 EXTERN Tcl_Interp *exp_interp;

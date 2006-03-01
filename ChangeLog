@@ -1,3 +1,10 @@
+2006-02-27  Andreas Kupries <andreask@activestate.com>
+
+	* exp_main_sub.c: Added command 'exp_configure' for magic configuration.
+	* exp_command.c:  Accepts option -strictwrite. Default is 0, ignoring
+	* exp_chan.c:     write errors (compatible to 5.41). Setting to 1 re-
+	* expect_tcl.h:   activates 5.42 behaviour.
+
 2006-01-25  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* tclconfig/tcl.m4, configure: Fix LD_SEARCH_FLAGS setting in tcl.m4

@@ -2321,6 +2321,47 @@ char **argv;
 
 /*ARGSUSED*/
 static int
+Exp_ConfigureObjCmd(clientData, interp, objc, objv)
+ClientData clientData;
+Tcl_Interp *interp;
+int objc;
+Tcl_Obj *CONST objv[];	/* Argument objects. */
+{
+  /* Magic configuration stuff. */
+  int i, opt, val;
+
+  static CONST char* options [] = {
+    "-strictwrite", NULL
+  };
+  enum options {
+    EXP_STRICTWRITE
+  };
+
+  if ((objc < 3) || (objc % 2 == 0)) {
+    Tcl_WrongNumArgs (interp, 1, objv, "-strictwrite value");
+    return TCL_ERROR;
+  }
+
+  for (i=1; i < objc; i+=2) {
+    if (Tcl_GetIndexFromObj (interp, objv [i], options, "option",
+			     0, &opt) != TCL_OK) {
+      return TCL_ERROR;
+    }
+    switch (opt) {
+    case EXP_STRICTWRITE:
+      if (Tcl_GetBooleanFromObj (interp, objv [i+1], &val) != TCL_OK) {
+	return TCL_ERROR;
+      }
+      exp_strict_write = val;
+      break;
+    }
+  }
+
+  return TCL_OK;
+}
+
+/*ARGSUSED*/
+static int
 Exp_CloseObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
@@ -3170,6 +3211,7 @@ static struct exp_cmd_data cmd_data[]  = {
 {"spawn",	exp_proc(Exp_SpawnCmd),	0,	0},
 {"strace",	exp_proc(Exp_StraceCmd),	0,	0},
 {"wait",	exp_proc(Exp_WaitCmd),	0,	0},
+{"exp_configure",Exp_ConfigureObjCmd, 0, 0, 0},
 {0}};
 
 void

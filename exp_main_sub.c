@@ -64,6 +64,9 @@ int exp_tcl_debugger_available = FALSE;
 
 int exp_getpid;
 
+int exp_strict_write = 0;
+
+
 static void
 usage(interp)
 Tcl_Interp *interp;
