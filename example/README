@@ -37,6 +37,7 @@ Entries marked with "a" live in the Expect archive (see above).
 	ftp-talk-radio - gets "Internet Talk Radio" files from a host.
 	gethostbyaddr - translates internet address to name (with a higher
 		success rate than nslookup).  Easier to use, too.
+	getpassck - test for presence of bug in getpass.
 	irsh - run interactive commands via rsh
    m	kibitz - lets two people control a program at the same time.
 		Lots of uses.  I.e., You can help another person remotely.

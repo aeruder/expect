@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 AC_REVISION($Id$)
 
-AC_INIT([expect],[5.43.0])
+AC_INIT([expect],[5.44.1])
 
 TEA_INIT([3.5])
 
@@ -1195,6 +1195,7 @@ AC_SUBST(EXP_CC_SEARCH_FLAGS)
 AC_SUBST(TCL_CC_SEARCH_FLAGS)
 AC_SUBST(EXP_SHLIB_LD_LIBS)
 AC_SUBST(SETUID)
+AC_SUBST(SETPGRP_VOID)
 AC_SUBST(DEFAULT_STTY_ARGS)
 
 #--------------------------------------------------------------------

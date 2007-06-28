@@ -19,6 +19,7 @@ would appreciate credit if this program or parts of it are used.
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
+/* Solaris needs this for console redir */
 #ifdef HAVE_STRREDIR_H
 #include <sys/strredir.h>
 # ifdef SRIOCSREDIR

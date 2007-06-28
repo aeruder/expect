@@ -39,6 +39,10 @@ Use rlogin to access host.  (default)
 Use slogin to access host.
 
 .TP 4
+-ssh
+Use ssh to access host.
+
+.TP 4
 -telnet
 Use telnet to access host.
 

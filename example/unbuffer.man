@@ -10,7 +10,7 @@ unbuffer \- unbuffer output
 .SH INTRODUCTION
 .B unbuffer
 disables the output buffering that occurs when program output
-is redirected.
+is redirected from non-interactive programs.
 For example, suppose you are watching the output from a fifo by running it
 through od and then more.  
 .nf

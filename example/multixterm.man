@@ -240,11 +240,21 @@ connects a separate process to each xterm.  xkibitz connects
 the same process to each xterm.
 
 .SH LIMITATIONS
-Multixterm provides no way to remotely control scrollbars,
-resize, and most other window system related functions.
 
-Multixterm can only control new xterms that multixterm itself
-has started.
+Multixterm provides no way to remotely control scrollbars, resize, and
+most other window system related functions.  
+
+Because xterm has no mechanism for propagating size information to
+external processes, particularly for character graphic applications
+(e.g., vi, emacs), you may have to manually ensure that the spawned
+process behind each xterm has the correct size.  For example, if you
+create or set the xterm to a size, you may have to send an explicit
+stty command with the correct size to the spawned process(es).
+Alternatively, you can add the correct size argument when an xterm is
+created (i.e., "-geometry 80x20").
+
+Multixterm can only control new xterms that multixterm itself has
+started.
 
 As a convenience, the File menu shows a limited number of
 files.  To show all the files, use File->Open.

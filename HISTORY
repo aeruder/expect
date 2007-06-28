@@ -3,7 +3,44 @@ support are in ChangeLog. - Don
 
 Date	Version	Description
 -------	-------	------------------------------------------------------
-2/7/04	5.43.0	Martin Forssen <maf@tkrat.xorg> fixed bug in ExpOutputProc
+1/31/06	5.44.1	Marius Schamsula <marius173@mchsi.xcom> reported tclconfig
+		missing, evidentally for new TEA.
+
+1/20/06 5.44.0	Lots of massaging to fix TEAification of Makefile and configure
+		including that version numbers will now be full three part.
+
+		Daniel Wong <danielwong@berkeley.xedu> noted the home page
+		should note that Wikipedia has a very readable entry for
+		Expect.
+
+		Andre Alves <aalves@escloyalty.xcom> noted passmass needed some
+		fixes to handle Solaris 9 passwd prompt changes.
+
+		Andreas fixed several things: changes to better support TEA,
+		fix debugger interaction with nonblocking mode, and probably
+		other things I'm overlooking.
+
+		Martin Dietze <di@fh-wedel.xde> noted that autoconf 2.59 is
+		confused by C comment after undefs in expect_cf.h.in.
+
+		Added additional code to unbuffer -p so that if a process
+		earlier in the pipeline exits, unbuffer attempts to
+		recover any remaining output from the spawned proc before
+		unbuffer itself exits.
+
+		Jeffrey Hobbs noted that once stty was called, a bg'd script
+		would be suspended at exit.  Turned out to be overaggressive
+		code in stty that recorded what 'damage' the user might have
+		caused when calling stty in the first place.
+
+		Jens Petersen provided patch to make setpgrp configure better
+		on some Linux systems.
+
+		Added example/getpassck script to test for getpass bug.
+
+		multixterm had debugging stuff leftover ("hello").
+
+2/7/05	5.43.0	Martin Forssen <maf@tkrat.xorg> fixed bug in ExpOutputProc
 		that caused misbehavior during partial writes.
 
 		Someone noted that gets stdin behaves differently (returns -1
@@ -13,7 +50,7 @@ Date	Version	Description
 		Robroy Gregg <robroy@armory.xcom> noted that expect_background
 		ignores timeouts.  Added to documentation.
 
-		Jens Peterson <peterson@redhat.xcom> provided patch for
+		Jens Petersen <peterson@redhat.xcom> provided patch for
 		"mkpasswd -vo".
 
 		Gary Bliesener <gary.bliesener@nextel.xcom> noted that
@@ -3512,3 +3549,4 @@ To get | to return ->	TCL_RETURN	TCL_OK		(no return)
 		It used pipes, not ptys.  It had no pattern matching, and only
 		straight-line control without error handling.  Nonetheless,
 		this got me to thinking about making stelnet more generic.
+

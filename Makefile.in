@@ -432,6 +432,96 @@ expectk: exp_main_tk.o $(PKG_LIB_FILE)
 	$(SETUID) expectk
 
 #========================================================================
+# Produce FAQ and homepage
+#========================================================================
+
+WEBDIR = /proj/itl/www/div826/subject/expect
+VERSION = $(PACKAGE_VERSION)
+
+# create the FAQ in html form
+FAQ.html:	FAQ.src FAQ.tcl
+	FAQ.src html > FAQ.html
+
+# create the FAQ in text form
+FAQ:	FAQ.src FAQ.tcl
+	FAQ.src text > FAQ
+
+# generate Expect home page
+homepage.html:	homepage.src homepage.tcl expect.tar.gz.md5
+	homepage.src > homepage.html
+
+expect.tar.gz.md5:	expect-$(VERSION).tar.gz
+	md5 expect-$(VERSION).tar.gz > expect.tar.gz.md5
+
+# install various html docs on our web server
+install-html:	FAQ.html homepage.html
+	cp homepage.html $(WEBDIR)/index.html
+	cp FAQ.html $(WEBDIR)
+
+# HTMLize man pages for examples and push them out to the web server
+example-man-pages:
+	-for i in $(SCRIPT_MANPAGE_LIST) ; do \
+	  if [ -f $(srcdir)/example/$$i.man ] ; then \
+	    rman -f HTML $(srcdir)/example/$$i.man > $(srcdir)/example/$$i.man.html ; \
+	    cp $(srcdir)/example/$$i.man.html $(FTPDIR)/example ; \
+	  else true; fi ; \
+	done
+
+#========================================================================
+# Push out releases
+#========================================================================
+
+FTPDIR = /proj/itl/www/div826/subject/expect
+
+# make a private tar file for myself
+tar:	expect-$(VERSION).tar
+	mv expect-$(VERSION).tar expect.tar
+
+# make a release and install it on ftp server
+# update web page to reflect new version
+ftp:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz install-html homepage.html
+	cp expect-$(VERSION).tar.Z $(FTPDIR)/expect.tar.Z
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/expect.tar.gz
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/old/expect-$(VERSION).tar.gz
+	md5 $(FTPDIR)/expect.tar.gz > expect.tar.gz.md5
+	cp HISTORY $(FTPDIR)
+	cp README $(FTPDIR)/README.distribution
+	cp example/README $(FTPDIR)/example
+	cp `pubfile example` $(FTPDIR)/example
+	ls -l $(FTPDIR)/expect.tar*
+#	delete .Z temp file, still need .gz though for md5 later
+	rm expect-$(VERSION).tar*
+
+# make an alpha release and install it on ftp server
+alpha:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz
+	cp expect-$(VERSION).tar.Z $(FTPDIR)/alpha.tar.Z
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/alpha.tar.gz
+	cp HISTORY $(FTPDIR)
+	rm expect-$(VERSION).tar*
+	ls -l $(FTPDIR)/alpha.tar*
+
+# make a beta release and install it on ftp server
+beta:	expect-$(VERSION).tar.Z expect-$(VERSION).tar.gz
+	rm -rf $(FTPDIR)/alpha.tar*
+	cp expect-$(VERSION).tar.Z $(FTPDIR)/beta.tar.Z
+	cp expect-$(VERSION).tar.gz $(FTPDIR)/beta.tar.gz
+	cp HISTORY $(FTPDIR)
+	rm expect-$(VERSION).tar*
+	ls -l $(FTPDIR)/beta.tar*
+
+expect-$(VERSION).tar: configure
+	rm -f ../expect-$(VERSION)
+	ln -s `pwd` ../expect-$(VERSION)
+	cd ..;tar cvfh $@ `pubfile expect-$(VERSION)`
+	mv ../$@ .
+
+expect-$(VERSION).tar.Z:	expect-$(VERSION).tar
+	compress -fc expect-$(VERSION).tar > $@
+
+expect-$(VERSION).tar.gz:	expect-$(VERSION).tar
+	gzip -fc expect-$(VERSION).tar > $@
+
+#========================================================================
 # End of user-definable section
 #========================================================================
 

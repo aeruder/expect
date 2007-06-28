@@ -77,17 +77,8 @@ if ![string match $password(new) $password(newcheck)] {
     exit
 }
 
+set timeout -1
 
-#send_user "want to see new password you just typed? (y|n) "
-#expect_user "*\n"
-#
-#if {[string match "y" [lindex $expect_match 0 c]]} {
-#	send_user "password is <$password(new)>\nproceed? (y|n) "
-#	expect_user "*\n"
-#	if ![string match "y" [lindex $expect_match 0 c]] exit
-#}
-
-set timeout 30
 set badhosts {}
 for {set i 0} {$i<$argc} {incr i} {
     set arg [lindex $argv $i]
@@ -104,6 +95,9 @@ for {set i 0} {$i<$argc} {incr i} {
 	continue
     } "-slogin" {
 	set login "slogin"
+	continue
+    } "-ssh" {
+	set login "ssh"
 	continue
     } "-telnet" {
 	set login "telnet"
@@ -131,7 +125,7 @@ for {set i 0} {$i<$argc} {incr i} {
 	set pid [spawn ssh $host -l $user]
     } else {
 	set pid [spawn telnet $host]
-	expect -re "(login|Username):.*" {
+	expect -nocase -re "(login|username):.*" {
 	    send "$user\r"
 	}
     }
@@ -146,7 +140,7 @@ for {set i 0} {$i<$argc} {incr i} {
 
     set logged_in 0
     while {1} {
-	expect "Password*" {
+	expect -nocase "password*" {
 	    send "$password(login)\r"
 	} eof {
 	    badhost $host "spawn failed"
@@ -174,7 +168,7 @@ for {set i 0} {$i<$argc} {incr i} {
 
     if ($su) {
 	send "su -\r"
-	expect "Password:"
+	expect -nocase "password:"
 	send "$password(old)\r"
 	expect "# "
 	send "$program root\r"
@@ -182,20 +176,25 @@ for {set i 0} {$i<$argc} {incr i} {
 	send "$program\r"
     }
 
-    expect "Old password*" {
+    expect -nocase -re "(old|existing login) password:.*" {
 	send "$password(old)\r"
-	expect "Sorry*" {
+	expect -nocase "sorry*" {
 	    badhost $host "old password is bad?"
 	    continue
-	} "password:"
-    } -re "(n|N)ew password:"
+	} -nocase "password:"
+    } -nocase -re "new password:" {
+	# got prompt, fall through
+    } timeout {
+	badhost $host "could not recognize prompt for password"
+	continue
+    }
     send "$password(new)\r"
     expect -re "not changed|unchanged" {
 	badhost $host "new password is bad?"
 	continue
-    } -re "(password|Verification|Verify|again):.*"
+    } -nocase -re "(password|verification|verify|again):.*"
     send "$password(new)\r"
-    expect -re "(not changed|incorrect|choose new).*" {
+    expect -nocase -re "(not changed|incorrect|choose new).*" {
 	badhost $host "password is bad?"
 	continue
     } -re "$prompt"

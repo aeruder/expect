@@ -1,3 +1,46 @@
+2007-06-28  Andreas Kupries <andreask@activestate.com>
+
+	* Merged changes from the official version 5.44.1 of expect into
+	  the SF sources. See the details below.
+
+	  --------------------
+	  Marius Schamsula <marius173@mchsi.xcom> reported tclconfig
+	  missing, evidentally for new TEA.
+
+	  Lots of massaging to fix TEAification of Makefile and configure
+	  including that version numbers will now be full three part.
+
+	  Daniel Wong <danielwong@berkeley.xedu> noted the home page
+	  should note that Wikipedia has a very readable entry for Expect.
+
+	  Andre Alves <aalves@escloyalty.xcom> noted passmass needed some
+	  fixes to handle Solaris 9 passwd prompt changes.
+
+	  Andreas fixed several things: changes to better support TEA, fix
+	  debugger interaction with nonblocking mode, and probably other
+	  things I'm overlooking.
+
+	  Martin Dietze <di@fh-wedel.xde> noted that autoconf 2.59 is
+	  confused by C comment after undefs in expect_cf.h.in.
+
+	  Added additional code to unbuffer -p so that if a process
+	  earlier in the pipeline exits, unbuffer attempts to recover any
+	  remaining output from the spawned proc before unbuffer itself
+	  exits.
+
+	  Jeffrey Hobbs noted that once stty was called, a bg'd script
+	  would be suspended at exit.  Turned out to be overaggressive
+	  code in stty that recorded what 'damage' the user might have
+	  caused when calling stty in the first place.
+
+	  Jens Petersen provided patch to make setpgrp configure better on
+	  some Linux systems.
+
+	  Added example/getpassck script to test for getpass bug.
+
+	  multixterm had debugging stuff leftover ("hello").
+	  --------------------
+	
 2006-02-27  Andreas Kupries <andreask@activestate.com>
 
 	* exp_main_sub.c: Added command 'exp_configure' for magic configuration.

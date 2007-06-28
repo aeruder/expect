@@ -985,4 +985,3 @@ if {[info exists cmdFile]} {
     openFile $cmdFile
 }
 
-puts hello
