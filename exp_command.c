@@ -1394,7 +1394,6 @@ struct slow_arg *arg;
 {
 	int rc;
 
-	char *p = buffer;
 	while (rembytes > 0) {
 		int bytelen;
 		int charlen;

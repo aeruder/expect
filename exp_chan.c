@@ -575,6 +575,9 @@ expWaitOnOne() {
 	    return esPtr;
 	}
     }
+    /* Should not reach this location. If it happens return a value
+     * causing an easy crash */
+    return NULL;
 }
 
 void

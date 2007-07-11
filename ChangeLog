@@ -1,5 +1,12 @@
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
+	* Dbg.c: Added note about unhandled cases in a switch.
+	* exp_chan.c: Added code to suppress unhandled warning for
+	  unreachable code.
+	* exp_command.c: Removed unused variable.
+	* expect.c: Removed unused static function, added code to suppress
+	  unhandled warning for unreachable code.
+
 	* exp_command.c: Fixed typo in comment.
 
 2007-06-28  Andreas Kupries <andreask@activestate.com>

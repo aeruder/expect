@@ -638,6 +638,7 @@ char *argv[];
 		/* same comment as in "case next" */
 		if (goalFramePtr != iPtr->varFramePtr) goto finish;
 		goto start_interact;
+    /* DANGER: unhandled cases! none, up, down, where */
 	}
 
 start_interact:

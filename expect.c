@@ -209,22 +209,6 @@ char *s;
 }
 #endif
 
-/* In many places, there is no need to malloc a copy of a string, since it */
-/* will be freed before we return to Tcl */
-static void
-save_str(lhs,rhs,nosave)
-char **lhs;	/* left hand side */
-char *rhs;	/* right hand side */
-int nosave;
-{
-	if (nosave || (rhs == 0)) {
-		*lhs = rhs;
-	} else {
-		*lhs = ckalloc(strlen(rhs) + 1);
-		strcpy(*lhs,rhs);
-	}
-}
-
 /* return TRUE if string appears to be a set of arguments
    The intent of this test is to support the ability of commands to have
    all their args braced as one.  This conflicts with the possibility of
@@ -1902,6 +1886,10 @@ int x;
 	case EXP_CONTINUE_TIMER:	return EXP_TCLCNTTIMER;
 	case EXP_TCL_RETURN:		return EXP_TCLRETTCL;
 	}
+    /* Must not reach this location. Can happen only if x is an
+     * illegal value. Added return to suppress compiler warning.
+     */
+    return -1000;
 }
 
 /* map from EXP_ style return value to TCL_ style return values */
@@ -1918,6 +1906,10 @@ int x;
 	case EXP_TCLCNTTIMER:		return EXP_CONTINUE_TIMER;
 	case EXP_TCLRETTCL:		return EXP_TCL_RETURN;
 	}
+    /* Must not reach this location. Can happen only if x is an
+     * illegal value. Added return to suppress compiler warning.
+     */
+    return -1000;
 }
 
 /* variables predefined by expect are retrieved using this routine
@@ -1994,9 +1986,9 @@ int cmdtype;
 	case EXP_CMD_BEFORE: return("expect_before");
 	case EXP_CMD_AFTER: return("expect_after");
 	}
-#ifdef LINT
+    /*#ifdef LINT*/
 	return("unknown expect command");
-#endif
+    /*#endif*/
 }
 
 /* exp_indirect_update2 is called back via Tcl's trace handler whenever */
