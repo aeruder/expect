@@ -622,11 +622,13 @@ char **argv;
 
 		/* if unknown args, fall thru and let real stty have a go */
 		if (stty_args_recognized) {
+	    if (
 #ifdef HAVE_TCSETATTR
- 			if (tcsetattr(exp_dev_tty,TCSADRAIN, &tty_current) == -1) {
+		tcsetattr(exp_dev_tty,TCSADRAIN, &tty_current) == -1
 #else
-		        if (ioctl(exp_dev_tty, TCSETSW, &tty_current) == -1) {
+		ioctl(exp_dev_tty, TCSETSW, &tty_current) == -1
 #endif
+		) {
 			    if (exp_disconnected || (exp_dev_tty == -1) || !isatty(exp_dev_tty)) {
 				expErrorLog("system stty: impossible in this context\n");
 				expErrorLog("are you disconnected or in a batch, at, or cron script?");
@@ -675,11 +677,13 @@ char **argv;
 
 	if (!stty_args_recognized) {
 		/* find out what weird options user asked for */
+	if (
 #ifdef HAVE_TCSETATTR
-		if (tcgetattr(exp_dev_tty, &tty_current) == -1) {
+	    tcgetattr(exp_dev_tty, &tty_current) == -1
 #else
-	        if (ioctl(exp_dev_tty, TCGETS, &tty_current) == -1) {
+	    ioctl(exp_dev_tty, TCGETS, &tty_current) == -1
 #endif
+	    ) {
 			expErrorLog("ioctl(get): %s\r\n",Tcl_PosixError(interp));
 
 			/* SF #439042 -- Allow overide of "exit" by user / script

@@ -544,11 +544,13 @@ int flags;
 
     if (deferred_interrupt) return(cc);
 
+    if (
 #ifdef HAVE_SIGLONGJMP
-    if (0 == sigsetjmp(env,1)) {
+	0 == sigsetjmp(env,1)
 #else
-    if (0 == setjmp(env)) {
+	0 == setjmp(env)
 #endif  /* HAVE_SIGLONGJMP */
+	) {
 	reading = TRUE;
 	cc = Tcl_ReadChars(channel,obj,size,flags);
     }

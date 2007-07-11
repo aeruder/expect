@@ -1,5 +1,10 @@
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
+	* exp_command.c: Reformatted overlong lines, whitespace,
+	* expect.c: comments. Added braces to some if-constructs.
+	* exp_inter.c: Reworked if-constructs interleaved with
+	* exp_tty.c: #if for better formatting in emacs.
+
 	* Dbg.c: Added note about unhandled cases in a switch.
 	* exp_chan.c: Added code to suppress unhandled warning for
 	  unreachable code.

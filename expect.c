@@ -114,10 +114,12 @@ struct exp_cmd_descriptor {
 	struct exp_cases_descriptor ecd;
 	struct exp_i *i_list;
 } exp_cmds[4];
-/* note that exp_cmds[FG] is just a fake, the real contents is stored
-   in some dynamically-allocated variable.  We use exp_cmds[FG] mostly
-   as a well-known address and also as a convenience and so we allocate
-   just a few of its fields that we need. */
+
+/* note that exp_cmds[FG] is just a fake, the real contents is stored in some
+ * dynamically-allocated variable.  We use exp_cmds[FG] mostly as a well-known
+ * address and also as a convenience and so we allocate just a few of its
+ * fields that we need.
+ */
 
 static void
 exp_cmd_init(cmd,cmdtype,duration)
@@ -1140,8 +1142,9 @@ struct exp_i *exp_i;
 		struct exp_state_list *fdp;
 
 		/* if more than one element, add braces */
-		if (exp_i->state_list->next)
+	if (exp_i->state_list->next) {
 			Tcl_AppendResult(interp," {",(char *)0);
+	}
 
 		for (fdp = exp_i->state_list;fdp;fdp=fdp->next) {
 			char buf[10];	/* big enough for a small int */
@@ -1149,9 +1152,10 @@ struct exp_i *exp_i;
 			Tcl_AppendElement(interp,buf);
 		}
 
-		if (exp_i->state_list->next)
+	if (exp_i->state_list->next) {
 			Tcl_AppendResult(interp,"} ",(char *)0);
 	}
+}
 }
 
 /* return current setting of the permanent expect_before/after/bg */
@@ -1288,7 +1292,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     /* visit each exp_i */
     for (exp_i=eg.i_list;exp_i;exp_i=exp_i->next) {
 	if (exp_i->direct == EXP_INDIRECT) continue;
-
 	/* for each spawn id, remove it from ecases */
 	for (slPtr=exp_i->state_list;slPtr;slPtr=slPtr->next) {
 	    ExpState *esPtr = slPtr->esPtr;
@@ -1701,6 +1704,7 @@ int key;
 	cc = exp_get_next_event(interp,esPtrs,esPtrsMax,esPtrOut,timeout,key);
 	tcl_set_flags = 0;
     }
+
     esPtr = *esPtrOut;
 
     if (cc == EXP_DATA_NEW) {
@@ -2248,7 +2252,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    result = Tcl_EvalObjEx(interp,body,TCL_EVAL_GLOBAL);
 	    if (result != TCL_OK) Tcl_BackgroundError(interp);
 	}
-	if (cc == EXP_EOF) Tcl_DecrRefCount(body);
+	if (cc == EXP_EOF) { Tcl_DecrRefCount(body); }
     }
     return result;
 }
@@ -3072,8 +3076,6 @@ exp_init_expect_cmds(interp)
 Tcl_Interp *interp;
 {
 	exp_create_commands(interp,cmd_data);
-
-
 
 	Tcl_SetVar(interp,EXPECT_TIMEOUT,INIT_EXPECT_TIMEOUT_LIT,0);
 

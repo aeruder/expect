@@ -2107,7 +2107,8 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 	if (filename && (0 == strcmp(filename,expLogFilenameGet()))) {
 	    expLogAllSet(logAll);
 	    return TCL_OK;
-	} else if (chanName && (0 == strcmp(chanName,Tcl_GetChannelName(expLogChannelGet())))) {
+	} else if (chanName &&
+		   (0 == strcmp(chanName,Tcl_GetChannelName(expLogChannelGet())))) {
 	    expLogAllSet(logAll);
 	    return TCL_OK;
 	} else {
@@ -2313,7 +2314,6 @@ char **argv;
 	 * e.g.  the virtual file system in tclkit
 	 */
 	Tcl_Eval(interp, "rename _close.pre_expect close");
-
 	Tcl_Exit(value);
 	/*NOTREACHED*/
 }
