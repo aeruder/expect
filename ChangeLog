@@ -1,3 +1,7 @@
+2007-07-11  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_command.c: Fixed typo in comment.
+
 2007-06-28  Andreas Kupries <andreask@activestate.com>
 
 	* Merged changes from the official version 5.44.1 of expect into

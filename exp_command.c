@@ -993,7 +993,7 @@ when trapping, see below in child half of fork */
 	    exp_slave_control(master,1);
 
 	    /*
-	     * tell slave to go on now now that we have initialized pty
+	 * tell slave to go on now, now that we have initialized pty
 	     */
 
 	    expDiagLog("parent: telling child to go ahead\r\n");
