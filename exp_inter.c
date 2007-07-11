@@ -43,6 +43,7 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
+#include "exp_event.h" /* exp_get_next_event decl */
 
 typedef struct ThreadSpecificData {
     Tcl_Obj *cmdObjReturn;
@@ -194,19 +195,20 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
     int *skip;			/* # of chars to skip */
     Tcl_RegExpInfo *info;
 {
-    char *string;
+    Tcl_UniChar *string;
     struct keymap *km;
     char *ks;		/* string from a keymap */
 
-    char *start_search;	/* where in string to start searching */
+    Tcl_UniChar *start_search;	/* where in string to start searching */
     int offset;		/* # of chars from string to start searching */
 
-    char *string_end;
-    int stringBytes, bytesThisChar;
+    Tcl_UniChar *string_end;
+    int numchars;
     int rm_nulls;		/* skip nulls if true */
     Tcl_UniChar ch;
 
-    string = Tcl_GetStringFromObj(esPtr->buffer,&stringBytes);
+    string   = esPtr->input.buffer;
+    numchars = esPtr->input.use; /* Actually #chars */
 
     /* assert (*km == 0) */
 
@@ -214,13 +216,13 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
     /* is lengthy and has no key maps.  Otherwise it would mindlessly */
     /* iterate on each character anyway. */
     if (!keymap) {
-	*skip = stringBytes;
+	*skip = numchars;
 	return(EXP_CANTMATCH);
     }
 
     rm_nulls = esPtr->rm_nulls;
 
-    string_end = string + stringBytes;
+    string_end = string + numchars;
 
     /*
      * Maintain both a character index and a string pointer so we
@@ -229,16 +231,16 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 
     for (start_search = string, offset = 0;
 	 start_search < string_end;
-	 start_search += bytesThisChar, offset++) {
+	 start_search ++, offset++) {
 
-	bytesThisChar = Tcl_UtfToUniChar(start_search, &ch);
+	ch = *start_search;
 	
 	if (*km_match) break; /* if we've already found a CANMATCH */
 			/* don't bother starting search from positions */
 			/* further along the string */
 
 	for (km=keymap;km;km=km->next) {
-	    char *s;	/* current character being examined */
+	    Tcl_UniChar *s;	/* current character being examined */
 
 	    if (km->null) {
 		if (ch == 0) {
@@ -274,7 +276,7 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 			break;
 		    }
 
-		    slen = Tcl_UtfToUniChar(s, &sch);
+		    sch = *s;
 		    kslen = Tcl_UtfToUniChar(ks, &ksch);
 		    
 		    if (sch == ksch) continue;
@@ -289,18 +291,23 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 		Tcl_RegExp re;
 		int flags;
 		int result;
+		Tcl_Obj* buf;
 
 		re = Tcl_GetRegExpFromObj(NULL, km->keys,
 			TCL_REG_ADVANCED|TCL_REG_BOSONLY|TCL_REG_CANMATCH);
 		flags = (offset > 0) ? TCL_REG_NOTBOL : 0;
 
-		result = Tcl_RegExpExecObj(NULL, re, esPtr->buffer, offset,
+		/* ZZZ: Future optimization: Avoid copying */
+		buf = Tcl_NewUnicodeObj (esPtr->input.buffer, esPtr->input.use);
+		Tcl_IncrRefCount (buf);
+		result = Tcl_RegExpExecObj(NULL, re, buf, offset,
 			-1 /* nmatches */, flags);
+		Tcl_DecrRefCount (buf);
 		if (result > 0) {
 		    *km_match = km;
 		    *skip = start_search-string;
 		    Tcl_RegExpGetInfo(re, info);
-		    *matchLen = Tcl_UtfAtIndex(start_search,info->matches[0].end) - start_search;
+		    *matchLen = info->matches[0].end;
 		    return EXP_MATCH;
 		} else if (result == 0) {
 		    Tcl_RegExpGetInfo(re, info);
@@ -346,6 +353,7 @@ intRegExpMatchProcess(interp,esPtr,km,info,offset)
 {
     char name[20], value[20];
     int i;
+    Tcl_Obj* buf = Tcl_NewUnicodeObj (esPtr->input.buffer,esPtr->input.use);
 
     for (i=0;i<=info->nsubs;i++) {
 	int start, end;
@@ -369,12 +377,13 @@ intRegExpMatchProcess(interp,esPtr,km,info,offset)
 
 	/* string itself */
 	sprintf(name,"%d,string",i);
-	val = Tcl_GetRange(esPtr->buffer, start, end);
+	val = Tcl_GetRange(buf, start, end);
 	expDiagLog("interact: set %s(%s) \"",INTER_OUT,name);
 	expDiagLogU(expPrintifyObj(val));
 	expDiagLogU("\"\r\n");
 	Tcl_SetVar2Ex(interp,INTER_OUT,name,val,0);
     }
+    Tcl_DecrRefCount (buf);
 }
 
 /*
@@ -400,8 +409,8 @@ intEcho(esPtr,skipBytes,matchBytes)
 	offsetBytes = seenBytes;
     }
 
-    (void) expWriteChars(esPtr,
-		   Tcl_GetString(esPtr->buffer) + offsetBytes,
+    (void) expWriteCharsUni(esPtr,
+			    esPtr->input.buffer + offsetBytes,
 		   echoBytes);
 
     esPtr->echoed = matchBytes + skipBytes - esPtr->printed;
@@ -419,15 +428,18 @@ intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
     int interruptible;
     int key;
 {
-    char *eobOld;  /* old end of buffer */
+    Tcl_UniChar *eobOld;  /* old end of buffer */
     int cc;
-    int size;
-    char *str;
+    int numchars;
+    Tcl_UniChar *str;
 
-    str = Tcl_GetStringFromObj(esPtr->buffer,&size);
-    eobOld = str+size;
+    str      = esPtr->input.buffer;
+    numchars = esPtr->input.use;
+    eobOld   = str + numchars;
 
-    if (size + TCL_UTF_MAX >= esPtr->msize) {
+    /* We drop one third when are at least 2/3 full */
+    /* condition is (size >= max*2/3) <=> (size*3 >= max*2) */
+    if (numchars*3 >= esPtr->input.max*2) {
 	/*
 	 * In theory, interact could be invoked when this situation
 	 * already exists, hence the "probably" in the warning below
@@ -442,22 +454,25 @@ intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
 	exp_buffer_shuffle(interp,esPtr,0,INTER_OUT,"interact");
     }
     if (!interruptible) {
-	cc = Tcl_ReadChars(esPtr->channel,
-		esPtr->buffer,
-		esPtr->msize - (size / TCL_UTF_MAX),
-		1 /* append */);
+        cc = Tcl_ReadChars(esPtr->channel, esPtr->input.newchars,
+			   esPtr->input.max - esPtr->input.use,
+			   0 /* no append */);
     } else {
 #ifdef SIMPLE_EVENT
-	cc = intIRead(esPtr->channel,
-		esPtr->buffer,
-		esPtr->msize - (size / TCL_UTF_MAX),
-		1 /* append */);
+        cc = intIRead(esPtr->channel, esPtr->input.newchars,
+		      esPtr->input.max - esPtr->input.use,
+		      0 /* no append */);
 #endif
     }
 
     if (cc > 0) {
+        memcpy (esPtr->input.buffer + esPtr->input.use,
+		Tcl_GetUnicodeFromObj (esPtr->input.newchars, NULL),
+		cc * sizeof (Tcl_UniChar));
+	esPtr->input.use += cc;
+
 	expDiagLog("spawn id %s sent <",esPtr->name);
-	expDiagLogU(expPrintify(eobOld));
+	expDiagLogU(expPrintifyUni(eobOld,cc));
 	expDiagLogU(">\r\n");
 
 	esPtr->key = key;
@@ -699,6 +714,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     Tcl_Obj *CONST *objv_copy;	/* original, for error messages */
     char *string;
+    Tcl_UniChar *ustring;
+
 #ifdef SIMPLE_EVENT
     int pid;
 #endif /*SIMPLE_EVENT*/
@@ -759,14 +776,28 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     int key;
     int configure_count;	/* monitor reconfigure events */
+    Tcl_Obj* new_cmd = NULL;
 
     if ((objc == 2) && exp_one_arg_braced(objv[1])) {
-	return(exp_eval_with_one_arg(clientData,interp,objv));
+	/* expect {...} */
+
+	new_cmd = exp_eval_with_one_arg(clientData,interp,objv);
+	if (!new_cmd) return TCL_ERROR;
+
+	/* Replace old arguments with result of reparse */
+	Tcl_ListObjGetElements (interp, new_cmd, &objc, &objv);
+
     } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
+	/* expect -brace {...} ... fake command line for reparsing */
+
 	Tcl_Obj *new_objv[2];
 	new_objv[0] = objv[0];
 	new_objv[1] = objv[2];
-	return(exp_eval_with_one_arg(clientData,interp,new_objv));
+
+	new_cmd = exp_eval_with_one_arg(clientData,interp,new_objv);
+	if (!new_cmd) return TCL_ERROR;
+	/* Replace old arguments with result of reparse */
+	Tcl_ListObjGetElements (interp, new_cmd, &objc, &objv);
     }
 
     objv_copy = objv;
@@ -841,7 +872,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	    if (Tcl_GetIndexFromObj(interp, *objv, switches, "switch", 0,
 		    &index) != TCL_OK) {
-		return TCL_ERROR;
+		goto error;
 	    }
 	    switch ((enum switches) index) {
 		case EXP_SWITCH_DASH:
@@ -852,7 +883,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		case EXP_SWITCH_REGEXP:
 		    if (objc < 1) {
 			Tcl_WrongNumArgs(interp,1,objv_copy,"-re pattern");
-			return(TCL_ERROR);
+		    goto error;
 		    }
 		    next_re = TRUE;
 		    objc--;
@@ -866,7 +897,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    if (!(Tcl_GetRegExpFromObj(interp, *objv,
 			    TCL_REG_ADVANCED|TCL_REG_BOSONLY))) {
-			return TCL_ERROR;
+		    goto error;
 		    }
 		    goto pattern;
 		case EXP_SWITCH_INPUT:
@@ -890,11 +921,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    objc--;objv++;
 		    if (objc < 1) {
 			Tcl_WrongNumArgs(interp,1,objv_copy,"-input spawn_id");
-			return(TCL_ERROR);
+		    goto error;
 		    }
 		    inp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
 			    EXP_TEMPORARY,inter_updateproc);
-		    if (!inp->i_list) return TCL_ERROR;
+		if (!inp->i_list) {
+		    goto error;
+		}
 		    break;
 		case EXP_SWITCH_OUTPUT: {
 		    struct output *tmp;
@@ -912,11 +945,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    objc--;objv++;
 		    if (objc < 1) {
 			Tcl_WrongNumArgs(interp,1,objv_copy,"-output spawn_id");
-			return(TCL_ERROR);
+		    goto error;
 		    }
 		    outp->i_list = exp_new_i_complex(interp,Tcl_GetString(*objv),
 			    EXP_TEMPORARY,inter_updateproc);
-		    if (!outp->i_list) return TCL_ERROR;
+		if (!outp->i_list) {
+		    goto error;
+		}
 		    outp->action_eof = &action_eof;
 		    action_eof_ptr = &outp->action_eof;
 		    break;
@@ -925,7 +960,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    objc--;objv++;
 		    if (objc < 1) {
 			Tcl_WrongNumArgs(interp,1,objv_copy,"-u spawn_id");
-			return(TCL_ERROR);
+		    goto error;
 		    }
 		    replace_user_by_process = *objv;
 
@@ -939,8 +974,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    end_km = &input_default->keymap;
 
 		    if (dash_o_count > 0) {
-		      exp_error(interp,"cannot use -o more than once");
-		      return TCL_ERROR;
+			exp_error(interp,"cannot use -o more than once");
+			goto error;
 		    }
 		    dash_o_count++;
 
@@ -1008,11 +1043,11 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    objc--;objv++;
 		    if (objc < 1) {
 			Tcl_WrongNumArgs(interp,1,objv_copy,"-timeout time");
-			return(TCL_ERROR);
+			goto error;
 		    }
 
 		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
-			return TCL_ERROR;
+		    goto error;
 		    }
 		    objc--;objv++;
 		    if (t != -1)
@@ -1088,10 +1123,10 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		    objc--;objv++;
 		    if (objc < 1) {
 			Tcl_WrongNumArgs(interp,1,objv_copy,"timeout time [action]");
-			return(TCL_ERROR);
+		    goto error;
 		    }
 		    if (Tcl_GetIntFromObj(interp, *objv, &t) != TCL_OK) {
-			return TCL_ERROR;
+		    goto error;
 		    }
 		    objc--;objv++;
 
@@ -1185,13 +1220,15 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	struct output *o = new(struct output);
 	if (!chanName) {
 	    if (!(esPtr = expStateCurrent(interp,1,1,0))) {
-		return(TCL_ERROR);
+		goto error;
 	    }
 	    o->i_list = exp_new_i_simple(esPtr,EXP_TEMPORARY);
 	} else {
 	    o->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
 		    EXP_TEMPORARY,inter_updateproc);
-	    if (!o->i_list) return TCL_ERROR;
+	    if (!o->i_list) {
+		goto error;
+	    }
 	}
 	o->next = 0;	/* no one else */
 	o->action_eof = &action_eof;
@@ -1217,11 +1254,13 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	input_user->i_list = exp_new_i_complex(interp,
 		Tcl_GetString(replace_user_by_process),
 		EXP_TEMPORARY,inter_updateproc);
-	if (!input_user->i_list) return TCL_ERROR;
+	if (!input_user->i_list) 
+	    goto error;
 	input_default->output->i_list = exp_new_i_complex(interp,
 		Tcl_GetString(replace_user_by_process),
 		EXP_TEMPORARY,inter_updateproc);
-	if (!input_default->output->i_list) return TCL_ERROR;
+	if (!input_default->output->i_list) 
+	    goto error;
     }
 
     /*
@@ -1237,7 +1276,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    && (input_default->i_list->state_list->esPtr == EXP_SPAWN_ID_BAD)) {
 	if (!chanName) {
 	    if (!(esPtr = expStateCurrent(interp,1,1,0))) {
-		return(TCL_ERROR);
+		goto error;
 	    }
 	    input_default->i_list->state_list->esPtr = esPtr;
 	} else {
@@ -1245,7 +1284,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    exp_free_i(interp,input_default->i_list,inter_updateproc);
 	    input_default->i_list = exp_new_i_complex(interp,Tcl_GetString(chanName),
 		    EXP_TEMPORARY,inter_updateproc);
-	    if (!input_default->i_list) return TCL_ERROR;
+	    if (!input_default->i_list)
+		goto error;
 	}
     }
 
@@ -1262,7 +1302,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     if (input_user->i_list->state_list && input_default->i_list->state_list
 	    && (input_user->i_list->state_list->esPtr == input_default->i_list->state_list->esPtr)) {
 	exp_error(interp,"cannot interact with self - set spawn_id to a spawned process");
-	return(TCL_ERROR);
+	goto error;
     }
 
     esPtrs = 0;
@@ -1343,7 +1383,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	}
 
 	rc = exp_get_next_event(interp,esPtrs,input_count,&u,timeout,key);
-	if (rc == EXP_TCLERROR) return(TCL_ERROR);
+	if (rc == EXP_TCLERROR)
+	    goto error;
 	if (rc == EXP_RECONFIGURE) continue;
 	if (rc == EXP_TIMEOUT) {
 	    if (timeout_simple) {
@@ -1457,7 +1498,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 		     * Following should eventually be rewritten to ...WriteCharsAnd...
 		     */
 		    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
-			    Tcl_GetString(u->buffer) + u->printed,
+						       u->input.buffer + u->printed,
 			    print - u->printed);
 		    if (wc < 0) {
 			expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
@@ -1508,17 +1549,17 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    skip += matchLen;
 	    size -= skip;
 	    if (size) {
-		string = Tcl_GetString(u->buffer);
-		memmove(string, string + skip, size);
+		ustring = u->input.buffer;
+		memmove(ustring, ustring + skip, size * sizeof(Tcl_UniChar));
 	    }
 	} else {
-	    string = Tcl_GetString(u->buffer);
+	    ustring = u->input.buffer;
 	    if (skip) {
 		size -= skip;
-		memcpy(string, string + skip, size);
+		memcpy(ustring, ustring + skip, size * sizeof(Tcl_UniChar));
 	    }
 	}
-	Tcl_SetObjLength(u->buffer,size);
+	u->input.use = size;
 
 	/* now update printed based on total amount skipped */
 
@@ -1729,7 +1770,7 @@ got_action:
 			for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
 			    /* send to channel (and log if chan is stdout or devtty) */
 			    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
-				    Tcl_GetString(u->buffer) + u->printed,
+							       u->input.buffer + u->printed,
 				    print - u->printed);
 			    if (wc < 0) {
 				expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
@@ -1970,7 +2011,7 @@ got_action:
 			for (fdp = outp->i_list->state_list;fdp;fdp=fdp->next) {
 			    /* send to channel (and log if chan is stdout or devtty) */
 			    int wc = expWriteBytesAndLogIfTtyU(fdp->esPtr,
-				    Tcl_GetString(u->buffer) + u->printed,
+							       u->input.buffer + u->printed,
 				    print - u->printed);
 			    if (wc < 0) {
 				expDiagLog("interact: write on spawn id %s failed (%s)\r\n",fdp->esPtr->name,Tcl_PosixError(interp));
@@ -2095,7 +2136,12 @@ got_action:
     free_input(interp,input_base);
     free_action(action_base);
 
+    if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
     return(status);
+
+ error:
+    if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
+    return TCL_ERROR;
 }
 
 /* version of Tcl_Eval for interact */ 
@@ -2203,3 +2249,11 @@ Tcl_Interp *interp;
     Tcl_IncrRefCount(tsdPtr->cmdObjInterpreter);
 #endif
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

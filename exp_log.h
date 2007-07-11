@@ -20,6 +20,7 @@ EXTERN void		expDiagLog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 EXTERN void		expDiagLogU _ANSI_ARGS_((char *));
 
 EXTERN char *		expPrintify _ANSI_ARGS_((char *));
+EXTERN char *		expPrintifyUni _ANSI_ARGS_((Tcl_UniChar *,int));
 EXTERN char *		expPrintifyObj _ANSI_ARGS_((Tcl_Obj *));
 EXTERN void		expPrintf _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 
@@ -38,9 +39,9 @@ EXTERN int		expLogAllGet _ANSI_ARGS_((void));
 EXTERN void		expLogToStdoutSet _ANSI_ARGS_((int));
 EXTERN int		expLogToStdoutGet _ANSI_ARGS_((void));
 EXTERN void		expLogDiagU _ANSI_ARGS_((char *));
-EXTERN int		expWriteBytesAndLogIfTtyU _ANSI_ARGS_((ExpState *,char *,int));
+EXTERN int		expWriteBytesAndLogIfTtyU _ANSI_ARGS_((ExpState *,Tcl_UniChar *,int));
 
 EXTERN int		expLogUserGet _ANSI_ARGS_((void));
 EXTERN void		expLogUserSet _ANSI_ARGS_((int));
 
-EXTERN void		expLogInteractionU _ANSI_ARGS_((ExpState *,char *));
+EXTERN void		expLogInteractionU _ANSI_ARGS_((ExpState *,Tcl_UniChar *,int));

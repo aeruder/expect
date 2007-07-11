@@ -1,5 +1,18 @@
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
+	* exp_chan.c: Converted the buffering system from UTF-8 in Tcl_Obj
+	* exp_command.h: to UTF-16 C-array, to avoid the repeated conversion
+	* expect.c: of the input from utf-8 to utf-16. Updated the glob
+	* exp_glob.c: matching code to use the same tricks for speed which
+	* exp_inter.c: are used by the Tcl core. Extended the regexp
+	* exp_log.c: matching path with a glob matcher which uses a gate
+	* exp_log.h: keeper glob pattern to weed out most non-candidates
+	* retoglob.c (New file): in a speedy manner. Regexp matching now
+	  has to be done only for the small number of candidates
+	  identified by the gate keeper. Overall speed improvement as glob
+	  matching is faster than regexp matching. Added code translating
+	  regular expressions into their gate keeper glob pattern.
+
 	* Dbg.c: Converted the lot of argc,argv based command
 	* exp_command.c: implementations over to objc,objv.
 	* expect.c:

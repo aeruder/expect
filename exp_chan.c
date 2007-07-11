@@ -35,6 +35,7 @@
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
+#include "tcldbg.h" /* Dbg_StdinMode */
 
 extern int		expSetBlockModeProc _ANSI_ARGS_((int fd, int mode));
 static int		ExpBlockModeProc _ANSI_ARGS_((ClientData instanceData,
@@ -324,7 +325,8 @@ ExpCloseProc(instanceData, interp)
     Tcl_DeleteFileHandler(esPtr->fdin);
 #endif /*0*/
 
-    Tcl_DecrRefCount(esPtr->buffer);
+    Tcl_Free((char*)esPtr->input.buffer);
+    Tcl_DecrRefCount (esPtr->input.newchars);
 
     /* Actually file descriptor should have been closed earlier. */
     /* So do nothing here */
@@ -445,25 +447,21 @@ expChannelCountGet()
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->channelCount;
 }
-
+#if 0 /* Converted to macros */
 int
 expSizeGet(esPtr)
     ExpState *esPtr;
 {
-    int len;
-    Tcl_GetStringFromObj(esPtr->buffer,&len);
-    return len;
+    return esPtr->input.use;
 }
 
 int
 expSizeZero(esPtr)
     ExpState *esPtr;
 {
-    int len;
-    Tcl_GetStringFromObj(esPtr->buffer,&len);
-    return (len == 0);
+    return (esPtr->input.use == 0);
 }
-
+#endif
 /* return 0 for success or negative for failure */
 int
 expWriteChars(esPtr,buffer,lenBytes)
@@ -486,6 +484,25 @@ expWriteChars(esPtr,buffer,lenBytes)
 
   /* just return 0 rather than positive byte counts */
   return ((rc > 0) ? 0 : rc);
+}
+
+int
+expWriteCharsUni(esPtr,buffer,lenChars)
+     ExpState *esPtr;
+     Tcl_UniChar *buffer;
+     int lenChars;
+{
+  int rc;
+  Tcl_DString ds;
+
+  Tcl_DStringInit (&ds);
+  Tcl_UniCharToUtfDString (buffer,lenChars,&ds);
+
+  rc = expWriteChars(esPtr,Tcl_DStringValue (&ds), Tcl_DStringLength (&ds));
+
+  Tcl_DStringFree (&ds);
+
+  return rc;
 }
 
 void
@@ -644,11 +661,13 @@ expCreateChannel(interp,fdin,fdout,pid)
     Tcl_SetChannelOption(interp,esPtr->channel,"-translation","lf");
 
     esPtr->pid = pid;
-    esPtr->msize = 0;
 
-    /* initialize a dummy buffer */
-    esPtr->buffer = Tcl_NewStringObj("",0);
-    Tcl_IncrRefCount(esPtr->buffer);
+    esPtr->input.max    = 1;
+    esPtr->input.use    = 0;
+    esPtr->input.buffer = (Tcl_UniChar*) Tcl_Alloc (sizeof (Tcl_UniChar));
+    esPtr->input.newchars = Tcl_NewObj();
+    Tcl_IncrRefCount (esPtr->input.newchars);
+
     esPtr->umsize = exp_default_match_max;
     /* this will reallocate object with an appropriate sized buffer */
     expAdjust(esPtr);

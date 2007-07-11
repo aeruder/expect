@@ -41,6 +41,8 @@ would appreciate credit if this program or parts of it are used.
 #include "tcldbg.h"
 #endif
 
+#include "retoglob.c" /* RE 2 GLOB translator C variant */
+
 /* initial length of strings that we can guarantee patterns can match */
 int exp_default_match_max =	2000;
 #define INIT_EXPECT_TIMEOUT_LIT	"10"	/* seconds */
@@ -52,6 +54,10 @@ int exp_default_close_on_eof =  TRUE;
 /* user variable names */
 #define EXPECT_TIMEOUT		"timeout"
 #define EXPECT_OUT		"expect_out"
+
+extern int Exp_StringCaseMatch _ANSI_ARGS_((Tcl_UniChar *string, int strlen,
+					    Tcl_UniChar *pattern,
+					    int nocase,int *offset));
 
 typedef struct ThreadSpecificData {
     int timeout;
@@ -68,12 +74,18 @@ static ExpState StdinoutPlaceholder;
 static ExpState DevttyPlaceholder;
 
 /* 1 ecase struct is reserved for each case in the expect command.  Note that
-eof/timeout don't use any of theirs, but the algorithm is simpler this way. */
+ * eof/timeout don't use any of theirs, but the algorithm is simpler this way.
+ */
 
 struct ecase {	/* case for expect command */
 	struct exp_i	*i_list;
 	Tcl_Obj *pat;	/* original pattern spec */
 	Tcl_Obj *body;	/* ptr to body to be executed upon match */
+    Tcl_Obj *gate;	/* For PAT_RE, a gate-keeper glob pattern
+			 * which is quicker to match and reduces
+			 * the number of calls into expensive RE
+			 * matching. Optional.
+			 */
 #define PAT_EOF		1
 #define PAT_TIMEOUT	2
 #define PAT_DEFAULT	3
@@ -84,8 +96,8 @@ struct ecase {	/* case for expect command */
 #define PAT_NULL	8 /* ASCII 0 */
 #define PAT_TYPES	9 /* used to size array of pattern type descriptions */
 	int use;	/* PAT_XXX */
-	int simple_start;/* offset from start of buffer denoting where a */
-			/* glob or exact match begins */
+    int simple_start;	/* offset (chars) from start of buffer denoting where a
+			 * glob or exact match begins */
 	int transfer;	/* if false, leave matched chars in input stream */
 	int indices;	/* if true, write indices */
 	int iread;	/* if true, reread indirects */
@@ -165,14 +177,16 @@ struct ecase *ec;
 int free_ilist;		/* if we should free ilist */
 {
     if (ec->i_list->duration == EXP_PERMANENT) {
-	if (ec->pat) Tcl_DecrRefCount(ec->pat);
-	if (ec->body) Tcl_DecrRefCount(ec->body);
+	if (ec->pat)  { Tcl_DecrRefCount(ec->pat); }
+	if (ec->gate) { Tcl_DecrRefCount(ec->gate); }
+	if (ec->body) { Tcl_DecrRefCount(ec->body); }
     }
 
     if (free_ilist) {
 	ec->i_list->ecount--;
-	if (ec->i_list->ecount == 0)
+	if (ec->i_list->ecount == 0) {
 	    exp_free_i(interp,ec->i_list,exp_indirect_update2);
+    }
     }
 
     ckfree((char *)ec);	/* NEW */
@@ -249,33 +263,32 @@ Tcl_Obj *objPtr;
 
 /* called to execute a command of only one argument - a hack to commands */
 /* to be called with all args surrounded by an outer set of braces */
-/* returns TCL_whatever */
+/* Returns a list object containing the new set of arguments */
+/* Caller then has to either reinvoke itself, or better, simply replace
+ * its current argumnts */
 /*ARGSUSED*/
-int
+Tcl_Obj*
 exp_eval_with_one_arg(clientData,interp,objv) /* INTL */
 ClientData clientData;
 Tcl_Interp *interp;
 Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
+    Tcl_Obj* res = Tcl_NewListObj (1,objv);
+
 #define NUM_STATIC_OBJS 20
-    Tcl_Obj *staticObjArray[NUM_STATIC_OBJS];
-    int maxobjs = NUM_STATIC_OBJS;
     Tcl_Token *tokenPtr;
-    char *p, *next;
+    CONST char *p;
+    CONST char *next;
     int rc;
-    Tcl_Obj **objs = staticObjArray;
-    int objc, bytesLeft, numWords, i;
+    int bytesLeft, numWords;
     Tcl_Parse parse;
 
     /*
      * Prepend the command name and the -nobrace switch so we can
      * reinvoke without recursing.
      */
-    objc = 2;
-    objs[0] = objv[0];
-    objs[1] = Tcl_NewStringObj("-nobrace", -1);
-    Tcl_IncrRefCount(objs[0]);
-    Tcl_IncrRefCount(objs[1]);
+
+    Tcl_ListObjAppendElement (interp, res, Tcl_NewStringObj("-nobrace", -1));
 
     p = Tcl_GetStringFromObj(objv[1], &bytesLeft);
 
@@ -298,17 +311,6 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	     * Generate an array of objects for the words of the command.
 	     */
     
-	    if (objc + numWords > maxobjs) {
-		Tcl_Obj ** newobjs;
-		maxobjs = (objc + numWords) * 2;
-		newobjs = (Tcl_Obj **)ckalloc(maxobjs * sizeof (Tcl_Obj *));
-		memcpy(newobjs, objs, objc*sizeof(Tcl_Obj *));
-		if (objs != staticObjArray) {
-		    ckfree((char*)objs);
-		}
-		objs = newobjs;   
-	    }
-
 	    /*
 	     * For each word, perform substitutions then store the
 	     * result in the objs array.
@@ -316,13 +318,17 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	    
 	    for (tokenPtr = parse.tokenPtr; numWords > 0;
 		 numWords--, tokenPtr += (tokenPtr->numComponents + 1)) {
-		objs[objc] = Tcl_EvalTokens(interp, tokenPtr+1,
+		/* FUTURE: Save token information, do substitution later */
+
+		Tcl_Obj* w = Tcl_EvalTokens(interp, tokenPtr+1,
 			tokenPtr->numComponents);
-		if (objs[objc] == NULL) {
-		    rc = TCL_ERROR;
+		if (w == NULL) {
+		    Tcl_DecrRefCount (res);
+		    res = NULL;
 		    goto done;
+
 		}
-		objc++;
+		Tcl_ListObjAppendElement (interp, res, w);
 	    }
 	}
 
@@ -335,20 +341,8 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	Tcl_FreeParse(&parse);
     } while (bytesLeft > 0);
 
-    /*
-     * Now evaluate the entire command with no further substitutions.
-     */
-
-    rc = Tcl_EvalObjv(interp, objc, objs, 0);
  done:
-    for (i = 0; i < objc; i++) {
-	Tcl_DecrRefCount(objs[i]);
-    }
-    if (objs != staticObjArray) {
-	ckfree((char *) objs);
-    }
-    return(rc);
-#undef NUM_STATIC_OBJS
+    return res;
 }
 
 static void
@@ -364,6 +358,7 @@ struct ecase *ec;
 	ec->timestamp = FALSE;
 	ec->Case = CASE_NORM;
 	ec->use = PAT_GLOB;
+    ec->gate = NULL;
 }
 
 static struct ecase *
@@ -480,6 +475,29 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 					   TCL_REG_ADVANCED))) {
 		    goto error;
 		}
+
+		/* Derive a gate keeper glob pattern which reduces the amount
+		 * of RE matching.
+		 */
+
+		{
+		    Tcl_Obj* g;
+		    Tcl_UniChar* str;
+		    int strlen;
+
+		    str = Tcl_GetUnicodeFromObj (objv[i], &strlen);
+		    g = exp_retoglob (str, strlen);
+
+		    if (g) {
+			ec.gate = g;
+		    } else {
+			/* Ignore errors, fall back to regular RE matching */
+			expDiagLog("Gate keeper glob pattern for '%s'",Tcl_GetString(objv[i]));
+			expDiagLog(" is '%s'. Not usable, disabling the",Tcl_GetString(Tcl_GetObjResult (interp)));
+			expDiagLog(" performance booster.\n");
+		    }
+		}
+
 		goto pattern;
 	    case EXP_ARG_EXACT:
 		i++;
@@ -607,7 +625,12 @@ pattern:
 	    /* useful for debugging but not otherwise used */
 
 	    ec.pat = objv[i];
-	    if (eg->duration == EXP_PERMANENT) Tcl_IncrRefCount(ec.pat);
+	    if (eg->duration == EXP_PERMANENT) {
+		Tcl_IncrRefCount(ec.pat);
+		if (ec.gate) {
+		    Tcl_IncrRefCount(ec.gate);
+		}
+	    }
 
 	    i++;
 	    if (i < objc) {
@@ -662,9 +685,10 @@ static char no[] = "no\r\n";
 struct eval_out {
     struct ecase *e;		/* ecase that matched */
     ExpState *esPtr;		/* ExpState that matched */
-    Tcl_Obj *buffer;		/* buffer that matched */
-    int match;			/* # of bytes in buffer that matched */
-			        /* or # of bytes in buffer at EOF */
+    Tcl_UniChar* matchbuf;   /* Buffer that matched, */
+    int          matchlen;   /* and #chars that matched, or
+			      * #chars in buffer at EOF */
+    /* This points into the esPtr->input.buffer ! */
 };
 
 
@@ -687,13 +711,14 @@ struct eval_out {
  *----------------------------------------------------------------------
  */
 
-char *
+Tcl_UniChar *
 string_case_first(string,pattern)	/* INTL */
-    register char *string;	/* String. */
+     register Tcl_UniChar *string;	/* String (unicode). */
     register char *pattern;	/* Pattern, which may contain
-				 * special characters. */
+				 * special characters (utf8). */
 {
-    char *s, *p;
+    Tcl_UniChar *s;
+    char *p;
     int offset;
     Tcl_UniChar ch1, ch2;
     
@@ -701,8 +726,8 @@ string_case_first(string,pattern)	/* INTL */
 	s = string;
 	p = pattern;
 	while (*s) {
-	    s += Tcl_UtfToUniChar(s, &ch1);
-	    offset = Tcl_UtfToUniChar(p, &ch2);
+	    ch1 = *s++;
+	    offset = TclUtfToUniChar(p, &ch2);
 	    if (Tcl_UniCharToLower(ch1) != Tcl_UniCharToLower(ch2)) {
 		break;
 	    }
@@ -712,6 +737,58 @@ string_case_first(string,pattern)	/* INTL */
 	    return string;
 	}
 	string++;
+    }
+    return NULL;
+}
+
+Tcl_UniChar *
+string_first(string,pattern)	/* INTL */
+     register Tcl_UniChar *string;	/* String (unicode). */
+     register char *pattern;	/* Pattern, which may contain
+				 * special characters (utf8). */
+{
+    Tcl_UniChar *s;
+    char *p;
+    int offset;
+    Tcl_UniChar ch1, ch2;
+    
+    while (*string != 0) {
+	s = string;
+	p = pattern;
+	while (*s) {
+	    ch1 = *s++;
+	    offset = TclUtfToUniChar(p, &ch2);
+	    if (ch1 != ch2) {
+		break;
+	    }
+	    p += offset;
+	}
+	if (*p == '\0') {
+	    return string;
+	}
+	string++;
+    }
+    return NULL;
+}
+
+Tcl_UniChar *
+string_first_char(string,pattern)	/* INTL */
+     register Tcl_UniChar *string;	/* String. */
+     register Tcl_UniChar pattern;
+{
+    /* unicode based Tcl_UtfFindFirst */
+
+    Tcl_UniChar find;
+    
+    while (1) {
+        find = *string;
+	if (find == pattern) {
+	    return string;
+	}
+	if (*string == '\0') {
+	    return NULL;
+	}
+	string ++;
     }
     return NULL;
 }
@@ -730,20 +807,20 @@ ExpState **last_esPtr;
 int *last_case;
 char *suffix;
 {
-    Tcl_Obj *buffer;
     Tcl_RegExp re;
     Tcl_RegExpInfo info;
-    char *str;
-    int length, flags;
+    Tcl_Obj* buf;
+    Tcl_UniChar *str;
+    int numchars, flags, dummy, globmatch;
     int result;
 
-    buffer = esPtr->buffer;
-    str = Tcl_GetStringFromObj(buffer, &length);
+    str      = esPtr->input.buffer;
+    numchars = esPtr->input.use;
 
     /* if ExpState or case changed, redisplay debug-buffer */
     if ((esPtr != *last_esPtr) || e->Case != *last_case) {
 	expDiagLog("\r\nexpect%s: does \"",suffix);
-	expDiagLogU(expPrintify(str));
+	expDiagLogU(expPrintifyUni(str,numchars));
 	expDiagLog("\" (spawn_id %s) match %s ",esPtr->name,pattern_style[e->use]);
 	*last_esPtr = esPtr;
 	*last_case = e->Case;
@@ -753,6 +830,20 @@ char *suffix;
 	expDiagLog("\"");
 	expDiagLogU(expPrintify(Tcl_GetString(e->pat)));
 	expDiagLog("\"? ");
+
+	if (e->gate) {
+	    globmatch = Exp_StringCaseMatch(str, numchars,
+					    Tcl_GetUnicodeFromObj (e->gate, &dummy),
+					    (e->Case == CASE_NORM) ? 0 : 1,
+					    &dummy);
+	} else {
+	    /* No gate => RE matching always */
+	    globmatch = 1;
+	}
+	if (globmatch < 0) {
+	    expDiagLogU(no);
+	    /* i.e. no match */
+	} else {
 	if (e->Case == CASE_NORM) {
 	    flags = TCL_REG_ADVANCED;
 	} else {
@@ -761,10 +852,13 @@ char *suffix;
 		    
 	re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 
-	result = Tcl_RegExpExecObj(interp, re, buffer, 0 /* offset */,
+	    /* ZZZ: Future optimization: Avoid copying */
+	    buf = Tcl_NewUnicodeObj (str, numchars);
+	    Tcl_IncrRefCount (buf);
+	    result = Tcl_RegExpExecObj(interp, re, buf, 0 /* offset */,
 		-1 /* nmatches */, 0 /* eflags */);
+	    Tcl_DecrRefCount (buf);
 	if (result > 0) {
-
 	    o->e = e;
 
 	    /*
@@ -773,8 +867,8 @@ char *suffix;
 	     */
 
 	    Tcl_RegExpGetInfo(re, &info);
-	    o->match = Tcl_UtfAtIndex(str, info.matches[0].end) - str;
-	    o->buffer = buffer;
+		o->matchlen = info.matches[0].end;
+		o->matchbuf = str;
 	    o->esPtr = esPtr;
 	    expDiagLogU(yes);
 	    return(EXP_MATCH);
@@ -783,21 +877,22 @@ char *suffix;
 	} else { /* result < 0 */
 	    return(EXP_TCLERROR);
 	}
+	}
     } else if (e->use == PAT_GLOB) {
-	int match; /* # of bytes that matched */
+	int match; /* # of chars that matched */
 
 	expDiagLog("\"");
 	expDiagLogU(expPrintify(Tcl_GetString(e->pat)));
 	expDiagLog("\"? ");
-	if (buffer) {
-	    match = Exp_StringCaseMatch(Tcl_GetString(buffer),
-		    Tcl_GetString(e->pat),
+	if (str) {
+	    match = Exp_StringCaseMatch(str,numchars,
+					Tcl_GetUnicodeFromObj(e->pat,&dummy),
 		    (e->Case == CASE_NORM) ? 0 : 1,
 		    &e->simple_start);
 	    if (match != -1) {
 		o->e = e;
-		o->match = match;
-		o->buffer = buffer;
+		o->matchlen = match;
+		o->matchbuf = str;
 		o->esPtr = esPtr;
 		expDiagLogU(yes);
 		return(EXP_MATCH);
@@ -807,10 +902,10 @@ char *suffix;
     } else if (e->use == PAT_EXACT) {
 	int patLength;
 	char *pat = Tcl_GetStringFromObj(e->pat, &patLength);
-	char *p;
+	Tcl_UniChar *p;
 
 	if (e->Case == CASE_NORM) {
-	    p = strstr(str, pat);
+	    p = string_first(str, pat); /* NEW function in this file, see above */
 	} else {
 	    p = string_case_first(str, pat);
 	}	    
@@ -821,21 +916,21 @@ char *suffix;
 	if (p) {
 	    e->simple_start = p - str;
 	    o->e = e;
-	    o->match = patLength;
-	    o->buffer = buffer;
+	    o->matchlen = patLength;
+	    o->matchbuf = str;
 	    o->esPtr = esPtr;
 	    expDiagLogU(yes);
 	    return(EXP_MATCH);
 	} else expDiagLogU(no);
     } else if (e->use == PAT_NULL) {
-	CONST char *p;
+	CONST Tcl_UniChar *p;
 	expDiagLogU("null? ");
-	p = Tcl_UtfFindFirst(str, 0);
+	p = string_first_char (str, 0); /* NEW function in this file, see above */
 
 	if (p) {
 	    o->e = e;
-	    o->match = p-str;
-	    o->buffer = buffer;
+	    o->matchlen = p-str; /* #chars */
+	    o->matchbuf = str;
 	    o->esPtr = esPtr;
 	    expDiagLogU(yes);
 	    return EXP_MATCH;
@@ -845,11 +940,12 @@ char *suffix;
       expDiagLogU(Tcl_GetString(e->pat));
       expDiagLogU("? ");
       /* this must be the same test as in expIRead */
-      if ((expSizeGet(esPtr) + TCL_UTF_MAX >= esPtr->msize)
-	    && (length > 0)) {
+	/* We drop one third when are at least 2/3 full */
+	/* condition is (size >= max*2/3) <=> (size*3 >= max*2) */
+	if (((expSizeGet(esPtr)*3) >= (esPtr->input.max*2)) && (numchars > 0)) {
 	o->e = e;
-	o->match = length;
-	o->buffer = esPtr->buffer;
+	    o->matchlen = numchars;
+	    o->matchbuf = str;
 	o->esPtr = esPtr;
 	expDiagLogU(yes);
 	return(EXP_FULLBUFFER);
@@ -1259,21 +1355,36 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     struct exp_state_list *slPtr;   /* temp for interating over state_list */
     struct exp_cmd_descriptor eg;
     int count;
+    Tcl_Obj* new_cmd = NULL;
 
     struct exp_cmd_descriptor *ecmd = (struct exp_cmd_descriptor *) clientData;
 
     if ((objc == 2) && exp_one_arg_braced(objv[1])) {
-	return(exp_eval_with_one_arg(clientData,interp,objv));
+	/* expect {...} */
+
+	new_cmd = exp_eval_with_one_arg(clientData,interp,objv);
+	if (!new_cmd) return TCL_ERROR;
     } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
+	/* expect -brace {...} ... fake command line for reparsing */
+
 	Tcl_Obj *new_objv[2];
 	new_objv[0] = objv[0];
 	new_objv[1] = objv[2];
-	return(exp_eval_with_one_arg(clientData,interp,new_objv));
+
+	new_cmd = exp_eval_with_one_arg(clientData,interp,new_objv);
+	if (!new_cmd) return TCL_ERROR;
+    }
+
+    if (new_cmd) {
+	/* Replace old arguments with result of the reparse */
+	Tcl_ListObjGetElements (interp, new_cmd, &objc, &objv);
     }
 
     if (objc > 1 && (Tcl_GetString(objv[1])[0] == '-')) {
 	if (exp_flageq("info",Tcl_GetString(objv[1])+1,4)) {
-	    return(expect_info(interp,ecmd,objc,objv));
+	    int res = expect_info(interp,ecmd,objc,objv);
+	    if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
+	    return res;
 	} 
     }
 
@@ -1281,6 +1392,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if (TCL_ERROR == parse_expect_args(interp,&eg,EXP_SPAWN_ID_BAD,
 	    objc,objv)) {
+	if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
 	return TCL_ERROR;
     }
 
@@ -1438,6 +1550,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	exp_background_channelhandlers_run_all();
     }
 
+    if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
     return(result);
 }
 
@@ -1446,65 +1559,55 @@ void
 expAdjust(esPtr)
 ExpState *esPtr;
 {
-    int new_msize;
-    int length;
-    Tcl_Obj *newObj;
-    char *string;
-    int excessBytes;
-    char *excessGuess;
-    CONST char *p;
+    int new_msize, excess;
+    Tcl_UniChar *string;
 
     /*
-     * Resize buffer to user's request * 2 + 1.
-     * x2: in case the match straddles two bufferfuls.
+     * Resize buffer to user's request * 3 + 1.
+     *
+     * x3: in case the match straddles two bufferfuls, and to allow
+     *     reading a bufferful even when we reach near fullness of two.
+     *     (At shuffle time this means we look for 2/3 full buffer and
+     *      drop a 1/3, i.e. half of that).
+     *
+     * NOTE: The unmodified expect got the same effect by comparing
+     *       apples and oranges in shuffle mgmt, i.e bytes vs. chars,
+     *       and automatically extending the buffer (Tcl_Obj string)
+     *       to hold that much.
+     *
      * +1: for trailing null.
      */
 
-    new_msize = esPtr->umsize*2 + 1;
+    new_msize = esPtr->umsize * 3 + 1;
 
-    if (new_msize != esPtr->msize) {
-	string = Tcl_GetStringFromObj(esPtr->buffer, &length);
-	if (length > new_msize) {
+    if (new_msize != esPtr->input.max) {
+
+	if (esPtr->input.use > new_msize) {
 	    /*
 	     * too much data, forget about data at beginning of buffer
 	     */
 
-	    excessBytes = length - new_msize;	/* initial guess */
+	    string = esPtr->input.buffer;
+	    excess = esPtr->input.use - new_msize; /* #chars */
 
-	    /*
-	     * Alas, string + excessBytes may be in the middle of a UTF char.
-	     * Find out for sure.
-	     */
-	    excessGuess = string + excessBytes;
-	    for (p=string;;p=Tcl_UtfNext(p)) {
-		if (p >= excessGuess) break;
-	    }
+	    memcpy (string, string + excess, new_msize * sizeof (Tcl_UniChar));
+	    esPtr->input.use = new_msize;
 
-	    /* now we can calculate a valid # of excess bytes */
-	    excessBytes = p - string;
-	    newObj = Tcl_NewStringObj(string + excessBytes,length - excessBytes);
 	} else {
 	    /*
-	     * too little data
+	     * too little data - length < new_mbytes
+	     * Make larger if the max is also too small.
 	     */
 
-	    /* first copy what's there */
-	    newObj = Tcl_NewStringObj(string,length);
-
-	    /*
-	     * Force object to allocate a buffer at least new_msize bytes long,
-	     * then reset correct string length.
-	     */
-
-	    Tcl_SetObjLength(newObj,new_msize);
-	    Tcl_SetObjLength(newObj,length);
+	    if (esPtr->input.max < new_msize) {
+	        esPtr->input.buffer = (Tcl_UniChar*) \
+		    Tcl_Realloc ((char*)esPtr->input.buffer,
+				 new_msize * sizeof (Tcl_UniChar));
+	    }
 	}
-	Tcl_IncrRefCount(newObj);
-	Tcl_DecrRefCount(esPtr->buffer);
-	esPtr->buffer = newObj;
 
 	esPtr->key = expect_key++;
-	esPtr->msize = new_msize;
+	esPtr->input.max = new_msize;
     }
 }
 
@@ -1532,7 +1635,6 @@ expParityStrip(obj,offsetBytes)
 	}
     }
 }
-#endif /*OBSOLETE*/
 
 /* This function is only used when debugging.  It checks when a string's
    internal UTF is sane and whether an offset into the string appears to
@@ -1566,7 +1668,7 @@ expValid(obj,offset)
   while (*s) {
     Tcl_UniChar uc;
 
-    s += Tcl_UtfToUniChar(s,&uc);
+	s += TclUtfToUniChar(s,&uc);
     if (s > end) {
       printf("UTF out of sync with terminator\n");
       fflush(stdout);
@@ -1577,7 +1679,7 @@ expValid(obj,offset)
   while (*s) {
     Tcl_UniChar uc;
 
-    s += Tcl_UtfToUniChar(s,&uc);
+	s += TclUtfToUniChar(s,&uc);
     if (s > end) {
       printf("UTF from offset out of sync with terminator\n");
       fflush(stdout);
@@ -1585,28 +1687,29 @@ expValid(obj,offset)
     }
   }
 }
+#endif /*OBSOLETE*/
 
-/* Strip UTF-encoded nulls from object, beginning at offset */
+/* Strip nulls from object, beginning at offset */
 static int
-expNullStrip(obj,offsetBytes)
-    Tcl_Obj *obj;
-    int offsetBytes;
+expNullStrip(buf,offsetChars)
+     ExpUniBuf* buf;
+     int offsetChars;
 {
-    char *src, *src2;
-    char *dest;
-    Tcl_UniChar uc;
+    Tcl_UniChar *src, *src2, *dest, *end;
     int newsize;       /* size of obj after all nulls removed */
 
-    src2 = src = dest = Tcl_GetString(obj) + offsetBytes;
+    src2 = src = dest = buf->buffer + offsetChars;
+    end               = buf->buffer + buf->use;
 
-    while (*src) {
-	src += Tcl_UtfToUniChar(src,&uc);
-	if (uc != 0) {
-	    dest += Tcl_UniCharToUtf(uc,dest);
+    while (src < end) {
+	if (*src) {
+	    *dest = *src;
+	    dest ++;
 	}
+	src ++;
     }
-    newsize = offsetBytes + (dest - src2);
-    Tcl_SetObjLength(obj,newsize);
+    newsize = offsetChars + (dest - src2);
+    buf->use = newsize;
     return newsize;
 }
 
@@ -1623,9 +1726,11 @@ int timeout;
 int save_flags;
 {
     int cc = EXP_TIMEOUT;
-    int size = expSizeGet(esPtr);
+    int size;
 
-    if (size + TCL_UTF_MAX >= esPtr->msize) 
+    /* We drop one third when are at least 2/3 full */
+    /* condition is (size >= max*2/3) <=> (size*3 >= max*2) */
+    if (expSizeGet(esPtr)*3 >= esPtr->input.max*2)
 	exp_buffer_shuffle(interp,esPtr,save_flags,EXPECT_OUT,"expect");
     size = expSizeGet(esPtr);
 
@@ -1640,12 +1745,17 @@ int save_flags;
     }
 #endif
 
-    
-    cc = Tcl_ReadChars(esPtr->channel,
-	    esPtr->buffer,
-	    esPtr->msize - (size / TCL_UTF_MAX),
-	    1 /* append */);
+    cc = Tcl_ReadChars(esPtr->channel, esPtr->input.newchars,
+		       esPtr->input.max - esPtr->input.use,
+		       0 /* no append */);
     i_read_errno = errno;
+
+    if (cc > 0) {
+        memcpy (esPtr->input.buffer + esPtr->input.use,
+		Tcl_GetUnicodeFromObj (esPtr->input.newchars, NULL),
+		cc * sizeof (Tcl_UniChar));
+	esPtr->input.use += cc;
+    }
 
 #ifdef SIMPLE_EVENT
     alarm(0);
@@ -1776,14 +1886,14 @@ int key;
 	 * already because they're typing it and tty driver is echoing it.
 	 * Also send to Diag and Log if appropriate.
 	 */
-	expLogInteractionU(esPtr,Tcl_GetString(esPtr->buffer) + esPtr->printed);
+	expLogInteractionU(esPtr,esPtr->input.buffer + esPtr->printed, write_count);
 	    
 	/*
 	 * strip nulls from input, since there is no way for Tcl to deal with
 	 * such strings.  Doing it here lets them be sent to the screen, just
 	 * in case they are involved in formatting operations
 	 */
-	if (esPtr->rm_nulls) size = expNullStrip(esPtr->buffer,esPtr->printed);
+	if (esPtr->rm_nulls) size = expNullStrip(&esPtr->input,esPtr->printed);
 	esPtr->printed = size; /* count'm even if not logging */
     }
     return(cc);
@@ -1799,12 +1909,10 @@ int save_flags;
 char *array_name;
 char *caller_name;
 {
-    char *str;
-    char *middleGuess;
-    char *p;
-    int length, newlen;
-    int skiplen;
-    char lostByte;
+    Tcl_UniChar *str;
+    Tcl_UniChar *p;
+    int numchars, newlen, skiplen;
+    Tcl_UniChar lostChar;
 
     /*
      * allow user to see data we are discarding
@@ -1822,58 +1930,39 @@ char *caller_name;
      * a refcount of 1 so we can safely modify the contents in place.
      */
 
-    if (Tcl_IsShared(esPtr->buffer)) {
-	panic("exp_buffer_shuffle called with shared buffer object");
-    }
+    str      = esPtr->input.buffer;
+    numchars = esPtr->input.use;
 
-    str = Tcl_GetStringFromObj(esPtr->buffer,&length);
-
-    /* guess at the middle */
-    middleGuess = str + length/2;
-
-    /* crawl our way into the middle of the string
-     * to make sure we are at a UTF char boundary
-     */
-
-    /* TIP 27: We cast CONST away to allow the restoration the lostByte later on
-     * See 'restore damage' below.
-     */
-
-    for (p=str;*p;p = (char*) Tcl_UtfNext(p)) {
-	if (p > middleGuess) break;   /* ok, that's enough */
-    }
-
-    /*
-     * p is now at the beginning of a UTF char in the middle of the string
-     */
+    skiplen = numchars/3;
+    p       = str + skiplen;
 
     /*
      * before doing move, show user data we are discarding
      */
-    skiplen = p-str;
-    lostByte = *p;
+
+    lostChar = *p;
     /* temporarily stick null in middle of string */
-    Tcl_SetObjLength(esPtr->buffer,skiplen);
+    *p = 0;
 
     expDiagLog("%s: set %s(buffer) \"",caller_name,array_name);
-    expDiagLogU(expPrintify(Tcl_GetString(esPtr->buffer)));
+    expDiagLogU(expPrintifyUni(str,numchars));
     expDiagLogU("\"\r\n");
-    Tcl_SetVar2(interp,array_name,"buffer",Tcl_GetString(esPtr->buffer),
+    Tcl_SetVar2Ex(interp,array_name,"buffer",
+		  Tcl_NewUnicodeObj (str, skiplen),
 	    save_flags);
 
     /*
      * restore damage
      */
-    *p = lostByte;
+    *p = lostChar;
 
     /*
      * move 2nd half of string down to 1st half
      */
 
-    newlen = length - skiplen;
-    memmove(str,p, newlen);
-
-    Tcl_SetObjLength(esPtr->buffer,newlen);
+    newlen = numchars - skiplen;
+    memmove(str, p, newlen * sizeof(Tcl_UniChar));
+    esPtr->input.use = newlen;
 
     esPtr->printed -= skiplen;
     if (esPtr->printed < 0) esPtr->printed = 0;
@@ -2108,10 +2197,9 @@ expMatchProcess(interp, eo, cc, bg, detail)
 {
     ExpState *esPtr = 0;
     Tcl_Obj *body = 0;
-    Tcl_Obj *buffer;
+    Tcl_UniChar *buffer;
     struct ecase *e = 0;	/* points to current ecase */
     int match = -1;		/* characters matched */
-    char match_char;	/* place to hold char temporarily */
     /* uprooted by a NULL */
     int result = TCL_OK;
 
@@ -2121,19 +2209,26 @@ expMatchProcess(interp, eo, cc, bg, detail)
  expDiagLogU("\"\r\n"); \
  Tcl_SetVar2(interp, EXPECT_OUT,indexName,value,(bg ? TCL_GLOBAL_ONLY : 0));
 
+    /* The numchars argument allows us to avoid sticking a \0 into the buffer */
+#define outuni(indexName, value,numchars) \
+ expDiagLog("%s: set %s(%s) \"",detail,EXPECT_OUT,indexName); \
+ expDiagLogU(expPrintifyUni(value,numchars)); \
+ expDiagLogU("\"\r\n"); \
+ Tcl_SetVar2Ex(interp, EXPECT_OUT,indexName,Tcl_NewUnicodeObj(value,numchars),(bg ? TCL_GLOBAL_ONLY : 0));
+
     if (eo->e) {
 	e = eo->e;
 	body = e->body;
 	if (cc != EXP_TIMEOUT) {
 	    esPtr = eo->esPtr;
-	    match = eo->match;
-	    buffer = eo->buffer;
+	    match = eo->matchlen;
+	    buffer = eo->matchbuf;
 	}
     } else if (cc == EXP_EOF) {
 	/* read an eof but no user-supplied case */
 	esPtr = eo->esPtr;
-	match = eo->match;
-	buffer = eo->buffer;
+	match = eo->matchlen;
+	buffer = eo->matchbuf;
     }			
 
     if (match >= 0) {
@@ -2144,6 +2239,12 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    Tcl_RegExp re;
 	    int flags;
 	    Tcl_RegExpInfo info;
+	    Tcl_Obj *buf;
+
+	    /* No gate keeper required here, we know that the RE
+	     * matches, we just do it again to get all the captured
+	     * pieces
+	     */
 
 	    if (e->Case == CASE_NORM) {
 		flags = TCL_REG_ADVANCED;
@@ -2154,6 +2255,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    re = Tcl_GetRegExpFromObj(interp, e->pat, flags);
 	    Tcl_RegExpGetInfo(re, &info);
 
+	    buf = Tcl_NewUnicodeObj (buffer,esPtr->input.use);
 	    for (i=0;i<=info.nsubs;i++) {
 		int start, end;
 		Tcl_Obj *val;
@@ -2176,14 +2278,15 @@ expMatchProcess(interp, eo, cc, bg, detail)
 
 				/* string itself */
 		sprintf(name,"%d,string",i);
-		val = Tcl_GetRange(buffer, start, end);
+		val = Tcl_GetRange(buf, start, end);
 		expDiagLog("%s: set %s(%s) \"",detail,EXPECT_OUT,name);
 		expDiagLogU(expPrintifyObj(val));
 		expDiagLogU("\"\r\n");
 		Tcl_SetVar2Ex(interp,EXPECT_OUT,name,val,(bg ? TCL_GLOBAL_ONLY : 0));
 	    }
+	    Tcl_DecrRefCount (buf);
 	} else if (e && (e->use == PAT_GLOB || e->use == PAT_EXACT)) {
-	    char *str;
+	    Tcl_UniChar *str;
 
 	    if (e->indices) {
 		/* start index */
@@ -2196,12 +2299,8 @@ expMatchProcess(interp, eo, cc, bg, detail)
 	    }
 
 	    /* string itself */
-	    str = Tcl_GetString(esPtr->buffer) + e->simple_start;
-	    /* temporarily null-terminate in middle */
-	    match_char = str[match];
-	    str[match] = 0;
-	    out("0,string",str);
-	    str[match] = match_char;
+	    str = esPtr->input.buffer + e->simple_start;
+	    outuni("0,string",str,match);
 
 				/* redefine length of string that */
 				/* matched for later extraction */
@@ -2221,34 +2320,32 @@ expMatchProcess(interp, eo, cc, bg, detail)
     /* this is broken out of (match > 0) (above) since it can */
     /* that an EOF occurred with match == 0 */
     if (eo->esPtr) {
-	char *str;
-	int length;
+	Tcl_UniChar *str;
+	int numchars;
 
 	out("spawn_id",esPtr->name);
 
-	str = Tcl_GetStringFromObj(esPtr->buffer, &length);
+	str      = esPtr->input.buffer;
+	numchars = esPtr->input.use;
+
 	/* Save buf[0..match] */
-	/* temporarily null-terminate string in middle */
-	match_char = str[match];
-	str[match] = 0;
-	out("buffer",str);
-	/* remove middle-null-terminator */
-	str[match] = match_char;
+	outuni("buffer",str,match);
 
 	/* "!e" means no case matched - transfer by default */
 	if (!e || e->transfer) {
+	    int remainder = numchars-match;
 	    /* delete matched chars from input buffer */
 	    esPtr->printed -= match;
-	    if (length != 0) {
-		memmove(str,str+match,length-match);
+	    if (numchars != 0) {
+		memmove(str,str+match,remainder*sizeof(Tcl_UniChar));
 	    }
-	    Tcl_SetObjLength(esPtr->buffer, length-match);
+	    esPtr->input.use = remainder;
 	}
 
 	if (cc == EXP_EOF) {
 	    /* exp_close() deletes all background bodies */
 	    /* so save eof body temporarily */
-	    if (body) Tcl_IncrRefCount(body);
+	    if (body) { Tcl_IncrRefCount(body); }
 	    if (esPtr->close_on_eof) {
 	    exp_close(interp,esPtr);
 	}
@@ -2311,7 +2408,7 @@ int mask;
 do_more_data:
     eo.e = 0;		/* no final case yet */
     eo.esPtr = 0;		/* no final file selected yet */
-    eo.match = 0;		/* nothing matched yet */
+    eo.matchlen = 0;		/* nothing matched yet */
 
     /* force redisplay of buffer when debugging */
     last_esPtr = 0;
@@ -2350,8 +2447,8 @@ do_more_data:
     /* or above, because it would then be executed several times */
     if (cc == EXP_EOF) {
 	eo.esPtr = esPtr;
-	eo.match = expSizeGet(eo.esPtr);
-	eo.buffer = eo.esPtr->buffer;
+	eo.matchlen = expSizeGet(eo.esPtr);
+	eo.matchbuf = eo.esPtr->input.buffer;
 	expDiagLogU("expect_background: read eof\r\n");
 	goto matched;
     }
@@ -2433,14 +2530,27 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     int remtime;		/* remaining time in timeout */
     int reset_timer;		/* should timer be reset after continue? */
     Tcl_Time temp_time;
+    Tcl_Obj* new_cmd = NULL;
 
     if ((objc == 2) && exp_one_arg_braced(objv[1])) {
-	return(exp_eval_with_one_arg(clientData,interp,objv));
+	/* expect {...} */
+
+	new_cmd = exp_eval_with_one_arg(clientData,interp,objv);
+	if (!new_cmd) return TCL_ERROR;
     } else if ((objc == 3) && streq(Tcl_GetString(objv[1]),"-brace")) {
+	/* expect -brace {...} ... fake command line for reparsing */
+
 	Tcl_Obj *new_objv[2];
 	new_objv[0] = objv[0];
 	new_objv[1] = objv[2];
-	return(exp_eval_with_one_arg(clientData,interp,new_objv));
+
+	new_cmd = exp_eval_with_one_arg(clientData,interp,new_objv);
+	if (!new_cmd) return TCL_ERROR;
+    }
+
+    if (new_cmd) {
+	/* Replace old arguments with result of the reparse */
+	Tcl_ListObjGetElements (interp, new_cmd, &objc, &objv);
     }
 
     Tcl_GetTime (&temp_time);
@@ -2460,9 +2570,11 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     exp_cmd_init(&eg,EXP_CMD_FG,EXP_TEMPORARY);
     state_list = 0;
     esPtrs = 0;
-    if (TCL_ERROR == parse_expect_args(interp,&eg,
-	    (ExpState *)clientData,objc,objv))
+    if (TCL_ERROR == parse_expect_args(interp,&eg, (ExpState *)clientData,
+				       objc,objv)) {
+	if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
 	return TCL_ERROR;
+    }
 
  restart_with_update:
     /* validate all descriptors and flatten ExpStates into array */
@@ -2519,7 +2631,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     eo.e = 0;		/* no final case yet */
     eo.esPtr = 0;	/* no final ExpState selected yet */
-    eo.match = 0;	/* nothing matched yet */
+    eo.matchlen = 0;	/* nothing matched yet */
 
     /* timeout code is a little tricky, be very careful changing it */
     if (timeout != EXP_TIME_INFINITY) {
@@ -2574,11 +2686,12 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 	/* or above, because it would then be executed several times */
 	if (cc == EXP_EOF) {
 	    eo.esPtr = esPtr;
-	    eo.match = expSizeGet(eo.esPtr);
-	    eo.buffer = eo.esPtr->buffer;
+	    eo.matchlen = expSizeGet(eo.esPtr);
+	    eo.matchbuf = eo.esPtr->input.buffer;
 	    expDiagLogU("expect: read eof\r\n");
 	    break;
 	} else if (cc == EXP_TIMEOUT) break;
+
 	/* break if timeout or eof and failed to find a case for it */
 
 	if (eo.e) break;
@@ -2630,6 +2743,7 @@ error:
     free_ecases(interp,&eg,0);	/* requires i_lists to be avail */
     exp_free_i(interp,eg.i_list,exp_indirect_update2);
 
+    if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
     return(result);
 }
 
@@ -3122,3 +3236,11 @@ exp_init_sig() {
 	signal(SIGINT,sigint_handler);
 #endif
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

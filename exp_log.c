@@ -46,6 +46,8 @@ static Tcl_ThreadDataKey dataKey;
  */
 static char bigbuf[2000];
 
+static void expDiagWriteCharsUni _ANSI_ARGS_((Tcl_UniChar *str,int len));
+
 /*
  * Following this are several functions that log the conversation.  Some
  * general notes on all of them:
@@ -78,19 +80,23 @@ static char bigbuf[2000];
  */
 
 int
-expWriteBytesAndLogIfTtyU(esPtr,buf,lenBytes)
+expWriteBytesAndLogIfTtyU(esPtr,buf,lenChars)
     ExpState *esPtr;
-    char *buf;
-    int lenBytes;
+    Tcl_UniChar *buf;
+    int lenChars;
 {
     int wc;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (esPtr->valid)
-	wc = expWriteChars(esPtr,buf,lenBytes);
+	wc = expWriteCharsUni(esPtr,buf,lenChars);
 
     if (tsdPtr->logChannel && ((esPtr->fdout == 1) || expDevttyIs(esPtr))) {
-	Tcl_WriteChars(tsdPtr->logChannel,buf,lenBytes);
+      Tcl_DString ds;
+      Tcl_DStringInit (&ds);
+      Tcl_UniCharToUtfDString (buf,lenChars,&ds);
+      Tcl_WriteChars(tsdPtr->logChannel,Tcl_DStringValue (&ds), Tcl_DStringLength (&ds));
+      Tcl_DStringFree (&ds);
     }
     return wc;
 }
@@ -122,14 +128,19 @@ char *buf;
  * Also send to Diag and Log if appropriate.
  */
 void
-expLogInteractionU(esPtr,buf)
+expLogInteractionU(esPtr,buf,buflen)
     ExpState *esPtr;
-    char *buf;
+    Tcl_UniChar *buf;
+    int buflen;
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     if (tsdPtr->logAll || (tsdPtr->logUser && tsdPtr->logChannel)) {
-	Tcl_WriteChars(tsdPtr->logChannel,buf,-1);
+      Tcl_DString ds;
+      Tcl_DStringInit (&ds);
+      Tcl_UniCharToUtfDString (buf,buflen,&ds);
+      Tcl_WriteChars(tsdPtr->logChannel,Tcl_DStringValue (&ds), Tcl_DStringLength (&ds));
+      Tcl_DStringFree (&ds);
     }
 
     /* hmm.... if stdout is closed such as by disconnect, loguser
@@ -139,10 +150,10 @@ expLogInteractionU(esPtr,buf)
     if (tsdPtr->logUser && (!expStdinoutIs(esPtr)) && (!expDevttyIs(esPtr))) {
 	ExpState *stdinout = expStdinoutGet();
 	if (stdinout->valid) {
-	    (void) expWriteChars(stdinout,buf,-1);
+	    (void) expWriteCharsUni(stdinout,buf,buflen);
 	}
     }
-    expDiagWriteChars(buf,-1);
+    expDiagWriteCharsUni(buf,buflen);
 }
 
 /* send to log if open */
@@ -410,6 +421,23 @@ int len;
     Tcl_WriteChars(tsdPtr->diagChannel,str,len);
 }
 
+/* write Unicode chars */
+static void
+expDiagWriteCharsUni(str,len)
+Tcl_UniChar *str;
+int len;
+{
+    Tcl_DString ds;
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    if (!tsdPtr->diagChannel) return;
+
+    Tcl_DStringInit (&ds);
+    Tcl_UniCharToUtfDString (str,len,&ds);
+    Tcl_WriteChars(tsdPtr->diagChannel,Tcl_DStringValue (&ds), Tcl_DStringLength (&ds));
+    Tcl_DStringFree (&ds);
+}
+
 char *
 expDiagFilename()
 {
@@ -638,6 +666,49 @@ char *s;
 	return(dest);
 }
 
+/* generate printable versions of random ASCII strings.  Primarily used */
+/* in diagnostic mode, "expect -d" */
+static char *
+expPrintifyRealUni(s,numchars)
+Tcl_UniChar *s;
+int numchars;
+{
+  static int destlen = 0;
+  static char *dest = 0;
+  char *d;		/* ptr into dest */
+  unsigned int need;
+  Tcl_UniChar ch;
+
+  if (s == 0) return("<null>");
+  if (numchars == 0) return("");
+
+  /* worst case is every character takes 6 to printify */
+  need = numchars*6 + 1;
+  if (need > destlen) {
+    if (dest) ckfree(dest);
+    dest = ckalloc(need);
+    destlen = need;
+  }
+
+  for (d = dest;numchars > 0;numchars--) {
+    ch = *s; s++;
+
+    if (ch == '\r') {
+      strcpy(d,"\\r");		d += 2;
+    } else if (ch == '\n') {
+      strcpy(d,"\\n");		d += 2;
+    } else if (ch == '\t') {
+      strcpy(d,"\\t");		d += 2;
+    } else if ((ch < 0x80) && isprint(UCHAR(ch))) {
+      *d = (char)ch;			d += 1;
+    } else {
+      sprintf(d,"\\u%04x",ch);	d += 6;
+    }
+  }
+  *d = '\0';
+  return(dest);
+}
+
 char *
 expPrintifyObj(obj)
     Tcl_Obj *obj;
@@ -660,6 +731,19 @@ char *s;
     if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return((char *)0);
 
     return expPrintifyReal(s);
+}
+ 
+char *
+expPrintifyUni(s,numchars) /* INTL */
+Tcl_UniChar *s;
+int numchars;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+
+    /* don't bother writing into bigbuf if we're not going to ever use it */
+    if ((!tsdPtr->diagToStderr) && (!tsdPtr->diagChannel)) return((char *)0);
+
+    return expPrintifyRealUni(s,numchars);
 }
  
 void
