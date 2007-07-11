@@ -9,6 +9,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     # do this in a way that is backward compatible for Tcl 8.3
     namespace import ::tcltest::test ::tcltest::cleanupTests
 }
+package require Expect
 
 #exp_internal -f /dev/ttyp5 0
 

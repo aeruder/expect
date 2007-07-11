@@ -1,5 +1,13 @@
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
+	* tests/cat.test: Added proper 'package require Expect'
+	* tests/expect.test: to the test setup code (JeffH).
+	* tests/logfile.test:
+	* tests/pid.test:
+	* tests/send.test:
+	* tests/spawn.test:
+	* tests/stty.test:
+
 	* exp_command.c: Reformatted overlong lines, whitespace,
 	* expect.c: comments. Added braces to some if-constructs.
 	* exp_inter.c: Reworked if-constructs interleaved with
