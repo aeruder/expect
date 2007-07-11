@@ -2635,44 +2635,70 @@ error:
 
 /*ARGSUSED*/
 static int
-Exp_TimestampCmd(clientData, interp, argc, argv)
+Exp_TimestampObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	char *format = 0;
 	time_t seconds = -1;
 	int gmt = FALSE;	/* local time by default */
 	struct tm *tm;
 	Tcl_DString dstring;
+    int i;
 
-	argc--; argv++;
+    static char* options[] = {
+	"-format",
+	"-gmt",
+	"-seconds",
+	NULL
+    };
+    enum options {
+	TS_FORMAT,
+	TS_GMT,
+	TS_SECONDS
+    };
 
-	while (*argv) {
-		if (streq(*argv,"-format")) {
-			argc--; argv++;
-			if (!*argv) goto usage_error;
-			format = *argv;
-			argc--; argv++;
-		} else if (streq(*argv,"-seconds")) {
-			argc--; argv++;
-			if (!*argv) goto usage_error;
-			seconds = atoi(*argv);
-			argc--; argv++;
-		} else if (streq(*argv,"-gmt")) {
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	switch ((enum options) index) {
+	case TS_FORMAT:
+	    i++;
+	    if (i >= objc) goto usage_error;
+	    format = Tcl_GetString (objv[i]);
+	    break;
+	case TS_GMT:
 			gmt = TRUE;
-			argc--; argv++;
-		} else break;
+	    break;
+	case TS_SECONDS: {
+	    int sec;
+	    i++;
+	    if (i >= objc) goto usage_error;
+	    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[0], &sec)) {
+		goto usage_error;
+	    }
+	    seconds = sec;
+	}
+	    break;
+	}
 	}
 
-	if (argc) goto usage_error;
+    if (i < (objc-1)) goto usage_error;
 
 	if (seconds == -1) {
 		time(&seconds);
 	}
-
-	Tcl_DStringInit(&dstring);
 
 	if (format) {
 		if (gmt) {
@@ -2680,11 +2706,11 @@ char **argv;
 		} else {
 			tm = localtime(&seconds);
 		}
-/*		exp_strftime(interp->result,TCL_RESULT_SIZE,format,tm);*/
+	Tcl_DStringInit(&dstring);
 		exp_strftime(format,tm,&dstring);
 		Tcl_DStringResult(interp,&dstring);
 	} else {
-		sprintf(interp->result,"%ld",seconds);
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (seconds));
 	}
 	
 	return TCL_OK;
@@ -2694,63 +2720,123 @@ char **argv;
 
 }
 
-/*ARGSUSED*/
-int
-Exp_MatchMaxCmd(clientData,interp,argc,argv)
-ClientData clientData;
+/* Helper function hnadling the common processing of -d and -i options of
+ * various commands.
+ */
+
+static int
+process_di _ANSI_ARGS_ ((Tcl_Interp* interp,
+			 int objc,
+			 Tcl_Obj *CONST objv[],		/* Argument objects. */
+			 int* at,
+			 int* Default,
+			 ExpState **esOut,
+			 CONST char* cmd));
+
+static int
+process_di (interp,objc,objv,at,Default,esOut,cmd)
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
+     int* at;
+     int* Default;
+     CONST char* cmd;
+     ExpState **esOut;
 {
-    int size = -1;
-    ExpState *esPtr = 0;
-    char *chanName = 0;
-    int Default = FALSE;
+    static char* options[] = {
+	"-d",
+	"-i",
+	NULL
+    };
+    enum options {
+	DI_DEFAULT,
+	DI_ID
+    };
+    int def = FALSE;
+    char* chan = NULL;
+    int i;
+    ExpState *esPtr;
 
-    argc--; argv++;
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-d")) {
-	    Default = TRUE;
-	} else if (streq(*argv,"-i")) {
-	    argc--;argv++;
-	    if (argc < 1) {
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	switch ((enum options) index) {
+	case DI_DEFAULT:
+	    def = TRUE;
+	    break;
+	case DI_ID:
+	    i++;
+	    if (i >= objc) {
 		exp_error(interp,"-i needs argument");
 		return(TCL_ERROR);
 	    }
-	    chanName = *argv;
-	} else break;
+	    chan = Tcl_GetString (objv[i]);
+	    break;
+	}
     }
 
-    if (Default && chanName) {
+    if (def && chan) {
 	exp_error(interp,"cannot do -d and -i at the same time");
 	return(TCL_ERROR);
     }
 
-    if (!Default) {
-	if (!chanName) {
-	    if (!(esPtr = expStateCurrent(interp,0,0,0))) {
-		return(TCL_ERROR);
+    /* Not all arguments processed, more than two remaining, only at most one
+     * remaining is expected/allowed.
+     */
+    if (i < (objc-1)) {
+	exp_error(interp,"too many arguments");
+	return(TCL_OK);
 	    }
-	} else {
 	    
-	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"match_max")))
-		return(TCL_ERROR);
+    if (!def) {
+	if (!chan) {
+	    esPtr = expStateCurrent(interp,0,0,0);
+	} else {
+	    esPtr = expStateFromChannelName(interp,chan,0,0,0,(char*)cmd);
 	}
+	if (!esPtr) return(TCL_ERROR);
     }
 
-    if (argc == 0) {
+    *at = i;
+    *Default = def;
+    *esOut = esPtr;
+    return TCL_OK;
+}
+
+
+/*ARGSUSED*/
+int
+Exp_MatchMaxObjCmd(clientData,interp,objc,objv)
+     ClientData clientData;
+     Tcl_Interp *interp;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
+{
+    int size = -1;
+    ExpState *esPtr = 0;
+    int Default = FALSE;
+    int i;
+
+    if (TCL_OK != process_di (interp, objc, objv, &i, &Default, &esPtr, "match_max"))
+	return TCL_ERROR;
+
+    /* No size argument */
+    if (i == objc) {
 	if (Default) {
 	    size = exp_default_match_max;
 	} else {
 	    size = esPtr->umsize;
 	}
-	sprintf(interp->result,"%d",size);
-	return(TCL_OK);
-    }
-
-    if (argc > 1) {
-	exp_error(interp,"too many arguments");
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (size));
 	return(TCL_OK);
     }
     
@@ -2758,7 +2844,10 @@ char **argv;
      * All that's left is to set the size
      */
 
-    size = atoi(argv[0]);
+    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &size)) {
+	return TCL_ERROR;
+    }
+
     if (size <= 0) {
 	exp_error(interp,"must be positive");
 	return(TCL_ERROR);
@@ -2772,65 +2861,38 @@ char **argv;
 
 /*ARGSUSED*/
 int
-Exp_RemoveNullsCmd(clientData,interp,argc,argv)
+Exp_RemoveNullsObjCmd(clientData,interp,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int value = -1;
     ExpState *esPtr = 0;
-    char *chanName = 0;
     int Default = FALSE;
+    int i;
 
-    argc--; argv++;
+    if (TCL_OK != process_di (interp, objc, objv, &i, &Default, &esPtr, "remove_nulls"))
+	return TCL_ERROR;
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-d")) {
-	    Default = TRUE;
-	} else if (streq(*argv,"-i")) {
-	    argc--;argv++;
-	    if (argc < 1) {
-		exp_error(interp,"-i needs argument");
-		return(TCL_ERROR);
-	    }
-	    chanName = *argv;
-	} else break;
-    }
-
-    if (Default && chanName) {
-	exp_error(interp,"cannot do -d and -i at the same time");
-	return(TCL_ERROR);
-    }
-
-    if (!Default) {
-	if (!chanName) {
-	    if (!(esPtr = expStateCurrent(interp,0,0,0)))
-		return(TCL_ERROR);
-	} else {
-	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"remove_nulls")))
-		return(TCL_ERROR);
-	}
-    }
-
-    if (argc == 0) {
+    /* No flag argument */
+    if (i == objc) {
 	if (Default) {
 	  value = exp_default_rm_nulls;
 	} else {
 	  value = esPtr->rm_nulls;
 	}
-	sprintf(interp->result,"%d",value);
-	return(TCL_OK);
-    }
-
-    if (argc > 1) {
-	exp_error(interp,"too many arguments");
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (value));
 	return(TCL_OK);
     }
 
     /* all that's left is to set the value */
-    value = atoi(argv[0]);
-    if (value != 0 && value != 1) {
+
+    if (TCL_OK != Tcl_GetBooleanFromObj (interp, objv[i], &value)) {
+	return TCL_ERROR;
+    }
+
+    if ((value != 0) && (value != 1)) {
 	exp_error(interp,"must be 0 or 1");
 	return(TCL_ERROR);
     }
@@ -2843,66 +2905,36 @@ char **argv;
 
 /*ARGSUSED*/
 int
-Exp_ParityCmd(clientData,interp,argc,argv)
+Exp_ParityObjCmd(clientData,interp,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int parity;
     ExpState *esPtr = 0;
-    char *chanName = 0;
     int Default = FALSE;
+    int i;
 
-    argc--; argv++;
+    if (TCL_OK != process_di (interp, objc, objv, &i, &Default, &esPtr, "parity"))
+	return TCL_ERROR;
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-d")) {
-	    Default = TRUE;
-	} else if (streq(*argv,"-i")) {
-	    argc--;argv++;
-	    if (argc < 1) {
-		exp_error(interp,"-i needs argument");
-		return(TCL_ERROR);
-	    }
-	    chanName = *argv;
-	} else break;
-    }
-
-    if (Default && chanName) {
-	exp_error(interp,"cannot do -d and -i at the same time");
-	return(TCL_ERROR);
-    }
-
-    if (!Default) {
-	if (!chanName) {
-	    if (!(esPtr = expStateCurrent(interp,0,0,0))) {
-		return(TCL_ERROR);
-	    }
-	} else {
-	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"parity"))) {
-		return(TCL_ERROR);
-	    }
-	}
-    }
-
-    if (argc == 0) {
+    /* No parity argument */
+    if (i == objc) {
 	if (Default) {
 	    parity = exp_default_parity;
 	} else {
 	    parity = esPtr->parity;
 	}
-	sprintf(interp->result,"%d",parity);
-	return(TCL_OK);
-    }
-
-    if (argc > 1) {
-	exp_error(interp,"too many arguments");
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (parity));
 	return(TCL_OK);
     }
 
     /* all that's left is to set the parity */
-    parity = atoi(argv[0]);
+
+    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &parity)) {
+	return TCL_ERROR;
+    }
 
     if (Default) exp_default_parity = parity;
     else esPtr->parity = parity;
@@ -2912,66 +2944,36 @@ char **argv;
 
 /*ARGSUSED*/
 int
-Exp_CloseOnEofCmd(clientData,interp,argc,argv)
+Exp_CloseOnEofObjCmd(clientData,interp,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int close_on_eof;
     ExpState *esPtr = 0;
-    char *chanName = 0;
     int Default = FALSE;
+    int i;
 
-    argc--; argv++;
+    if (TCL_OK != process_di (interp, objc, objv, &i, &Default, &esPtr, "close_on_eof"))
+	return TCL_ERROR;
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-d")) {
-	    Default = TRUE;
-	} else if (streq(*argv,"-i")) {
-	    argc--;argv++;
-	    if (argc < 1) {
-		exp_error(interp,"-i needs argument");
-		return(TCL_ERROR);
-	    }
-	    chanName = *argv;
-	} else break;
-    }
-
-    if (Default && chanName) {
-	exp_error(interp,"cannot do -d and -i at the same time");
-	return(TCL_ERROR);
-    }
-
-    if (!Default) {
-	if (!chanName) {
-	    if (!(esPtr = expStateCurrent(interp,0,0,0))) {
-		return(TCL_ERROR);
-	    }
-	} else {
-	    if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"close_on_eof"))) {
-		return(TCL_ERROR);
-	    }
-	}
-    }
-
-    if (argc == 0) {
+    /* No flag argument */
+    if (i == objc) {
 	if (Default) {
 	    close_on_eof = exp_default_close_on_eof;
 	} else {
 	    close_on_eof = esPtr->close_on_eof;
 	}
-	sprintf(interp->result,"%d",close_on_eof);
-	return(TCL_OK);
-    }
-
-    if (argc > 1) {
-	exp_error(interp,"too many arguments");
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (close_on_eof));
 	return(TCL_OK);
     }
 
     /* all that's left is to set the close_on_eof */
-    close_on_eof = atoi(argv[0]);
+
+    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &close_on_eof)) {
+	return TCL_ERROR;
+    }
 
     if (Default) exp_default_close_on_eof = close_on_eof;
     else esPtr->close_on_eof = close_on_eof;
@@ -3047,11 +3049,11 @@ exp_cmds_print()
 
 /*ARGSUSED*/
 int
-cmdX(clientData, interp, argc, argv)
+cmdX(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	exp_cmds_print();
 	return TCL_OK;
@@ -3074,11 +3076,11 @@ cmd_data[]  = {
 {"expect_user",	Exp_ExpectObjCmd,	0,	(ClientData)&StdinoutPlaceholder,0},
 {"expect_tty",	Exp_ExpectObjCmd,	0,	(ClientData)&DevttyPlaceholder,0},
 {"expect_background",Exp_ExpectGlobalObjCmd,0,	(ClientData)&exp_cmds[EXP_CMD_BG],0},
-{"match_max",	exp_proc(Exp_MatchMaxCmd),	0,	0},
-{"remove_nulls",exp_proc(Exp_RemoveNullsCmd),	0,	0},
-{"parity",	exp_proc(Exp_ParityCmd),	0,	0},
-{"close_on_eof",exp_proc(Exp_CloseOnEofCmd),	0,	0},
-{"timestamp",	exp_proc(Exp_TimestampCmd),	0,	0},
+    {"match_max",	 Exp_MatchMaxObjCmd,     0,	(ClientData)0,	0},
+    {"remove_nulls",     Exp_RemoveNullsObjCmd,  0,	(ClientData)0,	0},
+    {"parity",	         Exp_ParityObjCmd,       0,	(ClientData)0,	0},
+    {"close_on_eof",     Exp_CloseOnEofObjCmd,   0,	(ClientData)0,	0},
+    {"timestamp",	 Exp_TimestampObjCmd,    0,	(ClientData)0,	0},
 {0}};
 
 void
@@ -3109,8 +3111,7 @@ Tcl_Interp *interp;
 	pattern_style[PAT_NULL] = "null";
 
 #if 0
-	Tcl_CreateCommand(interp,"x",
-		cmdX,(ClientData)0,exp_deleteProc);
+    Tcl_CreateObjCommand(interp,"x",cmdX,(ClientData)0,exp_deleteProc);
 #endif
 }
 

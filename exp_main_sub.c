@@ -175,7 +175,7 @@ static char prompt1_default[] = "expect%d.%d> ";
 
 /*ARGSUSED*/
 int
-Exp_Prompt1Cmd(clientData, interp, objc, objv)
+Exp_Prompt1ObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -192,7 +192,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 /*ARGSUSED*/
 int
-Exp_Prompt2Cmd(clientData, interp, objc, objv)
+Exp_Prompt2ObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int objc;
@@ -417,25 +417,25 @@ Tcl_Obj *eofObj;
 
 /*ARGSUSED*/
 int
-Exp_ExpVersionCmd(clientData, interp, argc, argv)
+Exp_ExpVersionObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int emajor, umajor;
 	char *user_version;	/* user-supplied version string */
 
-	if (argc == 1) {
+    if (objc == 1) {
 		Tcl_SetResult(interp,exp_version,TCL_STATIC);
 		return(TCL_OK);
 	}
-	if (argc > 3) {
+    if (objc > 3) {
 		exp_error(interp,"usage: expect_version [[-exit] version]");
 		return(TCL_ERROR);
 	}
 
-	user_version = argv[argc==2?1:2];
+    user_version = Tcl_GetString (objv[objc==2?1:2]);
 	emajor = atoi(exp_version);
 	umajor = atoi(user_version);
 
@@ -456,7 +456,7 @@ char **argv;
 		if (e >= u) return(TCL_OK);
 	}
 
-	if (argc == 2) {
+    if (objc == 2) {
 		exp_error(interp,"%s requires Expect version %s (but using %s)",
 			exp_argv0,user_version,exp_version);
 		return(TCL_ERROR);
@@ -990,9 +990,9 @@ FILE *fp;
 }
 
 static struct exp_cmd_data cmd_data[]  = {
-{"exp_version",	exp_proc(Exp_ExpVersionCmd),	0,	0},
-{"prompt1",	exp_proc(Exp_Prompt1Cmd),	0,	EXP_NOPREFIX},
-{"prompt2",	exp_proc(Exp_Prompt2Cmd),	0,	EXP_NOPREFIX},
+    {"exp_version", Exp_ExpVersionObjCmd, 0,	0,	0},
+    {"prompt1",	    Exp_Prompt1ObjCmd,    0,	0,	EXP_NOPREFIX},
+    {"prompt2",	    Exp_Prompt2ObjCmd,    0,	0,	EXP_NOPREFIX},
 {0}};
 
 void
@@ -1001,3 +1001,11 @@ Tcl_Interp *interp;
 {
 	exp_create_commands(interp,cmd_data);
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

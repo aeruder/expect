@@ -1,5 +1,10 @@
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
+	* Dbg.c: Converted the lot of argc,argv based command
+	* exp_command.c: implementations over to objc,objv.
+	* expect.c:
+	* exp_main_sub.c:
+
 	* Dbg.c: Cleaned up the direct access to interp->result,
 	* exp_command.c: replaced with the proper functions and
 	* expect.c: Tcl_Obj's.

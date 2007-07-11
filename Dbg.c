@@ -469,26 +469,26 @@ CallFrame *viewf;	/* view FramePtr */
 		PrintStackBelow(interp,curf->callerVarPtr,viewf);
 		print(interp,"%c%d: %s\n",ptr,curf->level,
 #if TCL_MAJOR_VERSION >= 8
-			print_objv(interp,curf->objc,curf->objv));
+	      print_objv(interp,curf->objc,curf->objv)
 #else
-			print_argv(interp,curf->argc,curf->argv));
+	      print_argv(interp,curf->argc,curf->argv)
 #endif
+	      );
 	}
 }
 
 static
 void
-PrintStack(interp,curf,viewf,argc,argv,level)
+PrintStack(interp,curf,viewf,objc,objv,level)
 Tcl_Interp *interp;
 CallFrame *curf;	/* current FramePtr */
 CallFrame *viewf;	/* view FramePtr */
-int argc;
-char *argv[];
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 char *level;
 {
 	PrintStackBelow(interp,curf,viewf);
-	
-	print(interp," %s: %s\n",level,print_argv(interp,argc,argv));
+    print(interp," %s: %s\n",level,print_objv(interp,objc,objv));
 }
 
 /* return 0 if goal matches current frame or goal can't be found */
@@ -519,6 +519,7 @@ Interp *iptr;
 	return 0;
 }
 
+#if 0
 static char *cmd_print(cmdtype)
 enum debug_cmd cmdtype;
 {
@@ -535,21 +536,33 @@ enum debug_cmd cmdtype;
 	}
 	return "cmd: Unknown";
 }
+#endif
 
 /* debugger's trace handler */
+
+static int
+debugger_trap _ANSI_ARGS_ ((
+     ClientData clientData,
+     Tcl_Interp *interp,
+     int level,
+     char *command,
+     Tcl_Command commandInfo,
+     int objc,
+     struct Tcl_Obj * CONST * objv));
+
+
 /*ARGSUSED*/
-static void
-debugger_trap(clientData,interp,level,command,cmdProc,cmdClientData,argc,argv)
+static int
+debugger_trap(clientData,interp,level,command,commandInfo,objc,objv)
 ClientData clientData;		/* not used */
 Tcl_Interp *interp;
 int level;			/* positive number if called by Tcl, -1 if */
 				/* called by Dbg_On in which case we don't */
 				/* know the level */
 char *command;
-int (*cmdProc)();		/* not used */
-ClientData cmdClientData;
-int argc;
-char *argv[];
+     Tcl_Command commandInfo; /* Unused */
+     int objc;
+     struct Tcl_Obj * CONST * objv;
 {
 	char level_text[6];	/* textual representation of level */
 
@@ -564,12 +577,15 @@ char *argv[];
 
 	struct breakpoint *b;
 
-	/* skip commands that are invoked interactively */
-	if (debug_suspended) return;
+    char* thecmd;
 
+	/* skip commands that are invoked interactively */
+    if (debug_suspended) return TCL_OK;
+
+    thecmd = Tcl_GetString (objv[0]);
 	/* skip debugger commands */
-	if (argv[0][1] == '\0') {
-		switch (argv[0][0]) {
+    if (thecmd[1] == '\0') {
+	switch (thecmd[0]) {
 		case 'n':
 		case 's':
 		case 'c':
@@ -577,11 +593,11 @@ char *argv[];
 		case 'w':
 		case 'b':
 		case 'u':
-		case 'd': return;
+	case 'd': return TCL_OK;
 		}
 	}
 
-	if ((*ignoreproc)(interp,argv[0])) return;
+    if ((*ignoreproc)(interp,thecmd)) return TCL_OK;
 
 	/* if level is unknown, use "?" */
 	sprintf(level_text,(level == -1)?"?":"%d",level);
@@ -695,7 +711,7 @@ end_interact:
 		goalFramePtr = goalFramePtr->callerVarPtr;
 		goto finish;
 	case where:
-		PrintStack(interp,iPtr->varFramePtr,viewFramePtr,argc,argv,level_text);
+	PrintStack(interp,iPtr->varFramePtr,viewFramePtr,objc,objv,level_text);
 		break;
 	}
 
@@ -710,18 +726,23 @@ end_interact:
 /*ARGSUSED*/
 static
 int
-cmdNext(clientData, interp, argc, argv)
+cmdNext(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	debug_new_action = TRUE;
 	debug_cmd = *(enum debug_cmd *)clientData;
 
 	last_action_cmd = debug_cmd;
 
-	step_count = (argc == 1)?1:atoi(argv[1]);
+    if (objc == 1) {
+	step_count = 1;
+    } else if (TCL_OK != Tcl_GetIntFromObj (interp, objv[1], &step_count)) {
+	return TCL_ERROR;
+    }
+
 	last_step_count = step_count;
 	return(TCL_RETURN);
 }
@@ -729,28 +750,33 @@ char **argv;
 /*ARGSUSED*/
 static
 int
-cmdDir(clientData, interp, argc, argv)
+cmdDir(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	debug_cmd = *(enum debug_cmd *)clientData;
+    char* frame;
+    debug_cmd = *(enum debug_cmd *)clientData;
 
-	if (argc == 1) argv[1] = "1";
-	strncpy(viewFrameName,argv[1],FRAMENAMELEN);
+    if (objc == 1) {
+	frame = "1";
+    } else {
+	frame = Tcl_GetString (objv[1]);
+    }
 
+    strncpy(viewFrameName,frame,FRAMENAMELEN);
 	return TCL_RETURN;
 }
 
 /*ARGSUSED*/
 static
 int
-cmdSimple(clientData, interp, argc, argv)
+cmdSimple(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	debug_new_action = TRUE;
 	debug_cmd = *(enum debug_cmd *)clientData;
@@ -794,56 +820,74 @@ char *str;
     Tcl_IncrRefCount(*objPtr);
 }
 
-/* return 1 if a string is substring of a flag */
-static int
-flageq(flag,string,minlen)
-char *flag;
-char *string;
-int minlen;		/* at least this many chars must match */
-{
-	for (;*flag;flag++,string++,minlen--) {
-		if (*string == '\0') break;
-		if (*string != *flag) return 0;
-	}
-	if (*string == '\0' && minlen <= 0) return 1;
-	return 0;
-}
-
 /*ARGSUSED*/
 static
 int
-cmdWhere(clientData, interp, argc, argv)
+cmdWhere(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	if (argc == 1) {
+    static char* options [] = {
+	"-compress",
+	"-width",
+	NULL
+    };
+    enum options {
+	WHERE_COMPRESS,
+	WHERE_WIDTH
+    };
+    int i;
+
+    if (objc == 1) {
 		debug_cmd = where;
 		return TCL_RETURN;
 	}
 
-	argc--; argv++;
+    /* Check and process switches */
 
-	while (argc) {
-		if (flageq("-width",*argv,2)) {
-			argc--; argv++;
-			if (*argv) {
-				buf_width = atoi(*argv);
-				argc--; argv++;
-			} else print(interp,"%d\n",buf_width);
-		} else if (flageq("-compress",*argv,2)) {
-			argc--; argv++;
-			if (*argv) {
-				compress = atoi(*argv);
-				argc--; argv++;
-			} else print(interp,"%d\n",compress);
-		} else {
-			print(interp,"usage: w [-width #] [-compress 0|1]\n");
-			return TCL_ERROR;
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
 		}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
 	}
+	switch ((enum options) index) {
+	case WHERE_COMPRESS:
+	    i++;
+	    if (i >= objc) {
+		print(interp,"%d\n",compress);
+		break;
+	    }
+	    if (TCL_OK != Tcl_GetBooleanFromObj (interp, objv[i], &buf_width))
+		goto usage;
+	    break;
+	case WHERE_WIDTH:
+	    i++;
+	    if (i >= objc) {
+		print(interp,"%d\n",buf_width);
+		break;
+	}
+	    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &buf_width))
+		goto usage;
+	    break;
+	}
+    }
+
+    if (i < objc) goto usage;
+
 	return TCL_OK;
+
+ usage:
+    print(interp,"usage: w [-width #] [-compress 0|1]\n");
+    return TCL_ERROR;
 }
 
 #define breakpoint_fail(msg) {error_msg = msg; goto break_fail;}
@@ -851,31 +895,57 @@ char **argv;
 /*ARGSUSED*/
 static
 int
-cmdBreak(clientData, interp, argc, argv)
+cmdBreak(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	struct breakpoint *b;
 	char *error_msg;
 
-	argc--; argv++;
+    static char* options [] = {
+	"-glob",
+	"-regexp",
+	"if",
+	"then",
+	NULL
+    };
+    enum options {
+	BREAK_GLOB,
+	BREAK_RE,
+	BREAK_IF,
+	BREAK_THEN
+    };
+    int i;
+    int index;
 
-	if (argc < 1) {
+
+    /* No arguments, list breakpoints */
+    if (objc == 1) {
 		for (b = break_base;b;b=b->next) breakpoint_print(interp,b);
 		return(TCL_OK);
 	}
 
-	if (argv[0][0] == '-') {
-		if (argv[0][1] == '\0') {
+    /* Process breakpoint deletion (-, -x) */
+
+    /* Copied from exp_prog.h */
+#define streq(x,y)	(0 == strcmp((x),(y)))
+
+    if (objc == 2) {
+	int id;
+
+	if (streq (Tcl_GetString (objv[1]),"-")) {
 			while (break_base) {
 				breakpoint_destroy(break_base);
 			}
 			breakpoint_max_id = 0;
 			return(TCL_OK);
-		} else if (isdigit(argv[0][1])) {
-			int id = atoi(argv[0]+1);
+	}
+
+	if ((Tcl_GetString (objv[1])[0] == '-') &&
+	    (TCL_OK == Tcl_GetIntFromObj (interp, objv[1], &id))) {
+	    id = -id;
 
 			for (b = break_base;b;b=b->next) {
 				if (b->id == id) {
@@ -891,88 +961,113 @@ char **argv;
 
 	b = breakpoint_new();
 
-	if (flageq("-regexp",argv[0],2)) {
-		argc--; argv++;
-		if (argc > 0) {
+    /* Process switches */
+
+    i = 1;
+    if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+			    &index) == TCL_OK) {
+	switch ((enum options) index) {
+	case BREAK_GLOB:
+	    i++;
+	    if (i == objc) breakpoint_fail("no pattern?");
+	    savestr(&b->pat,Tcl_GetString (objv[i]));
+	    i++;
+	    break;
+	case BREAK_RE:
+	    i++;
+	    if (i == objc) breakpoint_fail("bad regular expression");
 		    b->re = 1;
-		    savestr(&b->pat,argv[0]);
-		    if (Tcl_GetRegExpFromObj(interp, b->pat, TCL_REG_ADVANCED)
-			    == NULL) {
+	    savestr(&b->pat,Tcl_GetString (objv[i]));
+	    if (Tcl_GetRegExpFromObj(interp, b->pat, TCL_REG_ADVANCED) == NULL) {
 			breakpoint_destroy(b);
 			return TCL_ERROR;
 		    }
-		    argc--; argv++;
-		} else {
-			breakpoint_fail("bad regular expression")
+	    i++;
+	    break;
+	case BREAK_IF:   break;
+	case BREAK_THEN: break;
 		}
-	} else if (flageq("-glob",argv[0],2)) {
-		argc--; argv++;
-		if (argc > 0) {
-			savestr(&b->pat,argv[0]);
-			argc--; argv++;
 		} else {
-			breakpoint_fail("no pattern?");
-		}
-	} else if ((!(flageq("if",*argv,1)) && (!(flageq("then",*argv,1))))) {
 		/* look for [file:]line */
 		char *colon;
 		char *linep;	/* pointer to beginning of line number */
-
-		colon = strchr(argv[0],':');
+	char* ref = Tcl_GetString (objv[i]);
+	colon = strchr(ref,':');
 		if (colon) {
 			*colon = '\0';
-			savestr(&b->file,argv[0]);
+	    savestr(&b->file,ref);
 			*colon = ':';
 			linep = colon + 1;
 		} else {
-			linep = argv[0];
+	    linep = ref;
 			/* get file from current scope */
 			/* savestr(&b->file, ?); */
 		}
 
 		if (TCL_OK == Tcl_GetInt(interp,linep,&b->line)) {
-			argc--; argv++;
+	    i++;
 			print(interp,"setting breakpoints by line number is currently unimplemented - use patterns or expressions\n");
 		} else {
 			/* not an int? - unwind & assume it is an expression */
 
 			if (b->file) Tcl_DecrRefCount(b->file);
 		}
+
 	}
 
-	if (argc > 0) {
+    if (i < objc) {
 		int do_if = FALSE;
 
-		if (flageq("if",argv[0],1)) {
-			argc--; argv++;
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) == TCL_OK) {
+	    switch ((enum options) index) {
+	    case BREAK_IF:
+		i++;
+		do_if = TRUE;
+		/* Consider next word as expression */
+		break;
+	    case BREAK_THEN:
+		/* No 'if expression' guard here, do nothing */
+		break;
+	    case BREAK_GLOB:
+	    case BREAK_RE:
 			do_if = TRUE;
-		} else if (!flageq("then",argv[0],1)) {
+		/* Consider current word as expression, without a preceding 'if' */
+		break;
+	    }
+	} else {
+	    /* Consider current word as expression, without a preceding 'if' */
 			do_if = TRUE;
 		}
 
 		if (do_if) {
-			if (argc < 1) {
-				breakpoint_fail("if what");
-			}
-
-			savestr(&b->expr,argv[0]);
-			argc--; argv++;
+	    if (i == objc) breakpoint_fail("if what");
+	    savestr(&b->expr,Tcl_GetString (objv[i]));
+	    i++;
 		}
 	}
 
-	if (argc > 0) {
-		if (flageq("then",argv[0],1)) {
-			argc--; argv++;
+    if (i < objc) {
+	/* Remainder is a command */
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) == TCL_OK) {
+	    switch ((enum options) index) {
+	    case BREAK_THEN:
+		i++;
+		break;
+	    case BREAK_IF:
+	    case BREAK_GLOB:
+	    case BREAK_RE:
+		break;
+		}
 		}
 
-		if (argc < 1) {
-			breakpoint_fail("then what?");
-		}
+	if (i == objc) breakpoint_fail("then what?");
 
-		savestr(&b->cmd,argv[0]);
+	savestr(&b->cmd,Tcl_GetString (objv[i]));
 	}
 
-	sprintf(interp->result,"%d",b->id);
+    Tcl_SetObjResult (interp, Tcl_NewIntObj (b->id));
 	return(TCL_OK);
 
  break_fail:
@@ -1008,11 +1103,11 @@ static char *help[] = {
 /*ARGSUSED*/
 static
 int
-cmdHelp(clientData, interp, argc, argv)
+cmdHelp(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	char **hp;
 
@@ -1131,7 +1226,7 @@ int copy;
 
 static struct cmd_list {
 	char *cmdname;
-	Tcl_CmdProc *cmdproc;
+    Tcl_ObjCmdProc *cmdproc;
 	enum debug_cmd cmdtype;
 } cmd_list[]  = {
 		{"n", cmdNext,   next},
@@ -1289,12 +1384,12 @@ Tcl_Interp *interp;
 	struct cmd_list *c;
 
 	for (c = cmd_list;c->cmdname;c++) {
-		Tcl_CreateCommand(interp,c->cmdname,c->cmdproc,
+	Tcl_CreateObjCommand(interp,c->cmdname,c->cmdproc,
 			(ClientData)&c->cmdtype,(Tcl_CmdDeleteProc *)0);
 	}
 
-	debug_handle = Tcl_CreateTrace(interp,
-				10000,debugger_trap,(ClientData)0);
+    debug_handle = Tcl_CreateObjTrace(interp,10000,0,
+				      debugger_trap,(ClientData)0, NULL);
 
 	debugger_active = TRUE;
 	Tcl_SetVar2(interp,Dbg_VarName,"active","1",0);
@@ -1322,12 +1417,15 @@ int immediate;		/* if true, stop immediately */
 	debug_cmd = step;
 	step_count = 1;
 
-	if (immediate) {
-		static char *fake_cmd = "--interrupted-- (command_unknown)";
+#define LITERAL(s) Tcl_NewStringObj ((s), sizeof(s)-1)
 
-		debugger_trap((ClientData)0,interp,-1,fake_cmd,(int (*)())0,
-					(ClientData)0,1,&fake_cmd);
+	if (immediate) {
+	Tcl_Obj* fake_cmd = LITERAL ( "--interrupted-- (command_unknown)");
+
+	Tcl_IncrRefCount (fake_cmd);
+	debugger_trap((ClientData)0,interp,-1,Tcl_GetString (fake_cmd),0,1,&fake_cmd);
 /*		(*interactor)(interp);*/
+	Tcl_DecrRefCount (fake_cmd);
 	}
 }
 
@@ -1360,3 +1458,11 @@ Dbg_StdinMode(mode)
 {
   stdinmode = mode;
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

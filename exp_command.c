@@ -582,28 +582,30 @@ char *name;
 /* arguments are passed verbatim to execvp() */
 /*ARGSUSED*/
 static int
-Exp_SpawnCmd(clientData,interp,argc,argv)
+Exp_SpawnObjCmd(clientData,interp,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     ExpState *esPtr = 0;
     int slave;
     int pid;
-    char **a;
+#ifdef TIOCNOTTY
     /* tell Saber to ignore non-use of ttyfd */
     /*SUPPRESS 591*/
+    int ttyfd;
+#endif /* TIOCNOTTY */
     int errorfd;	/* place to stash fileno(stderr) in child */
 			/* while we're setting up new stderr */
-    int ttyfd;
-    int master;
+    int master, k;
     int write_master;	/* write fd of Tcl-opened files */
     int ttyinit = TRUE;
     int ttycopy = TRUE;
     int echo = TRUE;
     int console = FALSE;
     int pty_only = FALSE;
+    char** argv;
 
 #ifdef FULLTRAPS
 				/* Allow user to reset signals in child */
@@ -616,7 +618,7 @@ char **argv;
 				/* if false, signal gets default behavior */
     int i;			/* trusty overused temporary */
 
-    char *argv0 = argv[0];
+    char *argv0 = Tcl_GetString (objv[0]);
     char *chanName = 0;
     int leaveopen = FALSE;
     int rc, wc;
@@ -634,6 +636,37 @@ char **argv;
     int status_pipe[2];
     int child_errno;
     char sync_byte;
+    int cmdIndex;
+    Tcl_Obj* cmdObj;
+    char* command;
+
+    static char* options[] = {
+	"-console",
+	"-ignore",
+	"-leaveopen",
+	"-noecho",
+	"-nottycopy",
+	"-nottyinit",
+	"-open",
+	"-pty",
+#ifdef FULLTRAPS
+	"-trap",
+#endif
+	NULL
+    };
+    enum options {
+	SPAWN_CONSOLE
+	,SPAWN_IGNORE
+	,SPAWN_LEAVEOPEN
+	,SPAWN_NOECHO
+	,SPAWN_NOTTYCOPY
+	,SPAWN_NOTTYINIT
+	,SPAWN_OPEN
+	,SPAWN_PTY
+#ifdef FULLTRAPS
+	,SPAWN_TRAP
+#endif
+    };
 
     Tcl_Channel channel;
     Tcl_DString dstring;
@@ -647,104 +680,147 @@ char **argv;
 	ignore[i] = FALSE;
     }
 
-    argc--; argv++;
+    /* Check and process switches */
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-nottyinit")) {
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	switch ((enum options) index) {
+	case SPAWN_NOTTYINIT:
 	    ttyinit = FALSE;
 	    slave_write_ioctls--;
 	    slave_opens--;
-	} else if (streq(*argv,"-nottycopy")) {
+	    break;
+	case SPAWN_NOTTYCOPY:
 	    ttycopy = FALSE;
-	} else if (streq(*argv,"-noecho")) {
+	    break;
+	case SPAWN_NOECHO:
 	    echo = FALSE;
-	} else if (streq(*argv,"-console")) {
+	    break;
+	case SPAWN_CONSOLE:
 	    console = TRUE;
-	} else if (streq(*argv,"-pty")) {
+	    break;
+	case SPAWN_PTY:
 	    pty_only = TRUE;
-	} else if (streq(*argv,"-open")) {
-	    if (argc < 2) {
+	    break;
+	case SPAWN_OPEN:
+	    i ++;
+	    if (i >= objc) {
 		exp_error(interp,"usage: -open file-identifier");
 		return TCL_ERROR;
 	    }
-	    chanName = argv[1];
-	    argc--; argv++;
-	} else if (streq(*argv,"-leaveopen")) {
-	    if (argc < 2) {
+	    chanName = Tcl_GetString (objv[i]);
+	    break;
+	case SPAWN_LEAVEOPEN:
+	    i ++;
+	    if (i >= objc) {
 		exp_error(interp,"usage: -open file-identifier");
 		return TCL_ERROR;
 	    }
-	    chanName = argv[1];
+	    chanName = Tcl_GetString (objv[i]);
 	    leaveopen = TRUE;
-	    argc--; argv++;
-	} else if (streq(*argv,"-ignore")) {
+	    break;
+	case SPAWN_IGNORE: {
 	    int sig;
-
-	    if (argc < 2) {
+	    i ++;
+	    if (i >= objc) {
 		exp_error(interp,"usage: -ignore signal");
 		return TCL_ERROR;
 	    }
-	    sig = exp_string_to_signal(interp,argv[1]);
+	    sig = exp_string_to_signal(interp,Tcl_GetString (objv[i]));
 	    if (sig == -1) {
-		exp_error(interp,"usage: -ignore %s: unknown signal name",argv[1]);
+		exp_error(interp,"usage: -ignore %s: unknown signal name",objv[i]);
 		return TCL_ERROR;
 	    }
 	    ignore[sig] = TRUE;
-	    argc--; argv++;
+	}
+	    break;
 #ifdef FULLTRAPS
-	} else if (streq(*argv,"-trap")) {
-	    /* argv[1] is action */
-	    /* argv[2] is list of signals */
+	case SPAWN_TRAP: {
+	    /* objv[i+1] is list of signals */
+	    /* objv[i+2] is action */
 
+	    static char* actions [] = {
+		"SIG_DFL", "SIG_IGN", NULL
+	    };
+	    enum actions {
+		ACTION_SIGDFL, ACTION_SIGIGN;
+	    }
+	    int theaction;
+
+	    int j;
 	    RETSIGTYPE (*sig_handler)();
-	    int n;		/* number of signals in list */
-	    char **list;	/* list of signals */
+	    int       lc;	/* number of signals in list */
+	    Tcl_Obj** lv;	/* list of signals */
 	    
-	    if (argc < 3) {
+	    if ((objc - i) < 3) {
 		exp_error(interp,"usage: -trap siglist SIG_DFL or SIG_IGN");
 		return TCL_ERROR;
 	    }
 
-	    if (0 == strcmp(argv[2],"SIG_DFL")) {
+	    /* Check and process action */
+
+	    if (Tcl_GetIndexFromObj(interp, objv[i+2], actions, "action", 0,
+				    &theaction) != TCL_OK) {
+		exp_error(interp,"usage: -trap siglist SIG_DFL or SIG_IGN");
+		return TCL_ERROR;
+	    }
+	    switch ((enum actions) theaction) {
+	    case ACTION_SIGDFL:
 		sig_handler = SIG_DFL;
-	    } else if (0 == strcmp(argv[2],"SIG_IGN")) {
+		break;
+	    case ACTION_SIGIGN:
 		sig_handler = SIG_IGN;
-	    } else {
-		exp_error(interp,"usage: -trap siglist SIG_DFL or SIG_IGN");
-		return TCL_ERROR;
+		break;
 	    }
 
-	    if (TCL_OK != Tcl_SplitList(interp,argv[1],&n,&list)) {
-		expErrorLogU(interp->result);
+	    /* Check and process list of signals */
+
+	    if (TCL_OK != Tcl_ListObjGetElements (inter, objv[i+1], &lc, &lv)) {
+		expErrorLogU(Tcl_GetStringResult(interp));
 		expErrorLogU("\r\n");
 		exp_error(interp,"usage: -trap {siglist} ...");
 		return TCL_ERROR;
 	    }
-	    for (i=0;i<n;i++) {
-		int sig = exp_string_to_signal(interp,list[i]);
+
+	    for (j=0;j<lc;j++) {
+		int sig = exp_string_to_signal(interp,Tcl_GetString (lv[j]));
 		if (sig == -1) {
-		    ckfree((char *)&list);
 		    return TCL_ERROR;
 		}
 		traps[sig] = sig_handler;
 	    }
-	    ckfree((char *)&list);
 
-	    argc--; argv++;
-	    argc--; argv++;
-#endif /*FULLTRAPS*/
-	} else break;
+	    i += 2;
+    }
+	    break;
+#endif
+	}
     }
 
-    if (chanName && (argc != 0)) {
+    /* Additional checking of arguments */
+
+    if (chanName && (i < objc)) {
 	exp_error(interp,"usage: -[leave]open [fileXX]");
 	return TCL_ERROR;
     }
 
-    if (!pty_only && !chanName && (argc == 0)) {
+    if (!pty_only && !chanName && (i == objc)) {
 	exp_error(interp,"usage: spawn [spawn-args] program [program-args]");
 	return(TCL_ERROR);
     }
+
+    cmdIndex = i;
+    cmdObj = objv[i];
 
     stty_init = exp_get_var(interp,STTY_INIT);
     if (stty_init) {
@@ -765,10 +841,11 @@ when trapping, see below in child half of fork */
 
     if (!chanName) {
 	if (echo) {
+	    int c = 0;
 	    expStdoutLogU(argv0,0);
-	    for (a = argv;*a;a++) {
+	    for (c = 1; c < objc; c++) {
 		expStdoutLogU(" ",0);
-		expStdoutLogU(*a,0);
+		expStdoutLogU(Tcl_GetString (objv[c]),0);
 	    }
 	    expStdoutLogU("\r\n",0);
 	}
@@ -924,13 +1001,14 @@ when trapping, see below in child half of fork */
 	    sprintf(value,"%d",esPtr->fd_slave);
 	    Tcl_SetVar2(interp,SPAWN_OUT,"slave,fd",value,0);
 	}
-	sprintf(interp->result,"%d",EXP_NOPID);
-	expDiagLog("spawn: returns {%s}\r\n",interp->result);
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (EXP_NOPID));
+	expDiagLog("spawn: returns {%s}\r\n",Tcl_GetStringResult(interp));
 
 	return TCL_OK;
     }
 
-    if (NULL == (argv[0] = Tcl_TranslateFileName(interp,argv[0],&dstring))) {
+    command = Tcl_TranslateFileName(interp,Tcl_GetString (cmdObj),&dstring);
+    if (NULL == command) {
 	goto parent_error;
     }
 
@@ -1028,7 +1106,7 @@ when trapping, see below in child half of fork */
 		    /* hand set errno */
 		    errno = child_errno;
 		    exp_error(interp, "couldn't execute \"%s\": %s",
-			    argv[0],Tcl_PosixError(interp));
+		      objv[0],Tcl_PosixError(interp));
 		    goto parent_error;
 	    }
 	    close(status_pipe[0]);
@@ -1262,7 +1340,19 @@ when trapping, see below in child half of fork */
 
 	/* expDiagLog("child: now unsynchronized from parent\r\n"); */
 
-        (void) execvp(argv[0],argv);
+    argv = (char**) ckalloc ((objc+1)*sizeof(char*));
+    for (k=0, i=cmdIndex;i<objc;k++,i++) {
+	argv[k] = ckalloc (1+strlen(Tcl_GetString (objv[i])));
+	strcpy (argv[k],Tcl_GetString (objv[i]));
+    }
+    argv[k] = NULL;
+
+    (void) execvp(command,argv);
+
+    for (k=0,i=cmdIndex;i<objc;k++,i++) {
+	ckfree (argv[k]);
+    }
+    ckfree((char*)argv);
 
 	/* Alas, by now we've closed fd's to stderr, logfile and diagfile.
 	 * The only reasonable thing to do is to send back the error as part of
@@ -1288,32 +1378,48 @@ parent_error:
 
 /*ARGSUSED*/
 static int
-Exp_ExpPidCmd(clientData,interp,argc,argv)
+Exp_ExpPidObjCmd(clientData,interp,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     char *chanName = 0;
     ExpState *esPtr = 0;
 
-    argc--; argv++;
+    static char* options[] = { "-i", NULL };
+    enum options { PID_ID };
+    int i;
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-i")) {
-	    argc--; argv++;
-	    if (!*argv) goto usage;
-	    chanName = *argv;
-	} else goto usage;
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
+	}
+	switch ((enum options) index) {
+	case PID_ID:
+	    i++;
+	    if (i >= objc) goto usage;
+	    chanName = Tcl_GetString (objv[i]);
+	    break;
+	}
     }
 
     if (chanName) {
-	if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,0,"exp_pid"))) return TCL_ERROR;
+	esPtr = expStateFromChannelName(interp,chanName,0,0,0,"exp_pid");
     } else {
-	if (!(esPtr = expStateCurrent(interp,0,0,0))) return TCL_ERROR;
+	esPtr = expStateCurrent(interp,0,0,0);
     }
+    if (!esPtr) return TCL_ERROR;
     
-    sprintf(interp->result,"%d",esPtr->pid);
+    Tcl_SetObjResult (interp, Tcl_NewIntObj (esPtr->pid));
     return TCL_OK;
   usage:
     exp_error(interp,"usage: -i spawn_id");
@@ -1322,33 +1428,41 @@ char **argv;
 
 /*ARGSUSED*/
 static int
-Exp_GetpidDeprecatedCmd(clientData, interp, argc, argv)
+Exp_GetpidDeprecatedObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	expDiagLog("getpid is deprecated, use pid\r\n");
-	sprintf(interp->result,"%d",getpid());
+    Tcl_SetObjResult (interp, Tcl_NewIntObj (getpid()));
 	return(TCL_OK);
 }
 
 /*ARGSUSED*/
 static int
-Exp_SleepCmd(clientData,interp,argc,argv)
+Exp_SleepObjCmd(clientData,interp,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	argc--; argv++;
+    double s;
 
-	if (argc != 1) {
+    if (objc != 2) {
 		exp_error(interp,"must have one arg: seconds");
 		return TCL_ERROR;
 	}
 
-	return(exp_dsleep(interp,(double)atof(*argv)));
+    if (TCL_OK != Tcl_GetDoubleFromObj (interp, objv[1], &s)) {
+	if (0 == strlen (Tcl_GetString(objv[1]))) {
+	    /* Keep undocumented acceptance of "" as 0 = no delay */
+	    return TCL_OK;
+	}
+	return TCL_ERROR;
+    }
+
+    return exp_dsleep(interp,s);
 }
 
 struct slow_arg {
@@ -1816,27 +1930,43 @@ int duration;		/* if we have to copy the args */
 
 /*ARGSUSED*/
 static int
-Exp_SendLogCmd(clientData, interp, argc, argv)
+Exp_SendLogObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-	argv++;
-	argc--;
-	if (argc) {
-		if (streq(*argv,"--")) {
-			argc--; argv++;
+    static char* options[] = { "--", NULL };
+    enum options { LOG_QUOTE };
+    int i;
+
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
 		}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
+	}
+	switch ((enum options) index) {
+	case LOG_QUOTE:
+	    i++;
+	    break;
+	}
 	}
 
-	if (argc != 1) {
-		exp_error(interp,"usage: send [args] string");
-		return TCL_ERROR;
-	}
+    if (i >= objc) goto usage;
 
-	expLogDiagU(*argv);
+    expLogDiagU(Tcl_GetString (objv[i]));
 	return(TCL_OK);
+
+ usage:
+    exp_error(interp,"usage: send [args] string");
+    return TCL_ERROR;
 }
 
 
@@ -2043,11 +2173,11 @@ getString:
 
 /*ARGSUSED*/
 static int
-Exp_LogFileCmd(clientData, interp, argc, argv)
+Exp_LogFileObjCmd(clientData, interp, objc, objv)
     ClientData clientData;
     Tcl_Interp *interp;
-    int argc;
-    char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     static char resultbuf[1000];
     char *chanName = 0;
@@ -2055,24 +2185,44 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
     int logAll = FALSE;
     int append = TRUE;
     char *filename = 0;
+    int i;
 
-    argv++;
-    argc--;
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-open")) {
-	    if (!argv[1]) goto usage_error;
-	    chanName = argv[1];
-	    argc--; argv++;
-	} else if (streq(*argv,"-leaveopen")) {
-	    if (!argv[1]) goto usage_error;
-	    chanName = argv[1];
-	    leaveOpen = TRUE;
-	    argc--; argv++;
-	} else if (streq(*argv,"-a")) {
+    static char* options[] = {
+	"-a",
+	"-info",
+	"-leaveopen",
+	"-noappend",
+	"-open",
+	NULL
+    };
+    enum options {
+	LOGFILE_A,
+	LOGFILE_INFO,
+	LOGFILE_LEAVEOPEN,
+	LOGFILE_NOAPPEND,
+	LOGFILE_OPEN
+    };
+
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	switch ((enum options) index) {
+	case LOGFILE_A:
 	    logAll = TRUE;
-	} else if (streq(*argv,"-info")) {
+	    break;
+	case LOGFILE_INFO:
 	    resultbuf[0] = '\0';
 	    if (expLogChannelGet()) {
+		/* FUTURE: Use List-ops to construct a proper Tcl_Obj */
 		if (expLogAllGet()) strcat(resultbuf,"-a ");
 		if (!expLogAppendGet()) strcat(resultbuf,"-noappend ");
 		if (expLogFilenameGet()) {
@@ -2086,14 +2236,26 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 		Tcl_SetResult(interp,resultbuf,TCL_STATIC);
 	    }
 	    return TCL_OK;
-	} else if (streq(*argv,"-noappend")) {
+	case LOGFILE_LEAVEOPEN:
+	    i ++;
+	    if (i >= objc) goto usage_error;
+	    chanName = Tcl_GetString (objv[i]);
+	    leaveOpen = TRUE;
+	    break;
+	case LOGFILE_NOAPPEND:
 	    append = FALSE;
-	} else break;
+	    break;
+	case LOGFILE_OPEN:
+	    i++;
+	    if (i >= objc) goto usage_error;
+	    chanName = Tcl_GetString (objv[i]);
+	    break;
+	}
     }
     
-    if (argc == 1) {
-	filename = argv[0];
-    } else if (argc > 1) {
+    if (i == (objc - 1)) {
+	filename = Tcl_GetString (objv[i]);
+    } else if (objc > 1) {
 	/* too many arguments */
 	goto usage_error;
     } 
@@ -2144,71 +2306,98 @@ Exp_LogFileCmd(clientData, interp, argc, argv)
 
 /*ARGSUSED*/
 static int
-Exp_LogUserCmd(clientData, interp, argc, argv)
+Exp_LogUserObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int old_loguser = expLogUserGet();
 
-    if (argc == 0 || (argc == 2 && streq(argv[1],"-info"))) {
+    if (objc == 0 || (objc == 2 && streq(Tcl_GetString (objv[1]),"-info"))) {
 	/* do nothing */
-    } else if (argc == 2) {
-	expLogUserSet(atoi(argv[1]));
+    } else if (objc == 2) {
+	int flag;
+	if (TCL_OK != Tcl_GetBooleanFromObj (interp, objv[1], &flag)) {
+	    if (0 == strlen (Tcl_GetString(objv[1]))) {
+		/* Keep undocumented acceptance of "" as 0. */
+		flag = 0;
+	    } else {
+		return TCL_ERROR;
+	    }
+	}
+	expLogUserSet(flag);
     } else {
 	exp_error(interp,"usage: [-info|1|0]");
     }
 
-    sprintf(interp->result,"%d",old_loguser);
-
+    Tcl_SetObjResult (interp, Tcl_NewIntObj (old_loguser));
     return(TCL_OK);
 }
 
 #ifdef TCL_DEBUGGER
 /*ARGSUSED*/
 static int
-Exp_DebugCmd(clientData, interp, argc, argv)
+Exp_DebugObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int now = FALSE;	/* soon if FALSE, now if TRUE */
     int exp_tcl_debugger_was_available = exp_tcl_debugger_available;
 
-    if (argc > 3) goto usage;
+    static char* options[] = { "-now", NULL };
+    enum options { DEBUG_NOW };
+    int i;
 
-    if (argc == 1) {
-	sprintf(interp->result,"%d",exp_tcl_debugger_available);
+    if (objc > 3) goto usage;
+
+    if (objc == 1) {
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (exp_tcl_debugger_available));
 	return TCL_OK;
     }
 
-    argv++;
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
 
-    while (*argv) {
-	if (streq(*argv,"-now")) {
-	    now = TRUE;
-	    argv++;
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
 	}
-	else break;
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
+	}
+	switch ((enum options) index) {
+	case DEBUG_NOW:
+	    now = TRUE;
+	    break;
+	}
     }
 
-    if (!*argv) {
+    if (i == objc) {
 	if (now) {
 	    Dbg_On(interp,1);
 	    exp_tcl_debugger_available = 1;
 	} else {
 	    goto usage;
 	}
-    } else if (streq(*argv,"0")) {
+    } else {
+	int flag;
+	if (TCL_OK != Tcl_GetBooleanFromObj (interp, objv[i], &flag)) {
+	    goto usage;
+	}
+	if (!flag) {
 	Dbg_Off(interp);
 	exp_tcl_debugger_available = 0;
     } else {
 	Dbg_On(interp,now);
 	exp_tcl_debugger_available = 1;
     }
-    sprintf(interp->result,"%d",exp_tcl_debugger_was_available);
+    }
+    Tcl_SetObjResult (interp, Tcl_NewBooleanObj (exp_tcl_debugger_was_available));
     return(TCL_OK);
  usage:
     exp_error(interp,"usage: [[-now] 1|0]");
@@ -2219,17 +2408,44 @@ char **argv;
 
 /*ARGSUSED*/
 static int
-Exp_ExpInternalCmd(clientData, interp, argc, argv)
+Exp_ExpInternalObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     int newChannel = FALSE;
     Tcl_Channel oldChannel;
     static char resultbuf[1000];
+    int flag, i;
 
-    if ((argc > 1) && streq(argv[1],"-info")) {
+    static char* options[] = {
+	"-f",
+	"-info",
+	NULL
+    };
+    enum options {
+	INTERNAL_F,
+	INTERNAL_INFO
+    };
+
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
+	}
+	switch ((enum options) index) {
+	case INTERNAL_INFO:
+	    /* FUTURE: Construct a proper list Tcl_Obj here */
+	    /* Should check that there are no arguments coming after -info */
+
 	resultbuf[0] = '\0';
 	oldChannel = expDiagChannelGet();
 	if (oldChannel) {
@@ -2238,30 +2454,30 @@ char **argv;
 	strcat(resultbuf,expDiagToStderrGet()?"1":"0");
 	Tcl_SetResult(interp,resultbuf,TCL_STATIC);
 	return TCL_OK;
-    }
-
-    argv++;
-    argc--;
-
-    while (argc) {
-	if (!streq(*argv,"-f")) break;
-	argc--;argv++;
-	if (argc < 1) goto usage;
+	case INTERNAL_F:
+	    i ++;
+	    if (i >= objc) goto usage;
 	expDiagChannelClose(interp);
-	if (TCL_OK != expDiagChannelOpen(interp,argv[0])) {
+	    if (TCL_OK != expDiagChannelOpen(interp,Tcl_GetString (objv[i]))) {
 	    return TCL_ERROR;
 	}
 	newChannel = TRUE;
-	argc--;argv++;
+	    break;
+    }
     }
 
-    if (argc != 1) goto usage;
+    if (i >= objc) goto usage;
+
+    if (TCL_OK != Tcl_GetBooleanFromObj (interp, objv[i], &flag)) {
+	goto usage;
+    }
     
     /* if no -f given, close file */
     if (!newChannel) {
 	expDiagChannelClose(interp);
     }
-    expDiagToStderrSet(atoi(*argv));
+
+    expDiagToStderrSet(flag);
     return(TCL_OK);
  usage:
     exp_error(interp,"usage: [-f file] 0|1");
@@ -2272,38 +2488,45 @@ char *exp_onexit_action = 0;
 
 /*ARGSUSED*/
 static int
-Exp_ExitCmd(clientData, interp, argc, argv)
+Exp_ExitObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int value = 0;
 
-	argv++;
+    objc--;
+    objv++;
 
-	if (*argv) {
-		if (exp_flageq(*argv,"-onexit",3)) {
-			argv++;
-			if (*argv) {
-				int len = strlen(*argv);
+    if (objc) {
+	if (exp_flageq(Tcl_GetString (objv[0]),"-onexit",3)) {
+	    objc--;
+	    objv++;
+	    if (objc) {
+		int len;
+		char* act = Tcl_GetStringFromObj (objv[0], &len);
+
 				if (exp_onexit_action)
 					ckfree(exp_onexit_action);
+
 				exp_onexit_action = ckalloc(len + 1);
-				strcpy(exp_onexit_action,*argv);
+		strcpy(exp_onexit_action,act);
+
 			} else if (exp_onexit_action) {
 				Tcl_AppendResult(interp,exp_onexit_action,(char *)0);
 			}
 			return TCL_OK;
-		} else if (exp_flageq(*argv,"-noexit",3)) {
-			argv++;
+	} else if (exp_flageq(Tcl_GetString (objv[0]),"-noexit",3)) {
+	    objc--;
+	    objv++;
 			exp_exit_handlers((ClientData)interp);
 			return TCL_OK;
 		}
 	}
 
-	if (*argv) {
-		if (Tcl_GetInt(interp, *argv, &value) != TCL_OK) {
+    if (objc) {
+	if (Tcl_GetIntFromObj(interp, objv[0], &value) != TCL_OK) {
 			return TCL_ERROR;
 		}
 	}
@@ -2372,34 +2595,60 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
     int slave_flag = FALSE;
     ExpState *esPtr = 0;
     char *chanName = 0;
+    int i;
 
-    int objc_orig = objc;
-    Tcl_Obj *CONST *objv_orig = objv;
+    static char* options[] = {
+	"-i",
+	"-onexec",
+	"-slave",
+	NULL
+    };
+    enum options {
+	CLOSE_ID,
+	CLOSE_ONEXEC,
+	CLOSE_SLAVE
+    };
 
-    objc--; objv++;
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
 
-    for (;objc>0;objc--,objv++) {
-	if (streq("-i",Tcl_GetString(*objv))) {
-	    objc--; objv++;
-	    if (objc == 0) {
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	switch ((enum options) index) {
+	case CLOSE_ID:
+	    i++;
+	    if (i == objc) {
 		exp_error(interp,"usage: -i spawn_id");
 		return(TCL_ERROR);
 	    }
-	    chanName = Tcl_GetString(*objv);
-	} else if (streq(Tcl_GetString(*objv),"-slave")) {
-	    slave_flag = TRUE;
-	} else if (streq(Tcl_GetString(*objv),"-onexec")) {
-	    objc--; objv++;
-	    if (objc == 0) {
+	    chanName = Tcl_GetString(objv[i]);
+	    break;
+	case CLOSE_ONEXEC:
+	    i++;
+	    if (i == objc) {
+	    on_exec_usage:
 		exp_error(interp,"usage: -onexec 0|1");
 		return(TCL_ERROR);
 	    }
 	    onexec_flag = TRUE;
-	    close_onexec = atoi(Tcl_GetString(*objv));
-	} else break;
+	    if (TCL_OK != Tcl_GetBooleanFromObj (interp, objv[i], &close_onexec)) {
+		goto on_exec_usage;
+	    }
+	    break;
+	case CLOSE_SLAVE:
+	    slave_flag = TRUE;
+	    break;
+	}
     }
 
-    if (objc) {
+    if (i < objc) {
 	/* doesn't look like our format, it must be a Tcl-style file */
 	/* handle.  Lucky that formats are easily distinguishable. */
 	/* Historical note: we used "close"  long before there was a */
@@ -2410,14 +2659,15 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
 	Tcl_ResetResult(interp);
 
 	close_info = (Tcl_CmdInfo*) Tcl_GetAssocData (interp, EXP_CMDINFO_CLOSE, NULL);
-	return(close_info->objProc(close_info->objClientData,interp,objc_orig,objv_orig));
+	return(close_info->objProc(close_info->objClientData,interp,objc,objv));
     }
 
     if (chanName) {
-	if (!(esPtr = expStateFromChannelName(interp,chanName,1,0,0,"close"))) return TCL_ERROR;
+	esPtr = expStateFromChannelName(interp,chanName,1,0,0,"close");
     } else {
-	if (!(esPtr = expStateCurrent(interp,1,0,0))) return TCL_ERROR;
+	esPtr = expStateCurrent(interp,1,0,0);
     }
+    if (!esPtr) return TCL_ERROR;
 
     if (slave_flag) {
 	if (esPtr->fd_slave != EXP_NOFD) {
@@ -2444,43 +2694,50 @@ Tcl_Obj *CONST objv[];	/* Argument objects. */
 }
 
 /*ARGSUSED*/
-static void
-tcl_tracer(clientData,interp,level,command,cmdProc,cmdClientData,argc,argv)
+static int
+tcl_tracer(clientData,interp,level,command,cmdInfo,objc,objv)
 ClientData clientData;
 Tcl_Interp *interp;
 int level;
-char *command;
-int (*cmdProc)();
-ClientData cmdClientData;
-int argc;
-char *argv[];
+     CONST char *command;
+     Tcl_Command cmdInfo;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int i;
 
 	/* come out on stderr, by using expErrorLog */
 	expErrorLog("%2d",level);
 	for (i = 0;i<level;i++) expErrorLogU("  ");
-	expErrorLogU(command);
+    expErrorLogU((char*)command);
 	expErrorLogU("\r\n");
+    return TCL_OK;
+}
+
+static void
+tcl_tracer_del(clientData)
+     ClientData clientData;
+{
+    /* Nothing */
 }
 
 /*ARGSUSED*/
 static int
-Exp_StraceCmd(clientData, interp, argc, argv)
+Exp_StraceObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	static int trace_level = 0;
 	static Tcl_Trace trace_handle;
 
-	if (argc > 1 && streq(argv[1],"-info")) {
-		sprintf(interp->result,"%d",trace_level);
+    if (objc > 1 && streq(Tcl_GetString (objv[1]),"-info")) {
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (trace_level));
 		return TCL_OK;
 	}
 
-	if (argc != 2) {
+    if (objc != 2) {
 		exp_error(interp,"usage: trace level");
 		return(TCL_ERROR);
 	}
@@ -2488,10 +2745,15 @@ char **argv;
 	if (trace_level > 0) Tcl_DeleteTrace(interp,trace_handle);
 
 	/* get and save new trace level */
-	trace_level = atoi(argv[1]);
+
+    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[1], &trace_level)) {
+	return TCL_ERROR;
+    }
+
 	if (trace_level > 0)
-		trace_handle = Tcl_CreateTrace(interp,
-				trace_level,tcl_tracer,(ClientData)0);
+	trace_handle = Tcl_CreateObjTrace(interp, trace_level,0,
+					  tcl_tracer,(ClientData)0,
+					  tcl_tracer_del);
 	return(TCL_OK);
 }
 
@@ -2616,11 +2878,11 @@ int pid;
 */
 /*ARGSUSED*/
 static int
-Exp_WaitCmd(clientData, interp, argc, argv)
+Exp_WaitObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     char *chanName = 0;
     struct ExpState *esPtr;
@@ -2632,29 +2894,50 @@ char **argv;
     int result = 0;		/* 0 means child was successfully waited on */
 				/* -1 means an error occurred */
 				/* -2 means no eligible children to wait on */
-#define NO_CHILD -2
 
-    argv++;
-    argc--;
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-i")) {
-	    argc--; argv++;
-	    if (argc==0) {
-		exp_error(interp,"usage: -i spawn_id");
-		return(TCL_ERROR);
+    static char* options[] = {
+	"-i",
+	"-nowait",
+	NULL
+    };
+    enum options {
+	WAIT_ID,
+	WAIT_NOWAIT
+    };
+    int i;
+
+#define NO_CHILD (-2)
+
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
 	    }
-	    chanName = *argv;
-	} else if (streq(*argv,"-nowait")) {
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
+	}
+	switch ((enum options) index) {
+	case WAIT_ID:
+	    i++;
+	    if (i >= objc) goto usage;
+	    chanName = Tcl_GetString (objv[i]);
+	    break;
+	case WAIT_NOWAIT:
 	    nowait = TRUE;
+	    break;
 	}
     }
 
     if (!chanName) {
-	if (!(esPtr = expStateCurrent(interp,0,0,1))) return TCL_ERROR;
+	esPtr = expStateCurrent(interp,0,0,1);
     } else {
-	if (!(esPtr = expStateFromChannelName(interp,chanName,0,0,1,"wait")))
-	    return TCL_ERROR;
+	esPtr = expStateFromChannelName(interp,chanName,0,0,1,"wait");
     }
+    if (!esPtr) return TCL_ERROR;
 
     if (!expStateAnyIs(esPtr)) {
 	/* check if waited on already */
@@ -2799,18 +3082,22 @@ char **argv;
     }
 
     return ((result == -1)?TCL_ERROR:TCL_OK);
+
+ usage:
+    exp_error(interp,"usage: -i spawn_id");
+    return(TCL_ERROR);
 }
 
 /*ARGSUSED*/
 static int
-Exp_ForkCmd(clientData, interp, argc, argv)
+Exp_ForkObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int rc;
-	if (argc > 1) {
+    if (objc > 1) {
 		exp_error(interp,"usage: fork");
 		return(TCL_ERROR);
 	}
@@ -2830,27 +3117,28 @@ char **argv;
 	}
 
 	/* both child and parent follow remainder of code */
-	sprintf(interp->result,"%d",rc);
-	expDiagLog("fork: returns {%s}\r\n",interp->result);
+    Tcl_SetObjResult (interp, Tcl_NewIntObj (rc));
+    expDiagLog("fork: returns {%s}\r\n",Tcl_GetStringResult(interp));
 	return(TCL_OK);
 }
 
 /*ARGSUSED*/
 static int
-Exp_DisconnectCmd(clientData, interp, argc, argv)
+Exp_DisconnectObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     
-
+#ifdef TIOCNOTTY
     /* tell CenterLine to ignore non-use of ttyfd */
     /*SUPPRESS 591*/
     int ttyfd;
+#endif /* TIOCNOTTY */
 
-    if (argc > 1) {
+    if (objc > 1) {
 	exp_error(interp,"usage: disconnect");
 	return(TCL_ERROR);
     }
@@ -2946,50 +3234,87 @@ char **argv;
 
 /*ARGSUSED*/
 static int
-Exp_OverlayCmd(clientData, interp, argc, argv)
+Exp_OverlayObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int newfd, oldfd;
 	int dash_name = 0;
 	char *command;
+    int k;
+    char **argv;
 
-	argc--; argv++;
-	while (argc) {
-		if (*argv[0] != '-') break;	/* not a flag */
-		if (streq(*argv,"-")) {		/* - by itself */
-			argc--; argv++;
+    int i;
+
+    for (i=1;i<objc;i++) {
+	char *name;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	} else if (streq (name,"-")) {	/* - by itself */
 			dash_name = 1;
 			continue;
 		}
-		newfd = atoi(argv[0]+1);
-		argc--; argv++;
-		if (argc == 0) {
+
+	if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &newfd)) {
+	    return TCL_ERROR;
+	}
+	newfd = - newfd; /* Negation rids us of the effect the '-' prefix had. */
+
+	i ++;
+	if (i >= objc) {
 			exp_error(interp,"overlay -# requires additional argument");
 			return(TCL_ERROR);
 		}
-		oldfd = atoi(argv[0]);
-		argc--; argv++;
+	if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &oldfd)) {
+	    return TCL_ERROR;
+	}
+
 		expDiagLog("overlay: mapping fd %d to %d\r\n",oldfd,newfd);
 		if (oldfd != newfd) (void) dup2(oldfd,newfd);
 		else expDiagLog("warning: overlay: old fd == new fd (%d)\r\n",oldfd);
 	}
-	if (argc == 0) {
+
+    if (i >= objc) {
 		exp_error(interp,"need program name");
 		return(TCL_ERROR);
 	}
-	command = argv[0];
+
+    /* convert to string array for execvp */
+
+    argv = (char**) ckalloc ((objc+1)*sizeof(char*));
+
+    for (k=1;k<objc;k++) {
+	argv[k] = ckalloc (1+strlen(Tcl_GetString (objv[k])));
+	strcpy (argv[k],Tcl_GetString (objv[k]));
+    }
+    argv[objc] = NULL;
+
+    /* command, handle '-' */
+    argv[0] = ckalloc (2+strlen(Tcl_GetString (objv[0])));
 	if (dash_name) {
-		argv[0] = ckalloc(1+strlen(command));
-		sprintf(argv[0],"-%s",command);
+	argv [0][0] = '-';
+	strcpy (argv[0]+1,Tcl_GetString (objv[0]));
+    } else {
+	strcpy (argv[0],Tcl_GetString (objv[0]));
 	}
 
 	signal(SIGINT, SIG_DFL);
 	signal(SIGQUIT, SIG_DFL);
+
         (void) execvp(command,argv);
-	exp_error(interp,"execvp(%s): %s\r\n",argv[0],Tcl_PosixError(interp));
+
+    for (k=0;k<objc;k++) {
+	ckfree (argv[k]);
+    }
+    ckfree ((char*)argv);
+
+    exp_error(interp,"execvp(%s): %s\r\n",
+	      Tcl_GetString(objv[0]),
+	      Tcl_PosixError(interp));
 	return(TCL_ERROR);
 }
 
@@ -3034,22 +3359,25 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
     /* errors and ok, are caught by exp_interpreter() and discarded */
     /* to return TCL_OK, type "return" */
     rc = exp_interpreter(interp,eofObj);
-    if (eofObj) Tcl_DecrRefCount(eofObj);
+    if (eofObj) {
+	Tcl_DecrRefCount(eofObj);
+    }
     return rc;
 }
 
 /* this command supercede's Tcl's builtin CONTINUE command */
 /*ARGSUSED*/
 int
-Exp_ExpContinueCmd(clientData, interp, argc, argv)
+Exp_ExpContinueObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
-    if (argc == 1) {
+    if (objc == 1) {
 	return EXP_CONTINUE;
-    } else if ((argc == 2) && (0 == strcmp(argv[1],"-continue_timer"))) {
+    } else if ((objc == 2) &&
+	       (0 == strcmp(Tcl_GetString (objv[1]),"-continue_timer"))) {
 	return EXP_CONTINUE_TIMER;
     }
 
@@ -3080,11 +3408,11 @@ Tcl_Obj *CONST objv[];
 
 /*ARGSUSED*/
 int
-Exp_OpenCmd(clientData, interp, argc, argv)
+Exp_OpenObjCmd(clientData, interp, objc, objv)
 ClientData clientData;
 Tcl_Interp *interp;
-int argc;
-char **argv;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     ExpState *esPtr;
     char *chanName = 0;
@@ -3092,28 +3420,47 @@ char **argv;
     int leaveopen = FALSE;
     Tcl_Channel channel;
 
-    argc--; argv++;
+    static char* options[] = {
+	"-i",
+	"-leaveopen",
+	NULL
+    };
+    enum options {
+	OPEN_ID,
+	OPEN_LEAVEOPEN
+    };
+    int i;
 
-    for (;argc>0;argc--,argv++) {
-	if (streq(*argv,"-i")) {
-	    argc--; argv++;
-	    if (!*argv) {
-		exp_error(interp,"usage: -i spawn_id");
-		return TCL_ERROR;
+    for (i=1; i<objc; i++) {
+	char *name;
+	int index;
+
+	name = Tcl_GetString(objv[i]);
+	if (name[0] != '-') {
+	    break;
+	}
+	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
+				&index) != TCL_OK) {
+	    goto usage;
 	    }
-	    chanName = *argv;
-	} else if (streq(*argv,"-leaveopen")) {
+	switch ((enum options) index) {
+	case OPEN_ID:
+	    i++;
+	    if (i >= objc) goto usage;
+	    chanName = Tcl_GetString (objv[i]);
+	    break;
+	case OPEN_LEAVEOPEN:
 	    leaveopen = TRUE;
-	    argc--; argv++;
-	} else break;
+	    break;
+	}
     }
 
     if (!chanName) {
-	if (!(esPtr = expStateCurrent(interp,1,0,0))) return TCL_ERROR;
+	esPtr = expStateCurrent(interp,1,0,0);
     } else {
-	if (!(esPtr = expStateFromChannelName(interp,chanName,1,0,0,"exp_open")))
-return TCL_ERROR;
+	esPtr = expStateFromChannelName(interp,chanName,1,0,0,"exp_open");
     }
+    if (!esPtr) return TCL_ERROR;
 
     /* make a new copy of file descriptor */
     if (-1 == (newfd = dup(esPtr->fdin))) {
@@ -3144,6 +3491,10 @@ return TCL_ERROR;
     Tcl_RegisterChannel(interp, channel);
     Tcl_AppendResult(interp, Tcl_GetChannelName(channel), (char *) NULL);
     return TCL_OK;
+
+ usage:
+    exp_error(interp,"usage: -i spawn_id");
+    return TCL_ERROR;
 }
 
 /* return 1 if a string is substring of a flag */
@@ -3199,33 +3550,33 @@ struct exp_cmd_data *c;
 }
 
 static struct exp_cmd_data cmd_data[]  = {
-{"close",	Exp_CloseObjCmd,	0,	0,	EXP_REDEFINE},
+    {"close",	     Exp_CloseObjCmd,	0,	(ClientData)0,	EXP_REDEFINE},
 #ifdef TCL_DEBUGGER
-{"debug",	exp_proc(Exp_DebugCmd),	0,	0},
+    {"debug",	     Exp_DebugObjCmd,       0,	(ClientData)0,	0},
 #endif
-{"exp_internal",exp_proc(Exp_ExpInternalCmd),	0,	0},
-{"disconnect",	exp_proc(Exp_DisconnectCmd),	0,	0},
-{"exit",	exp_proc(Exp_ExitCmd),	0,	EXP_REDEFINE},
-{"exp_continue",exp_proc(Exp_ExpContinueCmd),0,	0},
-{"fork",	exp_proc(Exp_ForkCmd),	0,	0},
-{"exp_pid",	exp_proc(Exp_ExpPidCmd),	0,	0},
-{"getpid",	exp_proc(Exp_GetpidDeprecatedCmd),0,	0},
-{"interpreter",	Exp_InterpreterObjCmd,	0,	0,	0},
-{"log_file",	exp_proc(Exp_LogFileCmd),	0,	0},
-{"log_user",	exp_proc(Exp_LogUserCmd),	0,	0},
-{"exp_open",	exp_proc(Exp_OpenCmd),	0,	0},
-{"overlay",	exp_proc(Exp_OverlayCmd),	0,	0},
-{"inter_return",Exp_InterReturnObjCmd,	0,	0,	0},
+    {"exp_internal", Exp_ExpInternalObjCmd, 0,	(ClientData)0,	0},
+    {"disconnect",   Exp_DisconnectObjCmd,  0,	(ClientData)0,	0},
+    {"exit",	     Exp_ExitObjCmd,        0,	(ClientData)0,	EXP_REDEFINE},
+    {"exp_continue", Exp_ExpContinueObjCmd, 0,	(ClientData)0,	0},
+    {"fork",	     Exp_ForkObjCmd,        0,	(ClientData)0,	0},
+    {"exp_pid",	     Exp_ExpPidObjCmd,      0,	(ClientData)0,	0},
+    {"getpid",	     Exp_GetpidDeprecatedObjCmd, 0,	(ClientData)0,	0},
+    {"interpreter",  Exp_InterpreterObjCmd, 0,	(ClientData)0,	0},
+    {"log_file",     Exp_LogFileObjCmd,     0,	(ClientData)0,	0},
+    {"log_user",     Exp_LogUserObjCmd,     0,	(ClientData)0,	0},
+    {"exp_open",     Exp_OpenObjCmd,        0,	(ClientData)0,	0},
+    {"overlay",	     Exp_OverlayObjCmd,     0,	(ClientData)0,	0},
+    {"inter_return", Exp_InterReturnObjCmd, 0,	(ClientData)0,	0},
 {"send",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_proc,0},
 {"send_error",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_error,0},
-{"send_log",	exp_proc(Exp_SendLogCmd),	0,	0},
+    {"send_log",     Exp_SendLogObjCmd,     0,	(ClientData)0,	0},
 {"send_tty",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_tty,0},
 {"send_user",	Exp_SendObjCmd,		0,	(ClientData)&sendCD_user,0},
-{"sleep",	exp_proc(Exp_SleepCmd),	0,	0},
-{"spawn",	exp_proc(Exp_SpawnCmd),	0,	0},
-{"strace",	exp_proc(Exp_StraceCmd),	0,	0},
-{"wait",	exp_proc(Exp_WaitCmd),	0,	0},
-{"exp_configure",Exp_ConfigureObjCmd, 0, 0, 0},
+    {"sleep",	     Exp_SleepObjCmd,       0,	(ClientData)0,	0},
+    {"spawn",	     Exp_SpawnObjCmd,       0,	(ClientData)0,	0},
+    {"strace",	     Exp_StraceObjCmd,      0,	(ClientData)0,	0},
+    {"wait",	     Exp_WaitObjCmd,        0,	(ClientData)0,	0},
+    {"exp_configure",Exp_ConfigureObjCmd,   0,	(ClientData)0,	0},
 {0}};
 
 void
@@ -3238,3 +3589,11 @@ Tcl_Interp *interp;
     Tcl_InitHashTable(&slaveNames,TCL_STRING_KEYS);
 #endif /* HAVE_PTYTRAP */
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */
