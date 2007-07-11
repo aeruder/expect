@@ -1,5 +1,17 @@
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
+	* Dbg.c: Cleaned up the direct access to interp->result,
+	* exp_command.c: replaced with the proper functions and
+	* expect.c: Tcl_Obj's.
+	* exp_main_exp.c:
+	* exp_main_sub.c:
+	* exp_main_tk.c:
+	* exp_prog.h:
+	* exp_trap.c:
+	* exp_tty.c:
+	* exp_win.c:
+	* exp_win.h:
+
 	* tests/cat.test: Added proper 'package require Expect'
 	* tests/expect.test: to the test setup code (JeffH).
 	* tests/logfile.test:

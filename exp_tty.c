@@ -36,6 +36,7 @@
 #include "exp_tty_in.h"
 #include "exp_command.h"
 #include "exp_log.h"
+#include "exp_win.h"
 
 static int is_raw = FALSE;
 static int is_noecho = FALSE;
@@ -313,9 +314,6 @@ int *len;	/* current and new length of s */
 	return(dest);
 }
 
-/* this stupidity because Tcl needs commands in writable space */
-static char exec_cmd[] = "exec";
-
 static int		/* returns TCL_whatever */
 exec_stty(interp,argc,argv,devtty)
 Tcl_Interp *interp;
@@ -323,7 +321,6 @@ int argc;
 char **argv;
 int devtty;		/* if true, redirect to /dev/tty */
 {
-	char **new_argv;
 	int i;
 	int rc;
 
@@ -453,7 +450,7 @@ char **argv;
 					no_args = FALSE;
 					exp_ioctled_devtty = TRUE;
 				} else {
-					exp_win_rows_get(interp->result);
+		    Tcl_SetResult (interp, exp_win_rows_get(), TCL_VOLATILE);
 					return TCL_OK;
 				}
 			} else if (streq(*argv,"columns")) {
@@ -463,7 +460,7 @@ char **argv;
 					no_args = FALSE;
 					exp_ioctled_devtty = TRUE;
 				} else {
-					exp_win_columns_get(interp->result);
+		    Tcl_SetResult (interp, exp_win_columns_get(), TCL_VOLATILE);
 					return TCL_OK;
 				}
 			} else {
@@ -502,9 +499,11 @@ char **argv;
 
 		/* if no result, make a crude one */
 		if (0 == strcmp(Tcl_GetString(Tcl_GetObjResult(interp)),"")) {
-			sprintf(interp->result,"%sraw %secho",
+	    char buf [10];
+	    sprintf(buf,"%sraw %secho",
 				(was_raw?"":"-"),
 				(was_echo?"":"-"));
+	    Tcl_SetResult (interp, buf, TCL_VOLATILE);
 		}
 	} else {
 		/* a different tty */
@@ -520,7 +519,7 @@ char **argv;
 					argv++;
 					no_args = FALSE;
 				} else {
-					exp_win2_rows_get(fd,interp->result);
+		    Tcl_SetResult (interp, exp_win2_rows_get(fd), TCL_VOLATILE);
 					goto done;
 				}
 			} else if (streq(*argv,"columns")) {
@@ -529,7 +528,7 @@ char **argv;
 					argv++;
 					no_args = FALSE;
 				} else {
-					exp_win2_columns_get(fd,interp->result);
+		    Tcl_SetResult (interp, exp_win2_columns_get(fd), TCL_VOLATILE);
 					goto done;
 				}
 			} else if (streq(*argv,"<")) {
@@ -638,9 +637,11 @@ char **argv;
 			    return(TCL_ERROR);
 			}
 			if (cmd_is_stty) {
-				sprintf(interp->result,"%sraw %secho",
+		char buf [10];
+		sprintf(buf,"%sraw %secho",
 					(was_raw?"":"-"),
 					(was_echo?"":"-"));
+		Tcl_SetResult (interp, buf, TCL_VOLATILE);
 			}
 			return(TCL_OK);
 		}
@@ -700,9 +701,11 @@ char **argv;
 	}
 
 	if (cmd_is_stty) {
-		sprintf(interp->result,"%sraw %secho",
+	char buf [10];
+	sprintf(buf,"%sraw %secho",
 			(was_raw?"":"-"),
 			(was_echo?"":"-"));
+	Tcl_SetResult (interp, buf, TCL_VOLATILE);
 	}
 
 /* following macros stolen from Tcl's tclUnix.h file */
@@ -781,7 +784,7 @@ char **argv;
 	    }
 	}
 
-    if (abnormalExit && (*interp->result == 0)) {
+    if (abnormalExit && (Tcl_GetStringResult (interp)[0] == 0)) {
 	Tcl_AppendResult(interp, "child process exited abnormally",
 		(char *) NULL);
     }
@@ -801,3 +804,11 @@ struct Tcl_Interp *interp;
 {
 	exp_create_commands(interp,cmd_data);
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

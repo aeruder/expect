@@ -93,7 +93,7 @@ main(argc, argv)
  *
  * Results:
  *	Returns a standard Tcl completion code, and leaves an error
- *	message in interp->result if an error occurs.
+ *	message in the interp's result if an error occurs.
  *
  * Side effects:
  *	Depends on the startup script.
@@ -229,8 +229,8 @@ static Tk_ArgvInfo argTable[] = {
  *	the arguments that are extracted).
  *
  * Results:
- *	Returns a standard Tcl completion code and sets interp->result
- *	if there is an error.
+ *	Returns a standard Tcl completion code and sets the interp's
+ *	result if there is an error.
  *
  * Side effects:
  *	Depends on various initialization scripts that get invoked.
@@ -446,7 +446,7 @@ char **argv;
 	int i;
 
 	if (argc == 0) {
-		strcpy(interp->result,"-Debug flag needs 1 or 0 argument");
+	Tcl_SetResult (interp,"-Debug flag needs 1 or 0 argument", TCL_STATIC);
 		return -1;
 	}
 
@@ -466,3 +466,11 @@ char **argv;
 	return argc;
 }
 #endif /*TCL_DEBUGGER*/
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

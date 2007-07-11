@@ -1036,8 +1036,8 @@ when trapping, see below in child half of fork */
 	    /* tell user of new spawn id */
 	    Tcl_SetVar(interp,SPAWN_ID_VARNAME,esPtr->name,0);
 
-	    sprintf(interp->result,"%d",pid);
-	    expDiagLog("spawn: returns {%s}\r\n",interp->result);
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (pid));
+	expDiagLog("spawn: returns {%s}\r\n",Tcl_GetStringResult(interp));
 
 	    Tcl_DStringFree(&dstring);
 	    return(TCL_OK);
@@ -2748,24 +2748,39 @@ char **argv;
     /* non-portable assumption that pid_t can be printed with %d */
 
     if (result == -1) {
-	sprintf(interp->result,"%d %s -1 %d POSIX %s %s",
-		esPtr->pid,spawn_id,errno,Tcl_ErrnoId(),Tcl_ErrnoMsg(errno));
+	Tcl_Obj* d = Tcl_NewListObj (0,NULL);
+
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewIntObj    (esPtr->pid));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (spawn_id, -1));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewIntObj    (-1));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewIntObj    (errno));
+	Tcl_ListObjAppendElement (interp, d, LITERAL ("POSIX"));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (Tcl_ErrnoId(),-1));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (Tcl_ErrnoMsg(errno),-1));
+
+	Tcl_SetObjResult (interp, d);
 	result = TCL_OK;
     } else if (result == NO_CHILD) {
 	exp_error(interp,"no children");
 	return TCL_ERROR;
     } else {
-	sprintf(interp->result,"%d %s 0 %d",
-		esPtr->pid,spawn_id,WEXITSTATUS(esPtr->wait));
+	Tcl_Obj* d = Tcl_NewListObj (0,NULL);
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewIntObj    (esPtr->pid));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (spawn_id,-1));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewIntObj    (0));
+	Tcl_ListObjAppendElement (interp, d, Tcl_NewIntObj    (WEXITSTATUS(esPtr->wait)));
+
 	if (WIFSIGNALED(esPtr->wait)) {
-	    Tcl_AppendElement(interp,"CHILDKILLED");
-	    Tcl_AppendElement(interp,Tcl_SignalId((int)(WTERMSIG(esPtr->wait))));
-	    Tcl_AppendElement(interp,Tcl_SignalMsg((int) (WTERMSIG(esPtr->wait))));
+	    Tcl_ListObjAppendElement (interp, d, LITERAL ("CHILDKILLED"));
+	    Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (Tcl_SignalId ((int) (WTERMSIG(esPtr->wait))),-1));
+	    Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (Tcl_SignalMsg((int) (WTERMSIG(esPtr->wait))),-1));
 	} else if (WIFSTOPPED(esPtr->wait)) {
-	    Tcl_AppendElement(interp,"CHILDSUSP");
-	    Tcl_AppendElement(interp,Tcl_SignalId((int) (WSTOPSIG(esPtr->wait))));
-	    Tcl_AppendElement(interp,Tcl_SignalMsg((int) (WSTOPSIG(esPtr->wait))));
+	    Tcl_ListObjAppendElement (interp, d, LITERAL ("CHILDSUSP"));
+	    Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (Tcl_SignalId ((int) (WSTOPSIG(esPtr->wait))),-1));
+	    Tcl_ListObjAppendElement (interp, d, Tcl_NewStringObj (Tcl_SignalMsg((int) (WSTOPSIG(esPtr->wait))),-1));
 	}
+
+	Tcl_SetObjResult (interp, d);
     }
 			
     if (fp) {

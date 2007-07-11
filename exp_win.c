@@ -112,12 +112,13 @@ char *rows;
 	exp_window_size_set(exp_dev_tty);
 }
 
-void
-exp_win_rows_get(rows)
-char *rows;
+char*
+exp_win_rows_get()
 {
+    static char rows [20];
 	exp_window_size_get(exp_dev_tty);
 	sprintf(rows,"%d",winsize.rows);
+    return rows;
 }
 
 void
@@ -128,12 +129,13 @@ char *columns;
 	exp_window_size_set(exp_dev_tty);
 }
 
-void
-exp_win_columns_get(columns)
-char *columns;
+char*
+exp_win_columns_get()
 {
+    static char columns [20];
 	exp_window_size_get(exp_dev_tty);
 	sprintf(columns,"%d",winsize.columns);
+    return columns;
 }
 
 /*
@@ -172,17 +174,18 @@ char *rows;
 	exp_win2_size_set(fd);
 }
 
-void
-exp_win2_rows_get(fd,rows)
+char*
+exp_win2_rows_get(fd)
 int fd;
-char *rows;
 {
+    static char rows [20];
 	exp_win2_size_get(fd);
 	sprintf(rows,"%d",win2size.rows);
 #if !defined(EXP_WIN)
 	win2size.rows = 0;
 	win2size.columns = 0;
 #endif
+    return rows;
 }
 
 void
@@ -195,11 +198,20 @@ char *columns;
 	exp_win2_size_set(fd);
 }
 
-void
-exp_win2_columns_get(fd,columns)
+char*
+exp_win2_columns_get(fd)
 int fd;
-char *columns;
 {
+    static char columns [20];
 	exp_win2_size_get(fd);
 	sprintf(columns,"%d",win2size.columns);
+    return columns;
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */

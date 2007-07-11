@@ -662,7 +662,7 @@ end_interact:
 		/* calculate new frame */
 		if (-1 == TclGetFrame2(interp,trueFramePtr,viewFrameName,
 					&iPtr->varFramePtr,debug_cmd)) {
-			print(interp,"%s\n",interp->result);
+	    print(interp,"%s\n",Tcl_GetStringResult (interp));
 			Tcl_ResetResult(interp);
 		}
 		goto start_interact;
@@ -1246,8 +1246,11 @@ Tcl_Interp *interp;
 
 		switch (rc) {
 		case TCL_OK:
-			if (*interp->result != 0)
-				print(interp,"%s\n",interp->result);
+	    {
+		char* res = Tcl_GetStringResult (interp);
+		if (*res != 0)
+		    print(interp,"%s\n",res);
+	    }
 			continue;
 		case TCL_ERROR:
 			print(interp,"%s\n",Tcl_GetVar(interp,"errorInfo",TCL_GLOBAL_ONLY));

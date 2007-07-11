@@ -439,7 +439,7 @@ int oldcode;
 	int newcode;
 	Tcl_Obj *eip;   /* errorInfo */
 	Tcl_Obj *ecp;	/* errorCode */
-	Tcl_Obj *irp;	/* interp->result */
+	Tcl_Obj *irp;	/* interp's result */
 
 	expDiagLogU("async event handler: Tcl_Eval(");
 	expDiagLogU(trap->action);

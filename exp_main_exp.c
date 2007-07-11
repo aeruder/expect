@@ -27,12 +27,12 @@ char *argv[];
 	Tcl_FindExecutable(argv[0]);
 
 	if (Tcl_Init(interp) == TCL_ERROR) {
-	    fprintf(stderr,"Tcl_Init failed: %s\n",interp->result);
+	    fprintf(stderr,"Tcl_Init failed: %s\n",Tcl_GetStringResult (interp));
 	    (void) exit(1);
 	}
 
 	if (Expect_Init(interp) == TCL_ERROR) {
-	    fprintf(stderr,"Expect_Init failed: %s\n",interp->result);
+	    fprintf(stderr,"Expect_Init failed: %s\n",Tcl_GetStringResult (interp));
 	    (void) exit(1);
 	}
 

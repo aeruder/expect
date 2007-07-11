@@ -16,4 +16,7 @@ would appreciate credit if this program or parts of it are used.
 /* yes, I have a weak mind */
 #define streq(x,y)	(0 == strcmp((x),(y)))
 
+/* Constant strings for NewStringObj */
+#define LITERAL(s) Tcl_NewStringObj ((s), sizeof(s)-1)
+
 #endif /* _EXPECT_PROG_H */

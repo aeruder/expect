@@ -1340,11 +1340,15 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 	/* if new one has ecases, update it */
 	if (exp_i->ecount) {
+	    /* Note: The exp_indirect_ functions are Tcl_VarTraceProc's, and
+	     * are used as such in other places of Expect. We cannot use a
+	     * Tcl_Obj* as return value :(
+	     */
 	    char *msg = exp_indirect_update1(interp,ecmd,exp_i);
 	    if (msg) {
 		/* unusual way of handling error return */
 		/* because of Tcl's variable tracing */
-		strcpy(interp->result,msg);
+		Tcl_SetResult (interp, msg, TCL_VOLATILE);
 		result = TCL_ERROR;
 		goto indirect_update_abort;
 	    }
@@ -2072,9 +2076,15 @@ struct exp_i *exp_i;
 
 	    if (!expStateCheck(interp,slPtr->esPtr,1,1,
 		    exp_cmdtype_printable(ecmd->cmdtype))) {
+	    /* Note: Cannot construct a Tcl_Obj* here, the function is a
+	     * Tcl_VarTraceProc and the API wants a char*.
+	     *
+	     * DANGER: The buffer may overflow if either the existing result,
+	     * the variable name, or both become to large.
+	     */
 		static char msg[200];
 		sprintf(msg,"%s from indirect variable (%s)",
-			interp->result,exp_i->variable);
+		    Tcl_GetStringResult (interp),exp_i->variable);
 		return msg;
 	    }
 	}
