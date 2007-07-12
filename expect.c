@@ -56,7 +56,7 @@ int exp_default_close_on_eof =  TRUE;
 #define EXPECT_OUT		"expect_out"
 
 extern int Exp_StringCaseMatch _ANSI_ARGS_((Tcl_UniChar *string, int strlen,
-					    Tcl_UniChar *pattern,
+					    Tcl_UniChar *pattern,int plen,
 					    int nocase,int *offset));
 
 typedef struct ThreadSpecificData {
@@ -490,6 +490,9 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		    if (g) {
 			ec.gate = g;
+
+			expDiagLog("Gate keeper glob pattern for '%s'",Tcl_GetString(objv[i]));
+			expDiagLog(" is '%s'. Activating booster.\n",Tcl_GetString(Tcl_GetObjResult (interp)));
 		    } else {
 			/* Ignore errors, fall back to regular RE matching */
 			expDiagLog("Gate keeper glob pattern for '%s'",Tcl_GetString(objv[i]));
@@ -832,11 +835,18 @@ char *suffix;
 	expDiagLog("\"? ");
 
 	if (e->gate) {
+	    int plen;
+	    expDiagLog("Gate \"");
+	    expDiagLogU(expPrintify(Tcl_GetString(e->gate)));
+	    expDiagLog("\"? ");
+
 	    globmatch = Exp_StringCaseMatch(str, numchars,
-					    Tcl_GetUnicodeFromObj (e->gate, &dummy),
+					    Tcl_GetUnicodeFromObj (e->gate, &plen), plen,
 					    (e->Case == CASE_NORM) ? 0 : 1,
 					    &dummy);
 	} else {
+	    expDiagLog("(No Gate, RE only) ");
+
 	    /* No gate => RE matching always */
 	    globmatch = 1;
 	}
@@ -880,13 +890,14 @@ char *suffix;
 	}
     } else if (e->use == PAT_GLOB) {
 	int match; /* # of chars that matched */
+	int plen;
 
 	expDiagLog("\"");
 	expDiagLogU(expPrintify(Tcl_GetString(e->pat)));
 	expDiagLog("\"? ");
 	if (str) {
 	    match = Exp_StringCaseMatch(str,numchars,
-					Tcl_GetUnicodeFromObj(e->pat,&dummy),
+					Tcl_GetUnicodeFromObj(e->pat,&plen), plen,
 		    (e->Case == CASE_NORM) ? 0 : 1,
 		    &e->simple_start);
 	    if (match != -1) {

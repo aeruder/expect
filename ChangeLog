@@ -1,3 +1,10 @@
+2007-07-12  Andreas Kupries  <andreask@activestate.com>
+
+	* expect.c: Found bugs mismanaging input and pattern in the
+	* exp_glob.c: updated glob matcher. We cannot check for '\0'
+	  anymore to find the end of the string, these are counted
+	  arrays now. Rewritten to use sentinel pointers.
+
 2007-07-11  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_chan.c: Converted the buffering system from UTF-8 in Tcl_Obj

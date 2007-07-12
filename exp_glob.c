@@ -21,6 +21,7 @@ Exp_StringCaseMatch2 _ANSI_ARGS_((CONST Tcl_UniChar *string, /* String. */
 				  CONST Tcl_UniChar *stop,   /* First char _after_ string */
 				  CONST Tcl_UniChar *pattern,	 /* Pattern, which may contain
 								  * special characters. */
+				  CONST Tcl_UniChar *pstop,   /* First char _after_ pattern */
 				  int nocase));
 
 /* The following functions implement expect's glob-style string matching */
@@ -28,15 +29,17 @@ Exp_StringCaseMatch2 _ANSI_ARGS_((CONST Tcl_UniChar *string, /* String. */
 /* the '^') feature.  Exp_StringMatch2 does the rest of the work. */
 
 int	/* returns # of CHARS that matched */
-Exp_StringCaseMatch(string, strlen, pattern, nocase, offset)		/* INTL */
+Exp_StringCaseMatch(string, strlen, pattern, plen, nocase, offset)		/* INTL */
      Tcl_UniChar *string;
      Tcl_UniChar *pattern;
      int strlen;
+     int plen;
 int nocase;
      int *offset;	/* offset in chars from beginning of string where pattern matches */
 {
     CONST Tcl_UniChar *s;
     CONST Tcl_UniChar *stop = string + strlen;
+    CONST Tcl_UniChar *pstop = pattern + plen;
     int ssm, sm;	/* count of bytes matched or -1 */
 	int caret = FALSE;
 	int star = FALSE;
@@ -56,7 +59,7 @@ int nocase;
 	 * Note that 1st iteration must be tried even if string is empty.
 	 */
 
-    sm = Exp_StringCaseMatch2(string,stop,pattern, nocase);
+    sm = Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase);
 	if (sm >= 0) return(sm);
 
 	if (caret) return -1;
@@ -80,7 +83,7 @@ int nocase;
     }
 #endif
     for (;s < stop; s++) {
-	ssm = Exp_StringCaseMatch2(s,stop,pattern, nocase);
+	ssm = Exp_StringCaseMatch2(s,stop,pattern,pstop,nocase);
 	if (ssm != -1) {
 			*offset = s-string;
 	    return(ssm+sm);
@@ -100,11 +103,12 @@ int nocase;
 */
 
 static int
-Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
+Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
      register CONST Tcl_UniChar *string; /* String. */
      register CONST Tcl_UniChar *stop;   /* First char _after_ string */
      register CONST Tcl_UniChar *pattern;	 /* Pattern, which may contain
 				 * special characters. */
+     register CONST Tcl_UniChar *pstop;   /* First char _after_ pattern */
     int nocase;
 {
     Tcl_UniChar ch1, ch2, p;
@@ -113,15 +117,15 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 
     while (1) {
 	/* If at end of pattern, success! */
-	if (*pattern == 0) {
+	if (pattern >= pstop) {
 		return match;
 	}
 
 	/* If last pattern character is '$', verify that entire
 	 * string has been matched.
 	 */
-	if ((*pattern == '$') && (pattern[1] == 0)) {
-		if (*string == 0) return(match);
+	if ((*pattern == '$') && ((pattern + 1) >= pstop)) {
+		if (string == stop) return(match);
 		else return(-1);		
 	}
 
@@ -139,13 +143,15 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 	    /*
 	     * Skip all successive *'s in the pattern
 	     */
-	    while (*(++pattern) == '*') {}
-	    p = *pattern;
+	    while ((pattern < pstop) && (*pattern == '*')) {
+		++pattern;
+	    }
 
-	    if (p == 0) {
+	    if (pattern >= pstop) {
 		return((stop-string)+match); /* DEL */
 	    }
 
+	    p = *pattern;
 	    if (nocase) {
 		p = Tcl_UniCharToLower(p);
 	    }
@@ -199,7 +205,7 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 		/* if we've backed up to beginning of string, give up */
 		if (tail <= string) break;
 
-		rc = Exp_StringCaseMatch2(tail, stop, pattern, nocase);
+		rc = Exp_StringCaseMatch2(tail, stop, pattern, pstop, nocase);
 		if (rc != -1 ) {
 		    return match + (tail - string) + rc;
 		    /* match = # of bytes we've skipped before this */
@@ -221,7 +227,7 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 	 * character, so check this
 	 */
 
-	if (*string == 0) return -1;
+	if (string >= stop) return -1;
 
 	/* Check for a "?" as the next pattern character.  It matches
 	 * any single character.
@@ -248,7 +254,7 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 	    ch = *string++;
 
 	    while (1) {
-		if ((*pattern == ']') || (*pattern == '\0')) {
+		if ((pattern >= pstop) || (*pattern == ']')) {
 		    return -1;			/* was 0; DEL */
 		}
 		startChar = *pattern ++;
@@ -257,7 +263,7 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 		}
 		if (*pattern == '-') {
 		    pattern++;
-		    if (*pattern == '\0') {
+		    if (pattern >= pstop) {
 			return -1;		/* DEL */
 		    }
 		    endChar = *pattern ++;
@@ -276,14 +282,9 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 		    break;
 		}
 	    }
-	    while (*pattern != ']') {
-		if (*pattern == '\0') {
-		    pattern--;
-		    break;
-		}
+	    while ((pattern < pstop) && (*pattern != ']')) {
 		pattern++;
 	    }
-	    pattern++;
 	    match += (string - oldString); /* incr by # matched chars */
 	    continue;
 	}
@@ -293,8 +294,8 @@ Exp_StringCaseMatch2(string,stop,pattern,nocase)	/* INTL */
 	 */
 	
 	if (*pattern == '\\') {
-	    pattern += 1;
-	    if (*pattern == 0) {
+	    pattern ++;
+	    if (pattern >= pstop) {
 		return -1;
 	    }
 	}
