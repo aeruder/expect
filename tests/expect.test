@@ -1,4 +1,4 @@
-# Commands covered:  cat (UNIX), expect
+# -*- tcl -*- Commands covered:  cat (UNIX), expect
 #
 # This file contains a collection of tests for one or more of the Tcl
 # built-in commands.  Sourcing this file into Tcl runs the tests and
@@ -96,6 +96,63 @@ test expect-1.7 {glob string} {
     expect "hi"
     set expect_out(0,string)
 } {hi}
+
+test expect-1.10 {re pattern, gate keeping} {
+    expect "*"
+    exp_stty raw < $spawn_out(slave,name)
+    exp_send "\rats-sw-8>show clock"
+
+    #exp_internal 1
+    set timeout 10
+    set x 0
+    expect -re {(.*)show clock$} {set x 1}
+    #exp_internal 0
+    exp_stty -raw < $spawn_out(slave,name)
+    set x
+} {1}
+
+test expect-1.11 {re pattern, gate keeping} {
+    exp_stty raw < $spawn_out(slave,name)
+    expect "*"
+    exp_send "enable"
+    
+    #exp_internal 1
+    set timeout 10
+    set x 0
+    expect -re {(.*)enable$} {set x 1}
+    exp_stty -raw < $spawn_out(slave,name)
+    #exp_internal 0
+    set x
+} {1}
+
+test expect-1.12 {re pattern, gate keeping} {
+    exp_stty raw < $spawn_out(slave,name)
+    expect "*"
+    exp_send "sh clock"
+    
+    #exp_internal 1
+    set timeout 10
+    set x 0
+    expect -re {(.*)sh clock$} {set x 1}
+    exp_stty -raw < $spawn_out(slave,name)
+    #exp_internal 0
+    set x
+} {1}
+
+test expect-1.13 {re pattern, gate keeping} {
+    exp_stty raw < $spawn_out(slave,name)
+    expect "*"
+    exp_send "Password: "
+    
+    #exp_internal 1
+    set timeout 10
+    set x 0
+    expect -re {^.*Password: ?$} {set x 1}
+    exp_stty -raw < $spawn_out(slave,name)
+    #exp_internal 0
+    set x
+} {1}
+
 
 close
 wait

@@ -1,3 +1,23 @@
+2007-07-17  Andreas Kupries <andreask@activestate.com>
+
+	* expect.c: Circumvented problems with the C compiler by use of a
+	  temporary variable to hold the unicode pointer of a glob
+	  pattern. The computed pattern length given to
+	  Exp_StringCaseMatch was bogus.
+
+	* exp_glob.c: Added tracing of the glob matcher internals (Can be
+	  enabled by define EXP_INTERNAL_TRACE_GLOB). Fixed bug in a guard
+	  condition in the optimized handling of '*'. The bad condition
+	  caused the code to miss possible matches at the beginning of the
+	  input (first char).
+
+	* tests/expect.test: Added tests which check the glob matcher and
+	  RE gate keeping.
+
+	* configure.in: Bumped to 5.44.1.1 to separate this from the
+	  regular 5.44.1 sources.
+	* configure: Regenerated.
+
 2007-07-12  Andreas Kupries  <andreask@activestate.com>
 
 	* expect.c: Found bugs mismanaging input and pattern in the

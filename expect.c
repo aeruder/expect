@@ -492,7 +492,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 			ec.gate = g;
 
 			expDiagLog("Gate keeper glob pattern for '%s'",Tcl_GetString(objv[i]));
-			expDiagLog(" is '%s'. Activating booster.\n",Tcl_GetString(Tcl_GetObjResult (interp)));
+			expDiagLog(" is '%s'. Activating booster.\n",Tcl_GetString(g));
 		    } else {
 			/* Ignore errors, fall back to regular RE matching */
 			expDiagLog("Gate keeper glob pattern for '%s'",Tcl_GetString(objv[i]));
@@ -836,16 +836,17 @@ char *suffix;
 
 	if (e->gate) {
 	    int plen;
+	    Tcl_UniChar* pat = Tcl_GetUnicodeFromObj(e->gate,&plen);
+
 	    expDiagLog("Gate \"");
 	    expDiagLogU(expPrintify(Tcl_GetString(e->gate)));
-	    expDiagLog("\"? ");
+	    expDiagLog("\"? gate=");
 
-	    globmatch = Exp_StringCaseMatch(str, numchars,
-					    Tcl_GetUnicodeFromObj (e->gate, &plen), plen,
+	    globmatch = Exp_StringCaseMatch(str, numchars, pat, plen,
 					    (e->Case == CASE_NORM) ? 0 : 1,
 					    &dummy);
 	} else {
-	    expDiagLog("(No Gate, RE only) ");
+	    expDiagLog("(No Gate, RE only) gate=");
 
 	    /* No gate => RE matching always */
 	    globmatch = 1;
@@ -854,6 +855,8 @@ char *suffix;
 	    expDiagLogU(no);
 	    /* i.e. no match */
 	} else {
+	    expDiagLog("yes re=");
+
 	if (e->Case == CASE_NORM) {
 	    flags = TCL_REG_ADVANCED;
 	} else {
@@ -890,14 +893,15 @@ char *suffix;
 	}
     } else if (e->use == PAT_GLOB) {
 	int match; /* # of chars that matched */
-	int plen;
 
 	expDiagLog("\"");
 	expDiagLogU(expPrintify(Tcl_GetString(e->pat)));
 	expDiagLog("\"? ");
 	if (str) {
-	    match = Exp_StringCaseMatch(str,numchars,
-					Tcl_GetUnicodeFromObj(e->pat,&plen), plen,
+	    int plen;
+	    Tcl_UniChar* pat = Tcl_GetUnicodeFromObj(e->pat,&plen);
+
+	    match = Exp_StringCaseMatch(str,numchars, pat, plen,
 		    (e->Case == CASE_NORM) ? 0 : 1,
 		    &e->simple_start);
 	    if (match != -1) {

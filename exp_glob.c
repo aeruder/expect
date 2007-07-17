@@ -34,45 +34,60 @@ Exp_StringCaseMatch(string, strlen, pattern, plen, nocase, offset)		/* INTL */
      Tcl_UniChar *pattern;
      int strlen;
      int plen;
-int nocase;
+     int nocase;
      int *offset;	/* offset in chars from beginning of string where pattern matches */
 {
     CONST Tcl_UniChar *s;
     CONST Tcl_UniChar *stop = string + strlen;
     CONST Tcl_UniChar *pstop = pattern + plen;
     int ssm, sm;	/* count of bytes matched or -1 */
-	int caret = FALSE;
-	int star = FALSE;
+    int caret = FALSE;
+    int star = FALSE;
 
-	*offset = 0;
+#ifdef EXP_INTERNAL_TRACE_GLOB
+    expDiagLog("\nESCM pattern(%d)=\"",plen);
+    expDiagLogU(expPrintifyUni(pattern,plen));
+    expDiagLog("\"\n");
+    expDiagLog("      string(%d)=\"",strlen);
+    expDiagLogU(expPrintifyUni(string,strlen));
+    expDiagLog("\"\n");
+    expDiagLog("      nocase=%d\n",nocase);
+#endif
 
-	if (pattern[0] == '^') {
-		caret = TRUE;
-		pattern++;
-	} else if (pattern[0] == '*') {
-		star = TRUE;
-	}
+    *offset = 0;
 
-	/*
-	 * test if pattern matches in initial position.
-	 * This handles front-anchor and 1st iteration of non-front-anchor.
-	 * Note that 1st iteration must be tried even if string is empty.
-	 */
+    if (pattern[0] == '^') {
+	caret = TRUE;
+	pattern++;
+    } else if (pattern[0] == '*') {
+	star = TRUE;
+    }
+
+    /*
+     * test if pattern matches in initial position.
+     * This handles front-anchor and 1st iteration of non-front-anchor.
+     * Note that 1st iteration must be tried even if string is empty.
+     */
 
     sm = Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase);
-	if (sm >= 0) return(sm);
 
-	if (caret) return -1;
-	if (star) return -1;
+#ifdef EXP_INTERNAL_TRACE_GLOB
+    expDiagLog("@0 => %d\n",sm);
+#endif
 
-	if (*string == '\0') return -1;
+    if (sm >= 0) return(sm);
+
+    if (caret) return -1;
+    if (star) return -1;
+
+    if (*string == '\0') return -1;
 
     s = string + 1;
     sm = 0;
 #if 0
     if ((*pattern != '[') && (*pattern != '?')
-	    && (*pattern != '\\') && (*pattern != '$')
-	    && (*pattern != '*')) {
+	&& (*pattern != '\\') && (*pattern != '$')
+	&& (*pattern != '*')) {
 	while (*s && (s < stop) && *pattern != *s) {
 	    s++;
 	    sm++;
@@ -84,12 +99,17 @@ int nocase;
 #endif
     for (;s < stop; s++) {
 	ssm = Exp_StringCaseMatch2(s,stop,pattern,pstop,nocase);
+
+#ifdef EXP_INTERNAL_TRACE_GLOB
+	expDiagLog("@%d => %d\n",s-string,ssm);
+#endif
+
 	if (ssm != -1) {
-			*offset = s-string;
+	    *offset = s-string;
 	    return(ssm+sm);
-		}
 	}
-	return -1;
+    }
+    return -1;
 }
 
 /* Exp_StringCaseMatch2 --
@@ -115,7 +135,25 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
     int match = 0;	/* # of bytes matched */
     CONST Tcl_UniChar *oldString;
 
+#ifdef EXP_INTERNAL_TRACE_GLOB
+    expDiagLog("    ESCM2 pattern=\"");
+    expDiagLogU(expPrintifyUni(pattern,pstop-pattern));
+    expDiagLog("\"\n");
+    expDiagLog("           string=\"");
+    expDiagLogU(expPrintifyUni(string,stop-string));
+    expDiagLog("\"\n");
+    expDiagLog("           nocase=%d\n",nocase);
+#endif
+
     while (1) {
+#ifdef EXP_INTERNAL_TRACE_GLOB
+	expDiagLog("          * pattern=\"");
+	expDiagLogU(expPrintifyUni(pattern,pstop-pattern));
+	expDiagLog("\"\n");
+	expDiagLog("          *  string=\"");
+	expDiagLogU(expPrintifyUni(string,stop-string));
+	expDiagLog("\"\n");
+#endif
 	/* If at end of pattern, success! */
 	if (pattern >= pstop) {
 		return match;
@@ -177,7 +215,9 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 	    tail = stop - 1;
 	    while (1) {
 		int rc;
-
+#ifdef EXP_INTERNAL_TRACE_GLOB
+		expDiagLog(" skip back '%c'\n",p);
+#endif
 		/*
 		 * Optimization for matching - cruise through the string
 		 * quickly if the next char in the pattern isn't a special
@@ -197,15 +237,21 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 		    } else {
 			/*
 			 * XXX JH: Should this be (tail > string)?
+			 * ZZZ AK: No. tail == string is perfectly acceptable,
+			 *         if p == *tail. Backing before string is ok too,
+			 *         that is the condition to break the outer loop.
 			 */
 			while ((tail >= string) && (p != *tail)) { tail --; }
 		    }
 		}
 
-		/* if we've backed up to beginning of string, give up */
-		if (tail <= string) break;
+		/* if we've backed up to before the beginning of string, give up */
+		if (tail < string) break;
 
 		rc = Exp_StringCaseMatch2(tail, stop, pattern, pstop, nocase);
+#ifdef EXP_INTERNAL_TRACE_GLOB
+		expDiagLog(" (*) rc=%d\n",rc);
+#endif
 		if (rc != -1 ) {
 		    return match + (tail - string) + rc;
 		    /* match = # of bytes we've skipped before this */
