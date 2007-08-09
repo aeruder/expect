@@ -1,3 +1,13 @@
+2007-08-09  Andreas Kupries  <andreask@activestate.com>
+
+	* expect.c (Exp_TimestampObjCmd): Fixed argument processing broken
+	  by objc,objv conversion. Tried to use command name as the
+	  argument for -seconds. Also did not detect when one argument to
+	  many was specified.
+
+	* configure.in: Bumped version to 5.44.1.2.
+	* configure: Regenerated.
+
 2007-07-17  Andreas Kupries <andreask@activestate.com>
 
 	* expect.c: Circumvented problems with the C compiler by use of a

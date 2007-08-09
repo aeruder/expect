@@ -1392,7 +1392,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if (new_cmd) {
 	/* Replace old arguments with result of the reparse */
-	Tcl_ListObjGetElements (interp, new_cmd, &objc, &objv);
+	Tcl_ListObjGetElements (interp, new_cmd, &objc, (Tcl_Obj***) &objv);
     }
 
     if (objc > 1 && (Tcl_GetString(objv[1])[0] == '-')) {
@@ -2565,7 +2565,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
     if (new_cmd) {
 	/* Replace old arguments with result of the reparse */
-	Tcl_ListObjGetElements (interp, new_cmd, &objc, &objv);
+	Tcl_ListObjGetElements (interp, new_cmd, &objc, (Tcl_Obj***) &objv);
     }
 
     Tcl_GetTime (&temp_time);
@@ -2808,44 +2808,44 @@ Tcl_Interp *interp;
 	    format = Tcl_GetString (objv[i]);
 	    break;
 	case TS_GMT:
-			gmt = TRUE;
+	    gmt = TRUE;
 	    break;
 	case TS_SECONDS: {
 	    int sec;
 	    i++;
 	    if (i >= objc) goto usage_error;
-	    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[0], &sec)) {
+	    if (TCL_OK != Tcl_GetIntFromObj (interp, objv[i], &sec)) {
 		goto usage_error;
 	    }
 	    seconds = sec;
 	}
 	    break;
 	}
-	}
+    }
 
-    if (i < (objc-1)) goto usage_error;
+    if (i < objc) goto usage_error;
 
-	if (seconds == -1) {
-		time(&seconds);
-	}
+    if (seconds == -1) {
+	time(&seconds);
+    }
 
-	if (format) {
-		if (gmt) {
-			tm = gmtime(&seconds);
-		} else {
-			tm = localtime(&seconds);
-		}
-	Tcl_DStringInit(&dstring);
-		exp_strftime(format,tm,&dstring);
-		Tcl_DStringResult(interp,&dstring);
+    if (format) {
+	if (gmt) {
+	    tm = gmtime(&seconds);
 	} else {
-	Tcl_SetObjResult (interp, Tcl_NewIntObj (seconds));
+	    tm = localtime(&seconds);
 	}
+	Tcl_DStringInit(&dstring);
+	exp_strftime(format,tm,&dstring);
+	Tcl_DStringResult(interp,&dstring);
+    } else {
+	Tcl_SetObjResult (interp, Tcl_NewIntObj (seconds));
+    }
 	
-	return TCL_OK;
+    return TCL_OK;
  usage_error:
-	exp_error(interp,"args: [-seconds #] [-format format]");
-	return TCL_ERROR;
+    exp_error(interp,"args: [-seconds #] [-format format] [-gmt]");
+    return TCL_ERROR;
 
 }
 
