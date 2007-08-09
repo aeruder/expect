@@ -456,11 +456,18 @@ exp_retoglob (str,strlen)
 }
 
 static void
+#ifdef _AIX
+ExpChopNested (Tcl_UniChar** xstr,
+	       int*          xstrlen,
+	       Tcl_UniChar   open,
+	       Tcl_UniChar   close)
+#else
 ExpChopNested (xstr,xstrlen, open, close)
      Tcl_UniChar** xstr;
      int*          xstrlen;
      Tcl_UniChar   open;
      Tcl_UniChar   close;
+#endif
 {
   Tcl_UniChar* str    = *xstr;
   int          strlen = *xstrlen;
@@ -501,10 +508,16 @@ ExpLiteral (nexto, str, strlen)
 }
 
 static Tcl_UniChar
+#ifdef _AIX
+ExpBackslash (char prefix,
+	      Tcl_UniChar* str,
+	      int          strlen)
+#else
 ExpBackslash (prefix, str, strlen)
      char prefix;
      Tcl_UniChar* str;
      int          strlen;
+#endif
 {
   /* strlen <= 8 */
   char buf[20];

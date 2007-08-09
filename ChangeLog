@@ -1,5 +1,10 @@
 2007-08-09  Andreas Kupries  <andreask@activestate.com>
 
+	* retoglob.c: We had ExpChopNested and ExpBackslash locally
+	  ansified (prototypes) to avoid a compiler error on AIX (type
+	  promotion trouble). This now integrated into the mainline
+	  sources, conditional to AIX.
+
 	* expect.c (Exp_TimestampObjCmd): Fixed argument processing broken
 	  by objc,objv conversion. Tried to use command name as the
 	  argument for -seconds. Also did not detect when one argument to
