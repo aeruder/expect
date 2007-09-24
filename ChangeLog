@@ -1,3 +1,11 @@
+2007-09-19  Andreas Kupries  <andreask@activestate.com>
+
+	* retoglob.c (EMITC): Keep the characters '^' and '$' quoted as
+	  well, we do not wish to invoke their special interpretation by
+	  the Expect glob matcher.
+	* configure.in: Bumped version to 5.44.1.3.
+	* configure: Regenerated.
+
 2007-08-09  Andreas Kupries  <andreask@activestate.com>
 
 	* retoglob.c: We had ExpChopNested and ExpBackslash locally

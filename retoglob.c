@@ -116,6 +116,8 @@ exp_retoglob (str,strlen)
 #define EMITC(c) {if (((c) == '\\') || \
 		      ((c) == '*') || \
 		      ((c) == '?') || \
+		      ((c) == '$') || \
+		      ((c) == '^') || \
 		      ((c) == '[')) { \
 			EMIT ('\\'); EMITX ((c)); \
 		      } else { \
