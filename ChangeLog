@@ -1,3 +1,14 @@
+2007-09-24  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_inter.c: Changed inclusion of tcl.h to tclInt.h to get the
+	* expect.c: definition of TCL_REG_BOSONLY, which was moved to that
+	  header in Tcl 8.5. Ditto for expect.c, for the macro
+	  TclUtfToUniChar (was a function in 8.4). Expect now compiles
+	  again for both Tcl 8.4 and 8.5.
+
+	* configure.in: Bumped version to 5.44.1.4.
+	* configure: Regenerated.
+
 2007-09-19  Andreas Kupries  <andreask@activestate.com>
 
 	* retoglob.c (EMITC): Keep the characters '^' and '$' quoted as

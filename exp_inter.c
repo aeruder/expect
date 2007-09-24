@@ -35,7 +35,7 @@ would appreciate credit if this program or parts of it are used.
 
 #include <ctype.h>
 
-#include "tcl.h"
+#include "tclInt.h"
 #include "string.h"
 
 #include "exp_tty_in.h"
