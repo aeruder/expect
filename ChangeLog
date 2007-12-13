@@ -1,5 +1,7 @@
 2007-12-13  Jeff Hobbs  <jeffh@ActiveState.com>
 
+	* exp_log.c (expStdoutLogU): correct which buf is output.
+
 	* exp_command.c (Exp_SendLogObjCmd): fix '--' handling
 	(Exp_SendObjCmd): fix '--' handling to expect last argument
 
