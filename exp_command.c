@@ -1947,22 +1947,21 @@ Tcl_Interp *interp;
 	name = Tcl_GetString(objv[i]);
 	if (name[0] != '-') {
 	    break;
-		}
+	}
 	if (Tcl_GetIndexFromObj(interp, objv[i], options, "flag", 0,
-				&index) != TCL_OK) {
+			&index) != TCL_OK) {
 	    goto usage;
 	}
-	switch ((enum options) index) {
-	case LOG_QUOTE:
+	if (((enum options) index) == LOG_QUOTE) {
 	    i++;
 	    break;
 	}
-	}
+    }
 
-    if (i >= objc) goto usage;
+    if (i != (objc-1)) goto usage;
 
     expLogDiagU(Tcl_GetString (objv[i]));
-	return(TCL_OK);
+    return(TCL_OK);
 
  usage:
     exp_error(interp,"usage: send [args] string");
