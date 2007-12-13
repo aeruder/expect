@@ -2066,11 +2066,11 @@ Exp_SendObjCmd(clientData, interp, objc, objv) /* INTL */
     }
 
     if (send_style & SEND_STYLE_STRING_MASK) {
+	getString:
 	if (j != objc-1) {
 	    exp_error(interp,"usage: send [args] string");
 	    return TCL_ERROR;
 	}
-	getString:
 	string = Tcl_GetStringFromObj(objv[j], &len);
     } else {
 	len = strlen(string);

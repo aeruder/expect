@@ -1,3 +1,8 @@
+2007-12-13  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* exp_command.c (Exp_SendLogObjCmd): fix '--' handling
+	(Exp_SendObjCmd): fix '--' handling to expect last argument
+
 2007-09-24  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_inter.c: Changed inclusion of tcl.h to tclInt.h to get the
