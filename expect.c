@@ -322,6 +322,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		Tcl_Obj* w = Tcl_EvalTokens(interp, tokenPtr+1,
 			tokenPtr->numComponents);
+		/* w has refCount 1 here, if not NULL */
 		if (w == NULL) {
 		    Tcl_DecrRefCount (res);
 		    res = NULL;
@@ -329,6 +330,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 		}
 		Tcl_ListObjAppendElement (interp, res, w);
+		Tcl_DecrRefCount (w); /* Local reference goes away */
 	    }
 	}
 

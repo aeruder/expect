@@ -721,6 +721,7 @@ end_interact:
 
  finish:
 	debug_suspended = FALSE;
+	return TCL_OK;
 }
 
 /*ARGSUSED*/

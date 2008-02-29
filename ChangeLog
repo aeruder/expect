@@ -1,3 +1,10 @@
+2008-02-27  Andreas Kupries  <andreask@activestate.com>
+
+	* expect.c: Fixed refcounting error when parsing a single expect
+	* configure.in: argument into a list of patterns and
+	* configure: actions. Updated the version number to 5.44.1.5.
+	* Dbg.c: Added missing 'return TCL_OK' to debugger_trap.
+
 2007-12-13  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* exp_log.c (expStdoutLogU): correct which buf is output.
