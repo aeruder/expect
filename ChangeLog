@@ -1,3 +1,35 @@
+2008-04-03  Andreas Kupries   <andreask@activestate.com>
+
+	* configure.in: Bumped version to 5.44.1.6.
+	* configure: Regen'd, autoconf 2.59.
+
+	* The following set of changes was sent our way by Reinhard Max
+	  <max@tclers.tk>.
+
+	* configure.in: Fixed checking of stty on linux, do not restrict
+	  to specific cpu's. Further try with stdin, and stdin redirected
+	  to /dev/tty when determining if stdout is read.
+
+	* testsuite/configure.in: Brought up to TEA 3.5.
+	* testsuite/aclocal.m4: New file, to import the TEA definitions.
+
+	* Dbg.c: Added missed CONST in declaration and definition of
+	  'debugger_trap'.
+
+	* exp_command.c: Fixed pointer aliasing trouble with
+	  'Tcl_DetachPids', and added the missing initialization of the
+	  command string in the 'overlay' command.
+
+	* expect.c: Fixed missing initialization of 'simple_start' element
+	  of 'ecase'.
+
+	* exp_inter.c: Fixed bogus use of 'slen' in 'intMatch'. The
+	  relevant string is Tcl_Unichar, not Utf.
+
+	* Makefile.in: Replaced bogus INSTALL_ROOT with DESTDIR, and added
+	  missing DESTDIR references to the target for the installation of
+	  the manpages.
+
 2008-02-27  Andreas Kupries  <andreask@activestate.com>
 
 	* expect.c: Fixed refcounting error when parsing a single expect

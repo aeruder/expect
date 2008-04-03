@@ -2940,12 +2940,13 @@ Exp_WaitObjCmd(clientData, interp, objc, objv)
 	/* are marked sys_waited already */
 	if (!esPtr->sys_waited) {
 	    if (nowait) {
+		Tcl_Pid pid = (Tcl_Pid)esPtr->pid;
 		/* should probably generate an error */
 		/* if SIGCHLD is trapped. */
 
 		/* pass to Tcl, so it can do wait */
 		/* in background */
-		Tcl_DetachPids(1,(Tcl_Pid *)&esPtr->pid);
+		Tcl_DetachPids(1,&pid);
 		exp_wait_zero(&esPtr->wait);
 	    } else {
 		while (1) {
@@ -3296,6 +3297,7 @@ Exp_OverlayObjCmd(clientData, interp, objc, objv)
     } else {
 	strcpy (argv[0],Tcl_GetString (objv[0]));
     }
+    command = Tcl_GetString (objv[0]);
 
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
@@ -3467,7 +3469,8 @@ Exp_OpenObjCmd(clientData, interp, objc, objv)
     if (!leaveopen) {
 	/* remove from Expect's memory in anticipation of passing to Tcl */
 	if (esPtr->pid != EXP_NOPID) {
-	    Tcl_DetachPids(1,(Tcl_Pid *)&esPtr->pid);
+	    Tcl_Pid pid = (Tcl_Pid)esPtr->pid;
+	    Tcl_DetachPids(1,&pid);
 	    esPtr->pid = EXP_NOPID;
 	    esPtr->sys_waited = esPtr->user_waited = TRUE;
 	}

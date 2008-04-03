@@ -355,6 +355,7 @@ struct ecase *ec;
 	ec->pat = 0;
 	ec->body = 0;
 	ec->transfer = TRUE;
+	ec->simple_start = 0;
 	ec->indices = FALSE;
 	ec->iread = FALSE;
 	ec->timestamp = FALSE;

@@ -250,13 +250,13 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 		    return(EXP_MATCH);
 	        }
 	    } else if (!km->re) {
-		int slen, kslen;
+		int kslen;
 		Tcl_UniChar sch, ksch;
 		
 		/* fixed string */
 
 		ks = Tcl_GetString(km->keys);
-		for (s = start_search;; s += slen, ks += kslen) {
+		for (s = start_search;; s++, ks += kslen) {
 		    /* if we hit the end of this map, must've matched! */
 		    if (*ks == 0) {
 			*skip = start_search-string;

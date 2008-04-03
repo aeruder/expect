@@ -23,7 +23,7 @@
 SETUID = @SETUID@
 # SETUID = chmod u+s
 
-LIB_RUNTIME_DIR = $(INSTALL_ROOT)@libdir@
+LIB_RUNTIME_DIR = $(DESTDIR)@libdir@
 
 # The following Expect scripts are not necessary to have installed as
 # commands, but are very useful. Edit out what you don't want
@@ -238,10 +238,10 @@ install-libraries: libraries $(SCRIPTS)
 	    $(INSTALL_DATA) $(srcdir)/$$i $(DESTDIR)$(includedir) ; \
 	done;
 # install standalone scripts and their man pages, if requested
-	@mkdir -p $(INSTALL_ROOT)$(prefix)/bin
+	@mkdir -p $(DESTDIR)$(prefix)/bin
 	-for i in $(SCRIPT_LIST) ; do \
 	  if [ -f $$i ] ; then \
-	    $(INSTALL_PROGRAM) $$i $(INSTALL_ROOT)$(prefix)/bin/$$i ; \
+	    $(INSTALL_PROGRAM) $$i $(DESTDIR)$(prefix)/bin/$$i ; \
 	    rm -f $$i ; \
 	  else true; fi ; \
 	done
@@ -256,14 +256,14 @@ install-doc: doc
 	@mkdir -p $(DESTDIR)$(mandir)/man3
 	@echo "Installing documentation in $(DESTDIR)$(mandir)"
 # install Expectk man page if present
-	$(INSTALL_DATA) $(srcdir)/expectk.man $(mandir)/man1/expectk.1 ; \
+	$(INSTALL_DATA) $(srcdir)/expectk.man $(DESTDIR)$(mandir)/man1/expectk.1 ; \
 # install Expect man page
-	$(INSTALL_DATA) $(srcdir)/expect.man $(mandir)/man1/expect.1
+	$(INSTALL_DATA) $(srcdir)/expect.man $(DESTDIR)$(mandir)/man1/expect.1
 # install man page for Expect and Expectk libraries
-	$(INSTALL_DATA) $(srcdir)/libexpect.man $(mandir)/man3/libexpect.3
+	$(INSTALL_DATA) $(srcdir)/libexpect.man $(DESTDIR)$(mandir)/man3/libexpect.3
 	-for i in $(SCRIPT_MANPAGE_LIST) ; do \
 	  if [ -f $(srcdir)/example/$$i.man ] ; then \
-	    $(INSTALL_DATA) $(srcdir)/example/$$i.man $(mandir)/man1/$$i.1 ; \
+	    $(INSTALL_DATA) $(srcdir)/example/$$i.man $(DESTDIR)$(mandir)/man1/$$i.1 ; \
 	  else true; fi ; \
 	done
 

@@ -545,7 +545,7 @@ debugger_trap _ANSI_ARGS_ ((
      ClientData clientData,
      Tcl_Interp *interp,
      int level,
-     char *command,
+     CONST char *command,
      Tcl_Command commandInfo,
      int objc,
      struct Tcl_Obj * CONST * objv));
@@ -554,12 +554,12 @@ debugger_trap _ANSI_ARGS_ ((
 /*ARGSUSED*/
 static int
 debugger_trap(clientData,interp,level,command,commandInfo,objc,objv)
-ClientData clientData;		/* not used */
-Tcl_Interp *interp;
-int level;			/* positive number if called by Tcl, -1 if */
+     ClientData clientData;		/* not used */
+     Tcl_Interp *interp;
+     int level;			/* positive number if called by Tcl, -1 if */
 				/* called by Dbg_On in which case we don't */
 				/* know the level */
-char *command;
+     CONST char *command;
      Tcl_Command commandInfo; /* Unused */
      int objc;
      struct Tcl_Obj * CONST * objv;
