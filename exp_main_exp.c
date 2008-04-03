@@ -14,6 +14,7 @@ would appreciate credit if this program or parts of it are used.
 #include <stdio.h>
 #include "tcl.h"
 #include "expect_tcl.h"
+#include <stdlib.h>
 
 int
 main(argc, argv)

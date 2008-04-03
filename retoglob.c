@@ -44,9 +44,9 @@ xxx (Tcl_UniChar* x, int xl)
 
 
 Tcl_Obj*
-exp_retoglob (str,strlen)
-     Tcl_UniChar* str;
-     int          strlen;
+exp_retoglob (
+    Tcl_UniChar* str,
+    int          strlen)
 {
   /*
    * Output: x2 size of input (literal where every character has to be

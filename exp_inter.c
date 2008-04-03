@@ -125,9 +125,9 @@ struct input {
  */
 
 struct input *
-expStateToInput(hash,esPtr)
-    ExpState *esPtr;
-    Tcl_HashTable *hash;
+expStateToInput(
+    Tcl_HashTable *hash,
+    ExpState *esPtr)
 {
     Tcl_HashEntry *entry = Tcl_FindHashEntry(hash,(char *)esPtr);
 
@@ -139,10 +139,10 @@ expStateToInput(hash,esPtr)
 }
 
 void
-expCreateStateToInput(hash,esPtr,inp)
-    ExpState *esPtr;
-    Tcl_HashTable *hash;
-    struct input *inp;
+expCreateStateToInput(
+    Tcl_HashTable *hash,
+    ExpState *esPtr,
+    struct input *inp)
 {
     Tcl_HashEntry *entry;
     int newPtr;
@@ -151,12 +151,15 @@ expCreateStateToInput(hash,esPtr,inp)
     Tcl_SetHashValue(entry,(ClientData)inp);
 }
 
-static void free_input();
-static void free_keymap();
-static void free_output();
-static void free_action();
-static struct action *new_action();
-static int inter_eval();
+static void free_input(Tcl_Interp *interp, struct input *i);
+static void free_keymap(struct keymap *km);
+static void free_output(Tcl_Interp *interp, struct output *o);
+static void free_action(struct action *a);
+static struct action *new_action(struct action **base);
+static int inter_eval(
+    Tcl_Interp *interp,
+    struct action *action,
+    ExpState *esPtr);
 
 /* intMatch() accepts user keystrokes and returns one of MATCH,
 CANMATCH, or CANTMATCH.  These describe whether the keystrokes match a
@@ -187,13 +190,13 @@ we're ready).  The other is to return can-match.
 */
 
 static int
-intMatch(esPtr,keymap,km_match,matchLen,skip,info)
-    ExpState *esPtr;
-    struct keymap *keymap;	/* linked list of keymaps */
-    struct keymap **km_match;	/* keymap that matches or can match */
-    int *matchLen;		/* # of bytes that matched */
-    int *skip;			/* # of chars to skip */
-    Tcl_RegExpInfo *info;
+intMatch(
+    ExpState *esPtr,
+    struct keymap *keymap,	/* linked list of keymaps */
+    struct keymap **km_match,	/* keymap that matches or can match */
+    int *matchLen,		/* # of bytes that matched */
+    int *skip,			/* # of chars to skip */
+    Tcl_RegExpInfo *info)
 {
     Tcl_UniChar *string;
     struct keymap *km;
@@ -344,12 +347,12 @@ intMatch(esPtr,keymap,km_match,matchLen,skip,info)
 
 /* put regexp result in variables */
 static void
-intRegExpMatchProcess(interp,esPtr,km,info,offset)
-     Tcl_Interp *interp;
-     ExpState *esPtr;
-     struct keymap *km;	/* ptr for above while parsing */
-     Tcl_RegExpInfo *info;
-     int offset;
+intRegExpMatchProcess(
+    Tcl_Interp *interp,
+    ExpState *esPtr,
+    struct keymap *km,	/* ptr for above while parsing */
+    Tcl_RegExpInfo *info,
+    int offset)
 {
     char name[20], value[20];
     int i;
@@ -390,10 +393,10 @@ intRegExpMatchProcess(interp,esPtr,km,info,offset)
  * echo chars
  */ 
 static void
-intEcho(esPtr,skipBytes,matchBytes)
-    ExpState *esPtr;
-    int skipBytes;
-    int matchBytes;
+intEcho(
+    ExpState *esPtr,
+    int skipBytes,
+    int matchBytes)
 {
     int seenBytes;	/* either printed or echoed */
     int echoBytes;
@@ -421,12 +424,12 @@ intEcho(esPtr,skipBytes,matchBytes)
  * Returns # of bytes read or negative number (EXP_XXX) indicating unusual event.
  */
 static int
-intRead(interp,esPtr,warnOnBufferFull,interruptible,key)
-    Tcl_Interp *interp;
-    ExpState *esPtr;
-    int warnOnBufferFull;
-    int interruptible;
-    int key;
+intRead(
+    Tcl_Interp *interp,
+    ExpState *esPtr,
+    int warnOnBufferFull,
+    int interruptible,
+    int key)
 {
     Tcl_UniChar *eobOld;  /* old end of buffer */
     int cc;
@@ -549,11 +552,11 @@ sigchld_handler()
  * process or the child (surrogate).
  */
 static int
-intIRead(channel,obj,size,flags);
-Tcl_Channel channel;
-Tcl_Obj *obj;
-int size;
-int flags;
+intIRead(
+    Tcl_Channel channel,
+    Tcl_Obj *obj,
+    int size,
+    int flags)
 {
     int cc = EXP_CHILD_EOF;
 
@@ -578,9 +581,9 @@ int flags;
 #define SPAWNED_PROCESS_DIED	-3
 
 static void
-clean_up_after_child(interp,esPtr)
-Tcl_Interp *interp;
-ExpState *esPtr;
+clean_up_after_child(
+    Tcl_Interp *interp,
+    ExpState *esPtr)
 {
     expWaitOnOne(); /* wait for slave */
     expWaitOnOne(); /* wait for child */
@@ -593,16 +596,15 @@ ExpState *esPtr;
 #endif /*SIMPLE_EVENT*/
 
 static int
-update_interact_fds(interp,esPtrCount,esPtrToInput,esPtrs,input_base,
-			do_indirect,config_count,real_tty_caller)
-Tcl_Interp *interp;
-int *esPtrCount;
-Tcl_HashTable **esPtrToInput;	/* map from ExpStates to "struct inputs" */
-ExpState ***esPtrs;
-struct input *input_base;
-int do_indirect;		/* if true do indirects */
-int *config_count;
-int *real_tty_caller;
+update_interact_fds(
+    Tcl_Interp *interp,
+    int *esPtrCount,
+    Tcl_HashTable **esPtrToInput,	/* map from ExpStates to "struct inputs" */
+    ExpState ***esPtrs,
+    struct input *input_base,
+    int do_indirect,		/* if true do indirects */
+    int *config_count,
+    int *real_tty_caller)
 {
 	struct input *inp;
 	struct output *outp;
@@ -686,12 +688,12 @@ int *real_tty_caller;
 
 /*ARGSUSED*/
 static char *
-inter_updateproc(clientData, interp, name1, name2, flags)
-ClientData clientData;
-Tcl_Interp *interp;	/* Interpreter containing variable. */
-char *name1;		/* Name of variable. */
-char *name2;		/* Second part of variable name. */
-int flags;		/* Information about what happened. */
+inter_updateproc(
+    ClientData clientData,
+    Tcl_Interp *interp,	/* Interpreter containing variable. */
+    char *name1,	/* Name of variable. */
+    char *name2,	/* Second part of variable name. */
+    int flags)		/* Information about what happened. */
 {
 	exp_configure_count++;
 	return 0;
@@ -704,15 +706,16 @@ static char interpreter_cmd[] = "interpreter";
 
 /*ARGSUSED*/
 int
-Exp_InteractObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-int objc;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_InteractObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST initial_objv[])		/* Argument objects. */
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     Tcl_Obj *CONST *objv_copy;	/* original, for error messages */
+    Tcl_Obj **objv = (Tcl_Obj **) initial_objv;
     char *string;
     Tcl_UniChar *ustring;
 
@@ -2146,10 +2149,10 @@ got_action:
 
 /* version of Tcl_Eval for interact */ 
 static int
-inter_eval(interp,action,esPtr)
-Tcl_Interp *interp;
-struct action *action;
-ExpState *esPtr;
+inter_eval(
+    Tcl_Interp *interp,
+    struct action *action,
+    ExpState *esPtr)
 {
     int status;
 
@@ -2168,8 +2171,7 @@ ExpState *esPtr;
 }
 
 static void
-free_keymap(km)
-struct keymap *km;
+free_keymap(struct keymap *km)
 {
 	if (km == 0) return;
 	free_keymap(km->next);
@@ -2178,8 +2180,7 @@ struct keymap *km;
 }
 
 static void
-free_action(a)
-struct action *a;
+free_action(struct action *a)
 {
 	struct action *next;
 
@@ -2191,9 +2192,9 @@ struct action *a;
 }
 
 static void
-free_input(interp,i)
-Tcl_Interp *interp;
-struct input *i;
+free_input(
+    Tcl_Interp *interp,
+    struct input *i)
 {
 	if (i == 0) return;
 	free_input(interp,i->next);
@@ -2205,8 +2206,7 @@ struct input *i;
 }
 
 static struct action *
-new_action(base)
-struct action **base;
+new_action(struct action **base)
 {
 	struct action *o = new(struct action);
 
@@ -2218,9 +2218,9 @@ struct action **base;
 }
 
 static void
-free_output(interp,o)
-Tcl_Interp *interp;
-struct output *o;
+free_output(
+    Tcl_Interp *interp,
+    struct output *o)
 {
 	if (o == 0) return;
 	free_output(interp,o->next);
@@ -2235,8 +2235,7 @@ static struct exp_cmd_data cmd_data[]  = {
 {0}};
 
 void
-exp_init_interact_cmds(interp)
-Tcl_Interp *interp;
+exp_init_interact_cmds(Tcl_Interp *interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 

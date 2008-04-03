@@ -51,7 +51,7 @@ conflicts with sys/ioctl.h
 #   include <sys/ptem.h>
 #endif /* HAVE_SYS_PTEM_H */
 
-#include "exp_tty.h"
+#include "exp_tty_in.h"
 #include "exp_win.h"
 
 #ifdef TIOCGWINSZ

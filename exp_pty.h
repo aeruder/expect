@@ -8,10 +8,12 @@ would appreciate credit if this program or parts of it are used.
 
 */
 
-int exp_pty_test_start();
-void exp_pty_test_end();
-int exp_pty_test();
-void exp_pty_unlock();
-int exp_pty_lock();
+int exp_pty_test_start(void);
+void exp_pty_test_end(void);
+int exp_pty_test(char *master_name, char *slave_name, char bank, char *num);
+void exp_pty_unlock(void);
+int exp_pty_lock(char bank, char *num);
+int exp_getptymaster(void);
+int exp_getptyslave(int ttycopy, int ttyinit, CONST char *stty_args);
 
 extern char *exp_pty_slave_name;

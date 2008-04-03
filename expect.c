@@ -34,7 +34,7 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_command.h"
 #include "exp_log.h"
 #include "exp_event.h"
-#include "exp_tty.h"
+#include "exp_tty_in.h"
 #include "exp_tstamp.h"	/* this should disappear when interact */
 			/* loses ref's to it */
 #ifdef TCL_DEBUGGER
@@ -134,10 +134,10 @@ struct exp_cmd_descriptor {
  */
 
 static void
-exp_cmd_init(cmd,cmdtype,duration)
-struct exp_cmd_descriptor *cmd;
-int duration;
-int cmdtype;
+exp_cmd_init(
+    struct exp_cmd_descriptor *cmd,
+    int cmdtype,
+    int duration)
 {
 	cmd->duration = duration;
 	cmd->cmdtype = cmdtype;
@@ -156,14 +156,21 @@ static int alarm_fired;	/* if alarm occurs */
 void exp_background_channelhandlers_run_all();
 
 /* exp_indirect_updateX is called by Tcl when an indirect variable is set */
-static char *exp_indirect_update1();	/* 1-part Tcl variable names */
-static char *exp_indirect_update2();	/* 2-part Tcl variable names */
+static char *exp_indirect_update1( /* 1-part Tcl variable names */
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    struct exp_i *exp_i);
+static char *exp_indirect_update2( /* 2-part Tcl variable names */
+    ClientData clientData,
+    Tcl_Interp *interp,	/* Interpreter containing variable. */
+    char *name1,	/* Name of variable. */
+    char *name2,	/* Second part of variable name. */
+    int flags);		/* Information about what happened. */
 
 #ifdef SIMPLE_EVENT
 /*ARGSUSED*/
 static RETSIGTYPE
-sigalarm_handler(n)
-int n;		       	/* unused, for compatibility with STDC */
+sigalarm_handler(int n) /* unused, for compatibility with STDC */
 {
 	alarm_fired = TRUE;
 }
@@ -171,10 +178,10 @@ int n;		       	/* unused, for compatibility with STDC */
 
 /* free up everything in ecase */
 static void
-free_ecase(interp,ec,free_ilist)
-Tcl_Interp *interp;
-struct ecase *ec;
-int free_ilist;		/* if we should free ilist */
+free_ecase(
+    Tcl_Interp *interp,
+    struct ecase *ec,
+    int free_ilist)		/* if we should free ilist */
 {
     if (ec->i_list->duration == EXP_PERMANENT) {
 	if (ec->pat)  { Tcl_DecrRefCount(ec->pat); }
@@ -194,10 +201,10 @@ int free_ilist;		/* if we should free ilist */
 
 /* free up any argv structures in the ecases */
 static void
-free_ecases(interp,eg,free_ilist)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *eg;
-int free_ilist;		/* if true, free ilists */
+free_ecases(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *eg,
+    int free_ilist)		/* if true, free ilists */
 {
 	int i;
 
@@ -216,8 +223,7 @@ int free_ilist;		/* if true, free ilists */
 #if 0
 /* no standard defn for this, and some systems don't even have it, so avoid */
 /* the whole quagmire by calling it something else */
-static char *exp_strdup(s)
-char *s;
+static char *exp_strdup(char *s)
 {
 	char *news = ckalloc(strlen(s) + 1);
 	strcpy(news,s);
@@ -242,8 +248,7 @@ char *s;
    Current test is very cheap and almost always right :-)
 */
 int 
-exp_one_arg_braced(objPtr)	/* INTL */
-Tcl_Obj *objPtr;
+exp_one_arg_braced(Tcl_Obj *objPtr)	/* INTL */
 {
 	int seen_nl = FALSE;
 	char *p = Tcl_GetString(objPtr);
@@ -268,10 +273,10 @@ Tcl_Obj *objPtr;
  * its current argumnts */
 /*ARGSUSED*/
 Tcl_Obj*
-exp_eval_with_one_arg(clientData,interp,objv) /* INTL */
-ClientData clientData;
-Tcl_Interp *interp;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+exp_eval_with_one_arg(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     Tcl_Obj* res = Tcl_NewListObj (1,objv);
 
@@ -348,8 +353,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 }
 
 static void
-ecase_clear(ec)
-struct ecase *ec;
+ecase_clear(struct ecase *ec)
 {
 	ec->i_list = 0;
 	ec->pat = 0;
@@ -365,7 +369,7 @@ struct ecase *ec;
 }
 
 static struct ecase *
-ecase_new()
+ecase_new(void)
 {
 	struct ecase *ec = (struct ecase *)ckalloc(sizeof(struct ecase));
 
@@ -400,12 +404,12 @@ The exp_i chain can be broken by the caller if desired.
 */
 
 static int
-parse_expect_args(interp,eg,default_esPtr,objc,objv)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *eg;
-ExpState *default_esPtr;	/* suggested ExpState if called as expect_user or _tty */
-int objc;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+parse_expect_args(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *eg,
+    ExpState *default_esPtr,	/* suggested ExpState if called as expect_user or _tty */
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int i;
     char *string;
@@ -718,9 +722,9 @@ struct eval_out {
  */
 
 Tcl_UniChar *
-string_case_first(string,pattern)	/* INTL */
-     register Tcl_UniChar *string;	/* String (unicode). */
-    register char *pattern;	/* Pattern, which may contain
+string_case_first(	/* INTL */
+    register Tcl_UniChar *string,	/* String (unicode). */
+    register char *pattern)	/* Pattern, which may contain
 				 * special characters (utf8). */
 {
     Tcl_UniChar *s;
@@ -748,9 +752,9 @@ string_case_first(string,pattern)	/* INTL */
 }
 
 Tcl_UniChar *
-string_first(string,pattern)	/* INTL */
-     register Tcl_UniChar *string;	/* String (unicode). */
-     register char *pattern;	/* Pattern, which may contain
+string_first(	/* INTL */
+    register Tcl_UniChar *string,	/* String (unicode). */
+    register char *pattern)	/* Pattern, which may contain
 				 * special characters (utf8). */
 {
     Tcl_UniChar *s;
@@ -778,9 +782,9 @@ string_first(string,pattern)	/* INTL */
 }
 
 Tcl_UniChar *
-string_first_char(string,pattern)	/* INTL */
-     register Tcl_UniChar *string;	/* String. */
-     register Tcl_UniChar pattern;
+string_first_char(	/* INTL */
+    register Tcl_UniChar *string,	/* String. */
+    register Tcl_UniChar pattern)
 {
     /* unicode based Tcl_UtfFindFirst */
 
@@ -803,15 +807,15 @@ string_first_char(string,pattern)	/* INTL */
 /* string match */
 /* returns EXP_X where X is MATCH, NOMATCH, FULLBUFFER, TCLERRROR */
 static int
-eval_case_string(interp,e,esPtr,o,last_esPtr,last_case,suffix)
-Tcl_Interp *interp;
-struct ecase *e;
-ExpState *esPtr;
-struct eval_out *o;		/* 'output' - i.e., final case of interest */
+eval_case_string(
+    Tcl_Interp *interp,
+    struct ecase *e,
+    ExpState *esPtr,
+    struct eval_out *o,		/* 'output' - i.e., final case of interest */
 /* next two args are for debugging, when they change, reprint buffer */
-ExpState **last_esPtr;
-int *last_case;
-char *suffix;
+    ExpState **last_esPtr,
+    int *last_case,
+    char *suffix)
 {
     Tcl_RegExp re;
     Tcl_RegExpInfo info;
@@ -977,18 +981,18 @@ char *suffix;
 /* sets o.e if successfully finds a matching pattern, eof, timeout or deflt */
 /* returns original status arg or EXP_TCLERROR */
 static int
-eval_cases(interp,eg,esPtr,o,last_esPtr,last_case,status,esPtrs,mcount,suffix)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *eg;
-ExpState *esPtr;
-struct eval_out *o;		/* 'output' - i.e., final case of interest */
+eval_cases(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *eg,
+    ExpState *esPtr,
+    struct eval_out *o,		/* 'output' - i.e., final case of interest */
 /* next two args are for debugging, when they change, reprint buffer */
-ExpState **last_esPtr;
-int *last_case;
-int status;
-ExpState *(esPtrs[]);
-int mcount;
-char *suffix;
+    ExpState **last_esPtr,
+    int *last_case,
+    int status,
+    ExpState *(esPtrs[]),
+    int mcount,
+    char *suffix)
 {
     int i;
     ExpState *em;   /* ExpState of ecase */
@@ -1061,10 +1065,10 @@ char *suffix;
 }
 
 static void
-ecases_remove_by_expi(interp,ecmd,exp_i)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-struct exp_i *exp_i;
+ecases_remove_by_expi(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    struct exp_i *exp_i)
 {
 	int i;
 
@@ -1095,10 +1099,10 @@ struct exp_i *exp_i;
 
 /* remove exp_i from list */
 static void
-exp_i_remove(interp,ei,exp_i)
-Tcl_Interp *interp;
-struct exp_i **ei;	/* list to remove from */
-struct exp_i *exp_i;	/* element to remove */
+exp_i_remove(
+    Tcl_Interp *interp,
+    struct exp_i **ei,	/* list to remove from */
+    struct exp_i *exp_i)	/* element to remove */
 {
 	/* since it's in middle of list, free exp_i by hand */
 	for (;*ei; ei = &(*ei)->next) {
@@ -1113,10 +1117,10 @@ struct exp_i *exp_i;	/* element to remove */
 
 /* remove exp_i from list and remove any dependent ecases */
 static void
-exp_i_remove_with_ecases(interp,ecmd,exp_i)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-struct exp_i *exp_i;
+exp_i_remove_with_ecases(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    struct exp_i *exp_i)
 {
 	ecases_remove_by_expi(interp,ecmd,exp_i);
 	exp_i_remove(interp,&ecmd->i_list,exp_i);
@@ -1124,11 +1128,11 @@ struct exp_i *exp_i;
 
 /* remove ecases tied to a single direct spawn id */
 static void
-ecmd_remove_state(interp,ecmd,esPtr,direct)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-ExpState *esPtr;
-int direct;
+ecmd_remove_state(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    ExpState *esPtr,
+    int direct)
 {
     struct exp_i *exp_i, *next;
     struct exp_state_list **slPtr;
@@ -1168,9 +1172,9 @@ int direct;
 
 /* this is called from exp_close to clean up the ExpState */
 void
-exp_ecmd_remove_state_direct_and_indirect(interp,esPtr)
-Tcl_Interp *interp;
-ExpState *esPtr;
+exp_ecmd_remove_state_direct_and_indirect(
+    Tcl_Interp *interp,
+    ExpState *esPtr)
 {
 	ecmd_remove_state(interp,&exp_cmds[EXP_CMD_BEFORE],esPtr,EXP_DIRECT|EXP_INDIRECT);
 	ecmd_remove_state(interp,&exp_cmds[EXP_CMD_AFTER],esPtr,EXP_DIRECT|EXP_INDIRECT);
@@ -1182,9 +1186,9 @@ ExpState *esPtr;
 
 /* arm a list of background ExpState's */
 static void
-state_list_arm(interp,slPtr)
-Tcl_Interp *interp;
-struct exp_state_list *slPtr;
+state_list_arm(
+    Tcl_Interp *interp,
+    struct exp_state_list *slPtr)
 {
     /* for each spawn id in list, arm if necessary */
     for (;slPtr;slPtr=slPtr->next) {
@@ -1201,9 +1205,9 @@ struct exp_state_list *slPtr;
 
 /* return TRUE if this ecase is used by this fd */
 static int
-exp_i_uses_state(exp_i,esPtr)
-struct exp_i *exp_i;
-ExpState *esPtr;
+exp_i_uses_state(
+    struct exp_i *exp_i,
+    ExpState *esPtr)
 {
 	struct exp_state_list *fdp;
 
@@ -1214,9 +1218,9 @@ ExpState *esPtr;
 }
 
 static void
-ecase_append(interp,ec)
-Tcl_Interp *interp;
-struct ecase *ec;
+ecase_append(
+    Tcl_Interp *interp,
+    struct ecase *ec)
 {
 	if (!ec->transfer) Tcl_AppendElement(interp,"-notransfer");
 	if (ec->indices) Tcl_AppendElement(interp,"-indices");
@@ -1231,10 +1235,10 @@ struct ecase *ec;
 
 /* append all ecases that match this exp_i */
 static void
-ecase_by_exp_i_append(interp,ecmd,exp_i)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-struct exp_i *exp_i;
+ecase_by_exp_i_append(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    struct exp_i *exp_i)
 {
 	int i;
 	for (i=0;i<ecmd->ecd.count;i++) {
@@ -1245,9 +1249,9 @@ struct exp_i *exp_i;
 }
 
 static void
-exp_i_append(interp,exp_i)
-Tcl_Interp *interp;
-struct exp_i *exp_i;
+exp_i_append(
+    Tcl_Interp *interp,
+    struct exp_i *exp_i)
 {
 	Tcl_AppendElement(interp,"-i");
 	if (exp_i->direct == EXP_INDIRECT) {
@@ -1261,8 +1265,8 @@ struct exp_i *exp_i;
 	}
 
 		for (fdp = exp_i->state_list;fdp;fdp=fdp->next) {
-			char buf[10];	/* big enough for a small int */
-			sprintf(buf,"%d",fdp->esPtr);
+			char buf[25];	/* big enough for a small int */
+			sprintf(buf,"%ld", (long)fdp->esPtr);
 			Tcl_AppendElement(interp,buf);
 		}
 
@@ -1274,11 +1278,11 @@ struct exp_i *exp_i;
 
 /* return current setting of the permanent expect_before/after/bg */
 int
-expect_info(interp,ecmd,objc,objv)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-int objc;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+expect_info(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     struct exp_i *exp_i;
     int i;
@@ -1362,11 +1366,11 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 /* Exp_ExpectGlobalObjCmd is invoked to process expect_before/after/background */
 /*ARGSUSED*/
 int
-Exp_ExpectGlobalObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-int objc;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_ExpectGlobalObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int result = TCL_OK;
     struct exp_i *exp_i, **eip;
@@ -1574,8 +1578,7 @@ Tcl_Obj *CONST objv[];		/* Argument objects. */
 
 /* adjusts file according to user's size request */
 void
-expAdjust(esPtr)
-ExpState *esPtr;
+expAdjust(ExpState *esPtr)
 {
     int new_msize, excess;
     Tcl_UniChar *string;
@@ -1632,9 +1635,9 @@ ExpState *esPtr;
 #if OBSOLETE
 /* Strip parity */
 static void
-expParityStrip(obj,offsetBytes)
-    Tcl_Obj *obj;
-    int offsetBytes;
+expParityStrip(
+    Tcl_Obj *obj,
+    int offsetBytes)
 {
     char *p, ch;
     
@@ -1659,9 +1662,9 @@ expParityStrip(obj,offsetBytes)
    be at a UTF boundary.
 */
 static void
-expValid(obj,offset)
-     Tcl_Obj *obj;
-     int offset;
+expValid(
+    Tcl_Obj *obj,
+    int offset)
 {
   char *s, *end;
   int len;
@@ -1709,9 +1712,9 @@ expValid(obj,offset)
 
 /* Strip nulls from object, beginning at offset */
 static int
-expNullStrip(buf,offsetChars)
-     ExpUniBuf* buf;
-     int offsetChars;
+expNullStrip(
+    ExpUniBuf* buf,
+    int offsetChars)
 {
     Tcl_UniChar *src, *src2, *dest, *end;
     int newsize;       /* size of obj after all nulls removed */
@@ -1737,11 +1740,11 @@ expNullStrip(buf,offsetChars)
 /* the read will complete immediately. */
 /*ARGSUSED*/
 static int
-expIRead(interp,esPtr,timeout,save_flags) /* INTL */
-Tcl_Interp *interp;
-ExpState *esPtr;
-int timeout;
-int save_flags;
+expIRead( /* INTL */
+    Tcl_Interp *interp,
+    ExpState *esPtr,
+    int timeout,
+    int save_flags)
 {
     int cc = EXP_TIMEOUT;
     int size;
@@ -1812,13 +1815,13 @@ int save_flags;
 /* if it returns a non-negative number, it means there is data */
 /* (0 means nothing new was actually read, but it should be looked at again) */
 int
-expRead(interp,esPtrs,esPtrsMax,esPtrOut,timeout,key)
-Tcl_Interp *interp;
-ExpState *(esPtrs[]);		/* If 0, then esPtrOut already known and set */
-int esPtrsMax;			/* number of esPtrs */
-ExpState **esPtrOut;		/* Out variable to leave new ExpState. */
-int timeout;
-int key;
+expRead(
+    Tcl_Interp *interp,
+    ExpState *(esPtrs[]),		/* If 0, then esPtrOut already known and set */
+    int esPtrsMax,			/* number of esPtrs */
+    ExpState **esPtrOut,		/* Out variable to leave new ExpState. */
+    int timeout,
+    int key)
 {
     ExpState *esPtr;
 
@@ -1920,12 +1923,12 @@ int key;
 /* when buffer fills, copy second half over first and */
 /* continue, so we can do matches over multiple buffers */
 void
-exp_buffer_shuffle(interp,esPtr,save_flags,array_name,caller_name) /* INTL */
-Tcl_Interp *interp;
-ExpState *esPtr;
-int save_flags;
-char *array_name;
-char *caller_name;
+exp_buffer_shuffle( /* INTL */
+    Tcl_Interp *interp,
+    ExpState *esPtr,
+    int save_flags,
+    char *array_name,
+    char *caller_name)
 {
     Tcl_UniChar *str;
     Tcl_UniChar *p;
@@ -1989,8 +1992,7 @@ char *caller_name;
 /* map EXP_ style return value to TCL_ style return value */
 /* not defined to work on TCL_OK */
 int
-exp_tcl2_returnvalue(x)
-int x;
+exp_tcl2_returnvalue(int x)
 {
 	switch (x) {
 	case TCL_ERROR:			return EXP_TCLERROR;
@@ -2009,8 +2011,7 @@ int x;
 
 /* map from EXP_ style return value to TCL_ style return values */
 int
-exp_2tcl_returnvalue(x)
-int x;
+exp_2tcl_returnvalue(int x)
 {
 	switch (x) {
 	case EXP_TCLERROR:		return TCL_ERROR;
@@ -2033,9 +2034,9 @@ This allows the user to localize them if desired, and also to
 avoid having to put "global" in procedure definitions.
 */
 char *
-exp_get_var(interp,var)
-Tcl_Interp *interp;
-char *var;
+exp_get_var(
+    Tcl_Interp *interp,
+    char *var)
 {
     char *val;
 
@@ -2045,8 +2046,7 @@ char *var;
 }
 
 static int
-get_timeout(interp)
-Tcl_Interp *interp;
+get_timeout(Tcl_Interp *interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     CONST char *t;
@@ -2060,9 +2060,9 @@ Tcl_Interp *interp;
 /* make a copy of a linked list (1st arg) and attach to end of another (2nd
 arg) */
 static int
-update_expect_states(i_list,i_union)
-struct exp_i *i_list;
-struct exp_state_list **i_union;
+update_expect_states(
+    struct exp_i *i_list,
+    struct exp_state_list **i_union)
 {
     struct exp_i *p;
 
@@ -2092,8 +2092,7 @@ struct exp_state_list **i_union;
 }
 
 char *
-exp_cmdtype_printable(cmdtype)
-int cmdtype;
+exp_cmdtype_printable(int cmdtype)
 {
 	switch (cmdtype) {
 	case EXP_CMD_FG: return("expect");
@@ -2110,12 +2109,12 @@ int cmdtype;
 /* an indirect spawn id list is changed */
 /*ARGSUSED*/
 static char *
-exp_indirect_update2(clientData, interp, name1, name2, flags)
-ClientData clientData;
-Tcl_Interp *interp;	/* Interpreter containing variable. */
-char *name1;		/* Name of variable. */
-char *name2;		/* Second part of variable name. */
-int flags;		/* Information about what happened. */
+exp_indirect_update2(
+    ClientData clientData,
+    Tcl_Interp *interp,	/* Interpreter containing variable. */
+    char *name1,	/* Name of variable. */
+    char *name2,	/* Second part of variable name. */
+    int flags)		/* Information about what happened. */
 {
 	char *msg;
 
@@ -2129,10 +2128,10 @@ int flags;		/* Information about what happened. */
 }
 
 static char *
-exp_indirect_update1(interp,ecmd,exp_i)
-Tcl_Interp *interp;
-struct exp_cmd_descriptor *ecmd;
-struct exp_i *exp_i;
+exp_indirect_update1(
+    Tcl_Interp *interp,
+    struct exp_cmd_descriptor *ecmd,
+    struct exp_i *exp_i)
 {
 	struct exp_state_list *slPtr;	/* temp for interating over state_list */
 
@@ -2205,13 +2204,13 @@ struct exp_i *exp_i;
 }
 
 int
-expMatchProcess(interp, eo, cc, bg, detail)
-    Tcl_Interp *interp;
-    struct eval_out *eo;	/* final case of interest */
-    int cc;			/* EOF, TIMEOUT, etc... */
-    int bg;			/* 1 if called from background handler, */
+expMatchProcess(
+    Tcl_Interp *interp,
+    struct eval_out *eo,	/* final case of interest */
+    int cc,			/* EOF, TIMEOUT, etc... */
+    int bg,			/* 1 if called from background handler, */
 				/* else 0 */
-    char *detail;
+    char *detail)
 {
     ExpState *esPtr = 0;
     Tcl_Obj *body = 0;
@@ -2385,9 +2384,9 @@ expMatchProcess(interp, eo, cc, bg, detail)
 /* this function is called from the background when input arrives */
 /*ARGSUSED*/
 void
-exp_background_channelhandler(clientData,mask) /* INTL */
-ClientData clientData;
-int mask;
+exp_background_channelhandler( /* INTL */
+    ClientData clientData,
+    int mask)
 {
   char backup[EXP_CHANNELNAMELEN+1]; /* backup copy of esPtr channel name! */
 
@@ -2510,11 +2509,11 @@ do_more_data:
 
 /*ARGSUSED*/
 int
-Exp_ExpectObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-int objc;
-Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_ExpectObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int cc;			/* number of chars returned in a single read */
 				/* or negative EXP_whatever */
@@ -2767,11 +2766,11 @@ error:
 
 /*ARGSUSED*/
 static int
-Exp_TimestampObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_TimestampObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
 	char *format = 0;
 	time_t seconds = -1;
@@ -2866,14 +2865,14 @@ process_di _ANSI_ARGS_ ((Tcl_Interp* interp,
 			 CONST char* cmd));
 
 static int
-process_di (interp,objc,objv,at,Default,esOut,cmd)
-Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
-     int* at;
-     int* Default;
-     CONST char* cmd;
-     ExpState **esOut;
+process_di (
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[],		/* Argument objects. */
+    int* at,
+    int* Default,
+    ExpState **esOut,
+    CONST char* cmd)
 {
     static char* options[] = {
 	"-d",
@@ -2947,11 +2946,11 @@ Tcl_Interp *interp;
 
 /*ARGSUSED*/
 int
-Exp_MatchMaxObjCmd(clientData,interp,objc,objv)
-     ClientData clientData;
-     Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_MatchMaxObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int size = -1;
     ExpState *esPtr = 0;
@@ -2993,11 +2992,11 @@ Exp_MatchMaxObjCmd(clientData,interp,objc,objv)
 
 /*ARGSUSED*/
 int
-Exp_RemoveNullsObjCmd(clientData,interp,objc,objv)
-ClientData clientData;
-Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_RemoveNullsObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int value = -1;
     ExpState *esPtr = 0;
@@ -3037,11 +3036,11 @@ Tcl_Interp *interp;
 
 /*ARGSUSED*/
 int
-Exp_ParityObjCmd(clientData,interp,objc,objv)
-ClientData clientData;
-Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_ParityObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int parity;
     ExpState *esPtr = 0;
@@ -3076,11 +3075,11 @@ Tcl_Interp *interp;
 
 /*ARGSUSED*/
 int
-Exp_CloseOnEofObjCmd(clientData,interp,objc,objv)
-ClientData clientData;
-Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
+Exp_CloseOnEofObjCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int close_on_eof;
     ExpState *esPtr = 0;
@@ -3117,8 +3116,7 @@ Tcl_Interp *interp;
 /* This big chunk of code is just for debugging the permanent */
 /* expect cases */
 void
-exp_fd_print(slPtr)
-struct exp_state_list *slPtr;
+exp_fd_print(struct exp_state_list *slPtr)
 {
 	if (!slPtr) return;
 	printf("%d ",slPtr->esPtr);
@@ -3126,8 +3124,7 @@ struct exp_state_list *slPtr;
 }
 
 void
-exp_i_print(exp_i)
-struct exp_i *exp_i;
+exp_i_print(struct exp_i *exp_i)
 {
 	if (!exp_i) return;
 	printf("exp_i %x",exp_i);
@@ -3143,16 +3140,14 @@ struct exp_i *exp_i;
 }
 
 void
-exp_ecase_print(ecase)
-struct ecase *ecase;
+exp_ecase_print(struct ecase *ecase)
 {
 	printf("pat <%s>\n",ecase->pat);
 	printf("exp_i = %x\n",ecase->i_list);
 }
 
 void
-exp_ecases_print(ecd)
-struct exp_cases_descriptor *ecd;
+exp_ecases_print(struct exp_cases_descriptor *ecd)
 {
 	int i;
 
@@ -3161,8 +3156,7 @@ struct exp_cases_descriptor *ecd;
 }
 
 void
-exp_cmd_print(ecmd)
-struct exp_cmd_descriptor *ecmd;
+exp_cmd_print(struct exp_cmd_descriptor *ecmd)
 {
 	printf("expect cmd type: %17s",exp_cmdtype_printable(ecmd->cmdtype));
 	printf((ecmd->duration==EXP_PERMANENT)?" perm ": "tmp ");
@@ -3172,7 +3166,7 @@ struct exp_cmd_descriptor *ecmd;
 }
 
 void
-exp_cmds_print()
+exp_cmds_print(void)
 {
 	exp_cmd_print(&exp_cmds[EXP_CMD_BEFORE]);
 	exp_cmd_print(&exp_cmds[EXP_CMD_AFTER]);
@@ -3181,11 +3175,11 @@ exp_cmds_print()
 
 /*ARGSUSED*/
 int
-cmdX(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-     int objc;
-     Tcl_Obj *CONST objv[];		/* Argument objects. */
+cmdX(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
 	exp_cmds_print();
 	return TCL_OK;
@@ -3193,7 +3187,7 @@ Tcl_Interp *interp;
 #endif /*DEBUG_PERM_ECASES*/
 
 void
-expExpectVarsInit()
+expExpectVarsInit(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -3216,8 +3210,7 @@ cmd_data[]  = {
 {0}};
 
 void
-exp_init_expect_cmds(interp)
-Tcl_Interp *interp;
+exp_init_expect_cmds(Tcl_Interp *interp)
 {
 	exp_create_commands(interp,cmd_data);
 
@@ -3248,7 +3241,7 @@ Tcl_Interp *interp;
 }
 
 void
-exp_init_sig() {
+exp_init_sig(void) {
 #if 0
 	signal(SIGALRM,sigalarm_handler);
 	signal(SIGINT,sigint_handler);

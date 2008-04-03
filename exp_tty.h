@@ -15,15 +15,15 @@ extern int exp_ioctled_devtty;
 extern int exp_stdin_is_tty;
 extern int exp_stdout_is_tty;
 
-void exp_tty_raw();
-void exp_tty_echo();
-void exp_tty_break();
-int exp_tty_raw_noecho();
-int exp_israw();
-int exp_isecho();
+void exp_tty_raw(int set);
+void exp_tty_echo(int set);
+void exp_tty_break(Tcl_Interp *interp, int fd);
+int exp_tty_raw_noecho(Tcl_Interp *interp, exp_tty *tty_old, int *was_raw, int *was_echo);
+int exp_israw(void);
+int exp_isecho(void);
 
-void exp_tty_set();
-int exp_tty_set_simple();
-int exp_tty_get_simple();
+void exp_tty_set(Tcl_Interp *interp, exp_tty *tty, int raw, int echo);
+int exp_tty_set_simple(exp_tty *tty);
+int exp_tty_get_simple(exp_tty *tty);
 
 #endif	/* __EXP_TTY_H__ */

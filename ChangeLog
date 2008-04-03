@@ -1,3 +1,23 @@
+2008-04-03  Andreas Kupries  <andreask@activestate.com>
+
+	* configure.in: Bumped version to 5.44.1.7.
+	* configure: Regen'd, autoconf 2.59.
+
+	* The following set of changes was sent our way by Reinhard Max
+	  <max@tclers.tk>.
+
+	* exp_command.c: Fixed more compiler warnings, and started
+	* exp_command.h: to ansify the code base, beginning with
+	* exp_inter.c: the introduction of proper function prototypes.
+	* exp_main_exp.c:
+	* exp_pty.h:
+	* exp_tty.c:
+	* exp_tty.h:
+	* exp_win.c:
+	* expect.c:
+	* pty_termios.c:
+	* retoglob.c:
+
 2008-04-03  Andreas Kupries   <andreask@activestate.com>
 
 	* configure.in: Bumped version to 5.44.1.6.

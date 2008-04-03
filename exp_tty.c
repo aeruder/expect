@@ -50,21 +50,20 @@ int exp_stdout_is_tty;
 #define tty_cooked exp_tty_cooked
 
 int
-exp_israw()
+exp_israw(void)
 {
 	return is_raw;
 }
 
 int
-exp_isecho()
+exp_isecho(void)
 {
 	return !is_noecho;
 }
 
 /* if set == 1, set it to raw, else unset it */
 void
-exp_tty_raw(set)
-int set;
+exp_tty_raw(int set)
 {
 	if (set == 1) {
 		is_raw = TRUE;
@@ -95,8 +94,7 @@ int set;
 }
 	
 void
-exp_tty_echo(set)
-int set;
+exp_tty_echo(int set)
 {
 	if (set == 1) {
 		is_noecho = FALSE;
@@ -114,8 +112,7 @@ int set;
 }
 
 int
-exp_tty_set_simple(tty)
-exp_tty *tty;
+exp_tty_set_simple(exp_tty *tty)
 {
 #ifdef HAVE_TCSETATTR
 	return(tcsetattr(exp_dev_tty, TCSADRAIN,tty));
@@ -125,8 +122,7 @@ exp_tty *tty;
 }
 
 int
-exp_tty_get_simple(tty)
-exp_tty *tty;
+exp_tty_get_simple(exp_tty *tty)
 {
 #ifdef HAVE_TCSETATTR
 	return(tcgetattr(exp_dev_tty,         tty));
@@ -138,10 +134,11 @@ exp_tty *tty;
 /* returns 0 if nothing changed */
 /* if something changed, the out parameters are changed as well */
 int
-exp_tty_raw_noecho(interp,tty_old,was_raw,was_echo)
-Tcl_Interp *interp;
-exp_tty *tty_old;
-int *was_raw, *was_echo;
+exp_tty_raw_noecho(
+    Tcl_Interp *interp,
+    exp_tty *tty_old,
+    int *was_raw,
+    int *was_echo)
 {
 	if (exp_disconnected) return(0);
 	if (is_raw && is_noecho) return(0);
@@ -173,10 +170,11 @@ int *was_raw, *was_echo;
 /* returns 0 if nothing changed */
 /* if something changed, the out parameters are changed as well */
 int
-exp_tty_cooked_echo(interp,tty_old,was_raw,was_echo)
-Tcl_Interp *interp;
-exp_tty *tty_old;
-int *was_raw, *was_echo;
+exp_tty_cooked_echo(
+    Tcl_Interp *interp,
+    exp_tty *tty_old,
+    int *was_raw,
+    int *was_echo)
 {
 	if (exp_disconnected) return(0);
 	if (!is_raw && !is_noecho) return(0);
@@ -206,11 +204,11 @@ int *was_raw, *was_echo;
 }
 
 void
-exp_tty_set(interp,tty,raw,echo)
-Tcl_Interp *interp;
-exp_tty *tty;
-int raw;
-int echo;
+exp_tty_set(
+    Tcl_Interp *interp,
+    exp_tty *tty,
+    int raw,
+    int echo)
 {
 	if (exp_tty_set_simple(tty) == -1) {
 		expErrorLog("ioctl(set): %s\r\n",Tcl_PosixError(interp));
@@ -258,9 +256,9 @@ exp_init_stdio()
 
 /*ARGSUSED*/
 void
-exp_tty_break(interp,fd)
-Tcl_Interp *interp;
-int fd;
+exp_tty_break(
+    Tcl_Interp *interp,
+    int fd)
 {
 #ifdef POSIX
 	tcsendbreak(fd,0);
@@ -280,9 +278,9 @@ int fd;
 /* If len == 0, use strlen to compute it */
 /* NB: if terminal is not in raw mode, nothing is done. */
 char *
-exp_cook(s,len)
-char *s;
-int *len;	/* current and new length of s */
+exp_cook(
+    char *s,
+    int *len)	/* current and new length of s */
 {
 	static int destlen = 0;
 	static char *dest = 0;
@@ -315,11 +313,11 @@ int *len;	/* current and new length of s */
 }
 
 static int		/* returns TCL_whatever */
-exec_stty(interp,argc,argv,devtty)
-Tcl_Interp *interp;
-int argc;
-char **argv;
-int devtty;		/* if true, redirect to /dev/tty */
+exec_stty(
+    Tcl_Interp *interp,
+    int argc,
+    char **argv,
+    int devtty)		/* if true, redirect to /dev/tty */
 {
 	int i;
 	int rc;
@@ -368,11 +366,11 @@ int devtty;		/* if true, redirect to /dev/tty */
 
 /*ARGSUSED*/
 static int
-Exp_SttyCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+Exp_SttyCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int argc,
+    char **argv)
 {
 	/* redirection symbol is not counted as a stty arg in terms */
 	/* of recognition. */
@@ -567,11 +565,11 @@ char **argv;
 
 /*ARGSUSED*/
 static int
-Exp_SystemCmd(clientData, interp, argc, argv)
-ClientData clientData;
-Tcl_Interp *interp;
-int argc;
-char **argv;
+Exp_SystemCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int argc,
+    char **argv)
 {
 	int result = TCL_OK;
 	RETSIGTYPE (*old)();	/* save old sigalarm handler */
@@ -799,8 +797,7 @@ cmd_data[]  = {
 {0}};
 
 void
-exp_init_tty_cmds(interp)
-struct Tcl_Interp *interp;
+exp_init_tty_cmds(struct Tcl_Interp *interp)
 {
 	exp_create_commands(interp,cmd_data);
 }

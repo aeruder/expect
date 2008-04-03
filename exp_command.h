@@ -220,7 +220,7 @@ EXTERN void		exp_ecmd_remove_fd_direct_and_indirect
 EXTERN void		exp_trap_on _ANSI_ARGS_((int));
 EXTERN int		exp_trap_off _ANSI_ARGS_((char *));
 
-EXTERN void		exp_strftime();
+EXTERN void		exp_strftime(char *format, const struct tm *timeptr,Tcl_DString *dstring);
 
 #define exp_deleteProc (void (*)())0
 #define exp_deleteObjProc (void (*)())0

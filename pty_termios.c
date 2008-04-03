@@ -627,10 +627,10 @@ int control;	/* if 1, enable pty trapping of close/open/ioctl */
 }
 
 int
-exp_getptyslave(ttycopy,ttyinit,stty_args)
-int ttycopy;
-int ttyinit;
-char *stty_args;
+exp_getptyslave(
+    int ttycopy,
+    int ttyinit,
+    CONST char *stty_args)
 {
 	int slave, slave2;
 	char buf[10240];
