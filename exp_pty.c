@@ -186,11 +186,11 @@ exp_pty_test_end()
 
 /* returns non-negative if successful */
 int
-exp_pty_test(master_name,slave_name,bank,num)
-char *master_name;
-char *slave_name;
-char bank;
-char *num;	/* string representation of number */
+exp_pty_test(
+     char *master_name,
+     char *slave_name,
+     char bank,
+     char *num)	/* string representation of number */
 {
 	int master, slave;
 	int cc;
@@ -261,7 +261,7 @@ char *num;	/* string representation of number */
 }
 
 void
-exp_pty_unlock()
+exp_pty_unlock(void)
 {
 	if (locked) {
 		(void) unlink(lock);
@@ -271,9 +271,9 @@ exp_pty_unlock()
 
 /* returns 1 if successfully locked, 0 otherwise */
 int
-exp_pty_lock(bank,num)
-char bank;
-char *num;	/* string representation of number */
+exp_pty_lock(
+     char bank,
+     char *num)	/* string representation of number */
 {
 	struct stat statbuf;
 

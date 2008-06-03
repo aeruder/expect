@@ -1,3 +1,11 @@
+2008-05-05  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_pty.c: Minimal ansification of function definitions to match
+	  them to their prototypes where promoted types are otherwise
+	  causing a mismatch for some compilers, like AIX in 64bit mode.
+	* configure.in: Bumped version to 5.44.1.8.
+	* configure: Regen'd, autoconf 2.59.
+
 2008-04-03  Andreas Kupries  <andreask@activestate.com>
 
 	* configure.in: Bumped version to 5.44.1.7.
