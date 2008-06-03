@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 AC_REVISION($Id$)
 
-AC_INIT([expect],[5.44.1.8])
+AC_INIT([expect],[5.44.1.9])
 
 TEA_INIT([3.5])
 

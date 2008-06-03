@@ -1,3 +1,13 @@
+2008-06-03  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_glob.c (Exp_StringCaseMatch2): Fixed bug in the handling of
+	  glob classes, see [SF Bug 1873404]. The code tried to match the
+	  closing bracket of a class in the input because it was not
+	  properly skipped after the class was matched successfully.
+	  Additional trace output added.
+	* configure.in: Bumped version to 5.44.1.9.
+	* configure: Regen'd, autoconf 2.59.
+
 2008-05-05  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_pty.c: Minimal ansification of function definitions to match

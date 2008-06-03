@@ -147,6 +147,7 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 
     while (1) {
 #ifdef EXP_INTERNAL_TRACE_GLOB
+	expDiagLog("          * ==========\n");
 	expDiagLog("          * pattern=\"");
 	expDiagLogU(expPrintifyUni(pattern,pstop-pattern));
 	expDiagLog("\"\n");
@@ -295,12 +296,18 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 	if (*pattern == '[') {
 	    Tcl_UniChar ch, startChar, endChar;
 
+#ifdef EXP_INTERNAL_TRACE_GLOB
+	    expDiagLog("          class\n");
+#endif
 	    pattern++;
 	    oldString = string;
 	    ch = *string++;
 
 	    while (1) {
 		if ((pattern >= pstop) || (*pattern == ']')) {
+#ifdef EXP_INTERNAL_TRACE_GLOB
+		    expDiagLog("          end-of-pattern or class/1\n");
+#endif
 		    return -1;			/* was 0; DEL */
 		}
 		startChar = *pattern ++;
@@ -310,6 +317,9 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 		if (*pattern == '-') {
 		    pattern++;
 		    if (pattern >= pstop) {
+#ifdef EXP_INTERNAL_TRACE_GLOB
+			expDiagLog("          end-of-pattern/2\n");
+#endif
 			return -1;		/* DEL */
 		    }
 		    endChar = *pattern ++;
@@ -322,15 +332,31 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 			 * Matches ranges of form [a-z] or [z-a].
 			 */
 
+#ifdef EXP_INTERNAL_TRACE_GLOB
+			expDiagLog("          matched-range\n");
+#endif
 			break;
 		    }
 		} else if (startChar == ch) {
+#ifdef EXP_INTERNAL_TRACE_GLOB
+		    expDiagLog("          matched-char\n");
+#endif
 		    break;
 		}
 	    }
 	    while ((pattern < pstop) && (*pattern != ']')) {
 		pattern++;
 	    }
+	    if (pattern < pstop) {
+		/*
+		 * Skip closing bracket if there was any.
+		 * Fixes SF Bug 1873404.
+		 */
+		pattern++;
+	    }
+#ifdef EXP_INTERNAL_TRACE_GLOB
+	    expDiagLog("          skipped remainder of pattern\n");
+#endif
 	    match += (string - oldString); /* incr by # matched chars */
 	    continue;
 	}
