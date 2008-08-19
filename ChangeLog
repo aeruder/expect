@@ -1,3 +1,8 @@
+2008-08-18  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* exp_main_sub.c (exp_interpreter): cleaner handling of commandPtr
+	to prevent crash. (das)
+
 2008-06-03  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_glob.c (Exp_StringCaseMatch2): Fixed bug in the handling of

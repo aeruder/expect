@@ -281,14 +281,15 @@ Tcl_Obj *eofObj;
     Tcl_Channel inChannel, outChannel;
     ExpState *esPtr = expStdinoutGet();
     /*	int fd = fileno(stdin);*/
-	
-    expect_key++;
 
-    commandPtr = Tcl_NewObj();
-    Tcl_IncrRefCount(commandPtr);
+    expect_key++;
 
     gotPartial = 0;
     while (TRUE) {
+	if (commandPtr == NULL) {
+	    commandPtr = Tcl_NewObj();
+	    Tcl_IncrRefCount(commandPtr);
+	}
 	outChannel = expStdinoutGet()->channel;
 	if (outChannel) {
 	    Tcl_Flush(outChannel);
@@ -362,7 +363,7 @@ Tcl_Obj *eofObj;
 	if (!TclObjCommandComplete(commandPtr)) {
 	    gotPartial = 1;
 	    continue;
-	}	
+	}
 
 	Tcl_AppendToObj(commandPtr, "\n", 1);
 	if (!TclObjCommandComplete(commandPtr)) {
@@ -375,7 +376,8 @@ Tcl_Obj *eofObj;
 	if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
 	code = Tcl_RecordAndEvalObj(interp, commandPtr, 0);
-	Tcl_SetObjLength(commandPtr, 0);
+	Tcl_DecrRefCount(commandPtr);
+	commandPtr = NULL;
 	switch (code) {
 	    char *str;
 
@@ -411,7 +413,9 @@ Tcl_Obj *eofObj;
  done:
     if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
-    Tcl_DecrRefCount(commandPtr);
+    if (commandPtr) {
+	Tcl_DecrRefCount(commandPtr);
+    }
     return(code);
 }
 
