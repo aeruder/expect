@@ -283,11 +283,14 @@ Tcl_Obj *eofObj;
     /*	int fd = fileno(stdin);*/
 
     expect_key++;
+    commandPtr = Tcl_NewObj();
+    Tcl_IncrRefCount(commandPtr);
 
     gotPartial = 0;
     while (TRUE) {
-	if (commandPtr == NULL) {
-	    commandPtr = Tcl_NewObj();
+	if (Tcl_IsShared(commandPtr)) {
+	    Tcl_DecrRefCount(commandPtr);
+	    commandPtr = Tcl_DuplicateObj(commandPtr);
 	    Tcl_IncrRefCount(commandPtr);
 	}
 	outChannel = expStdinoutGet()->channel;
@@ -359,6 +362,11 @@ Tcl_Obj *eofObj;
          * Add the newline removed by Tcl_GetsObj back to the string.
          */
 
+	if (Tcl_IsShared(commandPtr)) {
+	    Tcl_DecrRefCount(commandPtr);
+	    commandPtr = Tcl_DuplicateObj(commandPtr);
+	    Tcl_IncrRefCount(commandPtr);
+	}
 	Tcl_AppendToObj(commandPtr, "\n", 1);
 	if (!TclObjCommandComplete(commandPtr)) {
 	    gotPartial = 1;
@@ -377,7 +385,8 @@ Tcl_Obj *eofObj;
 
 	code = Tcl_RecordAndEvalObj(interp, commandPtr, 0);
 	Tcl_DecrRefCount(commandPtr);
-	commandPtr = NULL;
+	commandPtr = Tcl_NewObj();
+	Tcl_IncrRefCount(commandPtr);
 	switch (code) {
 	    char *str;
 
@@ -413,9 +422,7 @@ Tcl_Obj *eofObj;
  done:
     if (tty_changed) exp_tty_set(interp,&tty_old,was_raw,was_echo);
 
-    if (commandPtr) {
-	Tcl_DecrRefCount(commandPtr);
-    }
+    Tcl_DecrRefCount(commandPtr);
     return(code);
 }
 
