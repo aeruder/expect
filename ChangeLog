@@ -1,3 +1,12 @@
+2008-08-28  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_trap.c (tophalf): Fixed inverted condition setting the
+	  interpreter used for trap handling to NULL, causing a crash when
+	  trying to handle ^C. This fixes [SF Bug 1757471] reported by
+	  Matthias Kraft <matzek@users.sourceforge.net>.
+	* configure.in: Bumped version to 5.44.1.10.
+	* configure: Regen'd, autoconf 2.59.
+
 2008-08-18  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* exp_main_sub.c (exp_interpreter): cleaner handling of commandPtr

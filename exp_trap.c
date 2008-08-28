@@ -122,7 +122,7 @@ int code;
 	if (trap->interp) {
 		/* if trap requested original interp, use it */
 		sig_interp = trap->interp;
-	} else if (!interp) {
+	} else if (interp) {
 		/* else if another interp is available, use it */
 		sig_interp = interp;
 	} else {
