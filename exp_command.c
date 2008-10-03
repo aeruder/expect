@@ -3265,11 +3265,15 @@ Exp_OverlayObjCmd(
 	return(TCL_ERROR);
     }
 
-    /* convert to string array for execvp */
+    /* convert to string array for execvp.
+     * Take only the arguments after the command name (i+1 ...). The arguments
+     * before are arguments of overlay, not of the invoked command. The
+     * command name is at index.
+     */
 
     argv = (char**) ckalloc ((objc+1)*sizeof(char*));
 
-    for (k=1;k<objc;k++) {
+    for (k=i+1;k<objc;k++) {
 	argv[k] = ckalloc (1+strlen(Tcl_GetString (objv[k])));
 	strcpy (argv[k],Tcl_GetString (objv[k]));
     }
