@@ -3225,7 +3225,7 @@ Exp_OverlayObjCmd(
     int newfd, oldfd;
     int dash_name = 0;
     char *command;
-    int k;
+    int k, j;
     char **argv;
 
     int i;
@@ -3273,11 +3273,11 @@ Exp_OverlayObjCmd(
 
     argv = (char**) ckalloc ((objc+1)*sizeof(char*));
 
-    for (k=i+1;k<objc;k++) {
-	argv[k] = ckalloc (1+strlen(Tcl_GetString (objv[k])));
-	strcpy (argv[k],Tcl_GetString (objv[k]));
+    for (k=i+1,j=1;k<objc;k++,j++) {
+	argv[j] = ckalloc (1+strlen(Tcl_GetString (objv[k])));
+	strcpy (argv[j],Tcl_GetString (objv[k]));
     }
-    argv[objc] = NULL;
+    argv[j] = NULL;
 
     /* command, handle '-' */
     command = Tcl_GetString (objv[i]);
