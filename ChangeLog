@@ -1,3 +1,19 @@
+2008-09-30  Andreas Kupries  <andreask@activestate.com>
+
+	* configure.in: Bumped version to 5.44.1.11.
+	* configure: Regen'd, autoconf 2.59.
+
+	* exp_command.c (Exp_OverlayObjCmd): Fixed [Expect SF Bug 2127456]
+	  reported by <eee@users.sourceforge.net>, with thanks. Changed
+	  retrieval of command from objv[0] (== 'overlay' itself), to
+	  objv[i] containing the actual user command.
+
+	* expect.c (string_case_first, string_first, eval_case_string):
+	  Applied patch supplied by Andy Belsey <Andrew.Belsey@Sun.COM>
+	  fixing the seg.fault in 'expect -exact'. With thanks for both
+	  the analysis of the problem and the patch. See also [Expect SF
+	  Bug 2114547].
+
 2008-08-28  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_trap.c (tophalf): Fixed inverted condition setting the

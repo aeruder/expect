@@ -607,9 +607,9 @@ install-bin-binaries:
 
 .SUFFIXES: .c .$(OBJEXT) .man .n .html
 
-Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
-	cd $(top_builddir) \
-	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
+#Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+#	cd $(top_builddir) \
+#	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 uninstall-binaries:
 	list='$(lib_BINARIES)'; for p in $$list; do \

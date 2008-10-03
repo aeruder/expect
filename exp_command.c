@@ -3276,14 +3276,14 @@ Exp_OverlayObjCmd(
     argv[objc] = NULL;
 
     /* command, handle '-' */
-    argv[0] = ckalloc (2+strlen(Tcl_GetString (objv[0])));
+    command = Tcl_GetString (objv[i]);
+    argv[0] = ckalloc (2+strlen(command));
     if (dash_name) {
 	argv [0][0] = '-';
-	strcpy (argv[0]+1,Tcl_GetString (objv[0]));
+	strcpy (argv[0]+1,command);
     } else {
-	strcpy (argv[0],Tcl_GetString (objv[0]));
+	strcpy (argv[0],command);
     }
-    command = Tcl_GetString (objv[0]);
 
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
