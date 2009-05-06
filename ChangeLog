@@ -1,3 +1,15 @@
+2009-05-06  Andreas Kupries  <andreask@activestate.com>
+
+	* retoglob.c: Accepted the patch by Mike Cumings
+	  <mcumings@users.sourceforge.net> fixing [Expect SF Bug 13179].
+	  The updated code checks a (?...) sequence that it contains only
+	  ARE options before processing it as such. This prevents the
+	  misinterpretation of non-capturing paren groups as ARe options
+	  with subsequent segmentation fault.
+	
+	* configure.in: Bumped version to 5.44.1.12.
+	* configure: Regen'd, autoconf 2.59.
+
 2008-09-30  Andreas Kupries  <andreask@activestate.com>
 
 	* configure.in: Bumped version to 5.44.1.11.

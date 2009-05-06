@@ -122,6 +122,10 @@ exp_retoglob (
 			EMIT ('\\'); EMITX ((c)); \
 		      } else { \
 			EMIT ((c));}}
+#define MATCH_AREOPTS(c) (c == 'b' || c == 'c' || \
+          c == 'e' || c == 'i' || c == 'm' || c == 'n' || \
+          c == 'p' || c == 'q' || c == 's' || c == 't' || \
+          c == 'w' || c == 'x')
 
 #if DEBUG
 #define LOG if (1) fprintf
@@ -155,21 +159,56 @@ exp_retoglob (
    */
 
   if (MATCH (areopts)) { /* "(?" */
+    Tcl_UniChar* save = str;
+    Tcl_UniChar* stop;
+    int stoplen;
+    int save_strlen = strlen;
+    int all_ARE_opts = 1;
+
+    /* First, ensure that this is actually an ARE opts string.
+     * It could be something else (e.g., a non-capturing block).
+     */
     CHOP (2);
     mark = str; CHOPC (')');
+    stop = str;       /* Remember closing parens location, allows */
+    stoplen = strlen; /* us to avoid a second CHOPC run later */
 
     while (mark < str) {
-      if (*mark == 'q') {
-	CHOP (1);
-	nexto = ExpLiteral (nexto, str, strlen);
-	goto done;
-      } else if (*mark == 'x') {
-	expanded = 1;
-	LOG (stderr,"EXPANDED\n"); FF;
+      if (MATCH_AREOPTS(*mark)) {
+        mark++;
+      } else {
+        all_ARE_opts = 0;
+        break;
       }
-      mark++;
     }
-    CHOP (1);
+
+    /* Reset back to our entry point. */
+    str    = save;
+    strlen = save_strlen;
+
+    if (all_ARE_opts) {
+      /* Now actually perform the ARE option processing */
+      LOG (stderr, "%s\n", "Processing AREOPTS"); FF;
+
+      CHOP (2);
+      mark = str;
+      /* Equivalent to CHOPC (')') */
+      str    = stop; 
+      strlen = stoplen;
+
+      while (mark < str) {
+        if (*mark == 'q') {
+          CHOP (1);
+          nexto = ExpLiteral (nexto, str, strlen);
+          goto done;
+        } else if (*mark == 'x') {
+          expanded = 1;
+          LOG (stderr,"EXPANDED\n"); FF;
+        }
+        mark++;
+      }
+      CHOP (1);
+    }
   }
 
   while (strlen) {
