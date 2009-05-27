@@ -1,3 +1,14 @@
+2009-05-27  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_tty.c (Exp_SttyCmd, Exp_SystemCmd): Applied patch by
+	  Reinhard Max (max@suse.de) fixing buffer-overflows in the 'stty'
+	  command due to an off-by-one error in the buffer size. See the
+	  bugs https://bugzilla.novell.com/show_bug.cgi?id=506873
+	  and  https://bugzilla.novell.com/show_bug.cgi?id=501291
+
+	* configure.in: Bumped version to 5.44.1.13.
+	* configure: Regen'd, autoconf 2.59.
+
 2009-05-06  Andreas Kupries  <andreask@activestate.com>
 
 	* retoglob.c: Accepted the patch by Mike Cumings
@@ -6,7 +17,7 @@
 	  ARE options before processing it as such. This prevents the
 	  misinterpretation of non-capturing paren groups as ARe options
 	  with subsequent segmentation fault.
-	
+
 	* configure.in: Bumped version to 5.44.1.12.
 	* configure: Regen'd, autoconf 2.59.
 
@@ -281,7 +292,7 @@
 
 	  multixterm had debugging stuff leftover ("hello").
 	  --------------------
-	
+
 2006-02-27  Andreas Kupries <andreask@activestate.com>
 
 	* exp_main_sub.c: Added command 'exp_configure' for magic configuration.
@@ -512,7 +523,7 @@
 	  --------------------
 
 2004-02-25  Andreas Kupries  <andreask@activestate.com>
-	
+
 	* Merged changes from the official version 5.40 of expect into the
 	  SF sources. See details below. Partially already done (Rich
 	  Kennedy's patch).
@@ -555,33 +566,33 @@
 	  > Rich Kennedy <rickenne@cisco.com> writes:
 
 	  > > Hi,
-	  > > 
+	  > >
 	  > >  The following little expect script gets in trouble with second
 	  > >  'interact' statement. The 'less' program does not get stdin
 	  > >  so it doesn't respond to typed characters...
-	  > > 
+	  > >
 	  > >  Is there something that must be done after the 1st interact to
 	  > >  allow the second to work correctly? (Note, you have to run
 	  > >  as a script because it works correctly if you type the commands
 	  > >  interactively to expect)
-	  > > 
+	  > >
 	  > > 	#!/usr/local/bin/expect
-	  > > 
+	  > >
 	  > > 	gets stdin a
 	  > > 	spawn less file1
 	  > > 	interact
 	  > >  	wait
-	  > > 	gets stdin junk 
+	  > > 	gets stdin junk
 	  > > 	spawn less file2
 	  > > 	interact
 	  > >         wait
-	  > > 
+	  > >
 	  > >  Thanks
-	  > > 
+	  > >
 	  > > Rich Kennedy
 
 2003-09-05  Andreas Kupries  <andreask@activestate.com>
-	
+
 	* Merged changes from the official version 5.39 of expect into the
 	  SF sources. See details below. Partially already done.
 
@@ -631,7 +642,7 @@
 
 	  Paul Reithmuller <paul.reithmuller@eng.sun.xcom> noted that
 	  unbuffer shouldn't postprocess its output.  Added stty_init.
-	  
+
 	  Mordechai T. Abzug <morty@sanctuary.arbutus.md.xus> noted that
 	  log_file wasn't recording -append status.
 
@@ -724,7 +735,7 @@
 	* exp_main_tk.c (Tk_Init2): don't call XSynchronize on OS X.
 
 2002-08-08  Andreas Kupries  <andreas_kupries@users.sourceforge.net>
-	
+
 	* Merged changes from the official version 5.38 of expect into the
 	  SF sources. See details below.
 
@@ -833,7 +844,7 @@
 	it for all our configure tests, which then all fail. Also assume
 	our svr4 style ptys are broken, if /dev/ptmx exists, but stropts.h
 	doesn't exist.
-	
+
 1999-08-31  Jennifer Hom  <jenn@scriptics.com>
 
 	* Makefile.in: Changed test target to source tests/all.tcl instead
@@ -851,8 +862,8 @@
 	* tests/pid.test:
 	* tests/send.test:
 	* tests/spawn.test
-	* tests/stty.test: Modified test files to use package tcltest, 
-	removed tests/all and tests/defs, and added tests/all.tcl 
+	* tests/stty.test: Modified test files to use package tcltest,
+	removed tests/all and tests/defs, and added tests/all.tcl
 
 1999-06-22    <stanton@scriptics.com>
 
@@ -864,7 +875,7 @@
 	* aclocal.m4: Fixed CY_AC_LOAD_TKCONFIG so it tests for Tk_Init
 	instead of Tk_Main (which is only a macro in 8.1 and later).  Also
 	added TCL_BUILD_LIB_SPEC to the set of flags used in this test to
-	avoid linker errors.	
+	avoid linker errors.
 
 	* Dbgconfig.in: move CY_*_TCLCONFIG tests below AC_PROG_CC so it
 	will work with gcc
@@ -873,7 +884,7 @@ Thu Mar 20 14:27:45 1997  Geoffrey Noer  <noer@cygnus.com>
 
 	* configure.in: don't check if stty reads stdout for
 	i[[3456]]86-*-sysv4.2MP during config; hard code instead
-	
+
 Tue Nov 19 09:22:08 1996  Tom Tromey  <tromey@cygnus.com>
 
 	* Makefile.in (install_shared_lib): Put else clause onto each if.
@@ -887,7 +898,7 @@ Fri Nov 15 11:23:43 1996  Tom Tromey  <tromey@cygnus.com>
 	* configure.in: Allow arguments to --enable-blah to work.
 	Compute and AC_SUBST EXP_SHLIB_CFLAGS.
 	Added missing AC_MSG_CHECKING.
-	
+
 Wed Oct  2 10:13:37 1996  Tom Tromey  <tromey@cygnus.com>
 
 	* configure: Regenerated.
@@ -1099,7 +1110,7 @@ Mon May  1 16:50:22 1995  Rob Savoye  <rob@darkstar.cygnus.com>
 Fri Apr 28 18:56:02 1995  Rob Savoye  <rob@darkstar.cygnus.com>
 
 	* aclocal.m4: Create a clone of AC_C_CROSS called CY_C_CROSS that
-	has better error handling in case the native compiler is hosed. 
+	has better error handling in case the native compiler is hosed.
 	* aclocal.m4: Look for tcl and tk directories as just tcl (and tk)
 	or tcl[0-9] (and tk[0-9)] so it doesn't match the tclX
 	release. Print an error and exit if any of the --with-{tcl,tk}*
@@ -1135,7 +1146,7 @@ Tue Apr 11 18:52:24 1995  Rob Savoye  <rob@darkstar.cygnus.com>
 	* Dbgconfig.in: Use AC_PATH_TCLH to find just the headers, and
 	test for LynxOS.
 	* debugger/: Remove directory. Recursive configuring is so much
-	easier... 
+	easier...
 	* DbgMkfl.in, Dbg_cf.h.in, Dbg.c, Dbg.h, Dbgconfigure,
 	Dbgconfig.in: Sigh, moved back to the top-level expect directory.
 
@@ -1245,7 +1256,7 @@ Mon May 17 19:51:52 1993  Rob Savoye  (rob@cygnus.com)
 
 	* configure.in: Change test for ranlib so it kicks out "true"
 	rather than "@:" if it can't be found.
- 
+
 Thu Apr 15 14:11:50 1993  Rob Savoye  (rob@cygnus.com)
 
 	* configure.in, Makefile.in: If using ptmx's (SVR4 style pty's)
@@ -1257,7 +1268,7 @@ Thu Apr  8 17:13:39 1993  david d `zoo' zuhn  (zoo at cirdan.cygnus.com)
 	$(SCRIPTS) using fixline & sources in $(srcdir), not the current
 	directory.  When installing manpages, install from $(srcdir).
 	Don't install like "install foo $(bindir)" but rather "install foo
-	$(bindir)/foo".  
+	$(bindir)/foo".
 
 Mon Mar 22 23:56:29 1993  david d `zoo' zuhn  (zoo at cirdan.cygnus.com)
 
@@ -1285,7 +1296,7 @@ Thu Feb 25 15:34:34 1993  Rob Savoye  (rob at darkstar.cygnus.com)
 	portable macros and also supports termio.
 	* pty_sgttyb.c: Was pty_bsd.c.
 	* configure.in, Makefile.in, configure: autoconf support for
-	expect. 
+	expect.
 
 Sun Feb 21 17:42:28 1993  Rob Savoye  (rob at darkstar.cygnus.com)
 
@@ -1342,5 +1353,5 @@ Thu Oct 22 17:35:07 1992  Rob Savoye  (rob@cygnus.com)
 	file if one was opened by the "log_file" command.
 
 	* main.c: Added setbuf commands for stdin, stdout, stderr to turn
-	off buffering. 
+	off buffering.
 
