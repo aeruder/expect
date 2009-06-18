@@ -2237,7 +2237,7 @@ Exp_LogFileObjCmd(
     
     if (i == (objc - 1)) {
 	filename = Tcl_GetString (objv[i]);
-    } else if (objc > 1) {
+    } else if (objc > i) {
 	/* too many arguments */
 	goto usage_error;
     } 

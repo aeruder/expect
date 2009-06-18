@@ -1,3 +1,14 @@
+2009-06-18  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_command.c (Exp_LogFileObjCmd): Fix argument parsing logic
+	  error in the log_file command breaking the use of options -open
+	  and -leaveopen. Applied patch supplied by Andy Belsey
+	  <Andrew.Belsey@Sun.COM>. With thanks for both the analysis of
+	  the problem and the patch.
+
+	* configure.in: Bumped version to 5.44.1.14.
+	* configure: Regen'd, autoconf 2.59.
+
 2009-05-27  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_tty.c (Exp_SttyCmd, Exp_SystemCmd): Applied patch by
