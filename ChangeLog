@@ -1,3 +1,9 @@
+2009-06-22  Andreas Kupries  <andreask@activestate.com>
+
+	* pty_unicos.c (pty_stty): Fixed missing double-quotes for sprint
+	  formatting strings. Thanks to <ettlmartin@users.sourceforge.net>
+	  for the report, i.e. [Expect SF Bug 2809496].
+
 2009-06-18  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_command.c (Exp_LogFileObjCmd): Fix argument parsing logic
