@@ -1,3 +1,8 @@
+2009-07-14  Andreas Kupries (AS Dev)  <andreask@activestate.com>
+
+	* exp_clib.c (TclRegComp): Fixed memory leak reported by
+	  <ettlmartin@users.sourceforge.net> in [Expect SF Bug 2814263].
+
 2009-06-22  Andreas Kupries  <andreask@activestate.com>
 
 	* pty_unicos.c (pty_stty): Fixed missing double-quotes for sprint

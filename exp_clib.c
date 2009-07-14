@@ -399,8 +399,10 @@ char *exp;
 	rcstate->regnpar = 1;
 	rcstate->regcode = r->program;
 	regc(MAGIC, rcstate);
-	if (reg(0, &flags, rcstate) == NULL)
-		return(NULL);
+	if (reg(0, &flags, rcstate) == NULL) {
+	  ckfree ((char*) r);
+	  return(NULL);
+	}
 
 	/* Dig out information for optimizations. */
 	r->regstart = '\0';	/* Worst-case defaults. */
