@@ -4,9 +4,10 @@
 	  error message when the command to spawn could not be executed.
 	  Tried to use a Tcl_Obj* as argument for a %s. Replaced with the
 	  correct char* variable. Thanks to Elchonon Edelson
-	  <eee@users.sourceforge.net> for the report. Ditto for the same
-	  type of bug when emitting error 'usage: -ignore unknown signal
-	  name'. The remainder of the exp_error calls are ok however.
+	  <eee@users.sourceforge.net> for the report.
+	  [Expect SF Bug 2891563] Ditto for the same type of bug when
+	  emitting error 'usage: -ignore unknown signal name'. The
+	  remainder of the exp_error calls are ok however.
 
 	* configure.in: Bumped version to 5.44.1.15.
 	* configure: Regen'd, autoconf 2.59.
