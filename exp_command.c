@@ -1095,7 +1095,7 @@ Exp_SpawnObjCmd(
 		/* hand set errno */
 		errno = child_errno;
 		exp_error(interp, "couldn't execute \"%s\": %s",
-			objv[0],Tcl_PosixError(interp));
+			command,Tcl_PosixError(interp));
 		goto parent_error;
 	}
 	close(status_pipe[0]);

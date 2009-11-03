@@ -1,4 +1,15 @@
-2009-07-14  Andreas Kupries (AS Dev)  <andreask@activestate.com>
+2009-11-03  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_command.c (Exp_SpawnObjCmd): [Expect SF Bug 2891422]. Fixed
+	  error message when the command to spawn could not be executed.
+	  Tried to use a Tcl_Obj* as argument for a %s. Replaced with the
+	  correct char* variable. Thanks to Elchonon Edelson
+	  <eee@users.sourceforge.net> for the report.
+
+	* configure.in: Bumped version to 5.44.1.15.
+	* configure: Regen'd, autoconf 2.59.
+
+2009-07-14  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_clib.c (TclRegComp): Fixed memory leak reported by
 	  <ettlmartin@users.sourceforge.net> in [Expect SF Bug 2814263].
