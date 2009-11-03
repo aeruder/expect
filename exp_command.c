@@ -728,7 +728,7 @@ Exp_SpawnObjCmd(
 		}
 		sig = exp_string_to_signal(interp,Tcl_GetString (objv[i]));
 		if (sig == -1) {
-		    exp_error(interp,"usage: -ignore %s: unknown signal name",objv[i]);
+		    exp_error(interp,"usage: -ignore %s: unknown signal name",Tcl_GetString (objv[i]));
 		    return TCL_ERROR;
 		}
 		ignore[sig] = TRUE;
