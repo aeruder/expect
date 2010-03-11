@@ -43,7 +43,7 @@ void	exp_interpret_cmdfile(Tcl_Interp *,FILE *);
 void	exp_interpret_cmdfilename(Tcl_Interp *,char *);
 void	exp_interpret_rcfiles(Tcl_Interp *,int my_rc,int sys_rc);
 char *	exp_cook(char *s,int *len);
-void	(*exp_app_exit)EXP_PROTO((Tcl_Interp *);
+void	(*exp_app_exit)(Tcl_Interp *);
 void	exp_exit(Tcl_Interp *,int status);
 void	exp_exit_handlers(Tcl_Interp *);
 void	exp_error(Tcl_Interp,char *,...);
