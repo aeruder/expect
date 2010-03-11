@@ -120,7 +120,7 @@ static void		NotifierExitHandler _ANSI_ARGS_((
 			    ClientData clientData));
 static int		FileHandlerEventProc _ANSI_ARGS_((Tcl_Event *evPtr,
 			    int flags));
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -144,7 +144,7 @@ InitNotifier()
     memset(&notifier, 0, sizeof(notifier));
     Tcl_CreateExitHandler(NotifierExitHandler, NULL);
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -168,7 +168,7 @@ NotifierExitHandler(clientData)
 {
     initialized = 0;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -197,7 +197,7 @@ Tcl_SetTimer(timePtr)
      * timeout values to Tcl_WaitForEvent.
      */
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -275,7 +275,7 @@ Tcl_CreateFileHandler(fd, mask, proc, clientData)
         fdArray[cur_fd_index].events = POLLPRI;
     }
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -357,7 +357,7 @@ Tcl_DeleteFileHandler(fd)
 
     ckfree((char *) filePtr);
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -428,7 +428,7 @@ FileHandlerEventProc(evPtr, flags)
     }
     return 1;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *

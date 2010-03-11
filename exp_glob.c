@@ -389,7 +389,7 @@ Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
 	match += (string - oldString);  /* incr by # matched chars */
     }
 }
-
+
 /*
  * Local Variables:
  * mode: c

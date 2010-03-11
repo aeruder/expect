@@ -55,7 +55,7 @@ int *tclDummyMathPtr = (int *) matherr;
 #ifdef TK_TEST
 EXTERN int		Tktest_Init (Tcl_Interp *interp);
 #endif /* TK_TEST */
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -79,7 +79,7 @@ main(int argc, char **argv)
     Tk_Main(argc, argv, Tcl_AppInit);
     return 0;			/* Needed only to prevent compiler warning. */
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -447,7 +447,7 @@ optcmd_debug(char *dst, Tcl_Interp *interp, char *key, int argc, char **argv)
 	return argc;
 }
 #endif /*TCL_DEBUGGER*/
-
+
 /*
  * Local Variables:
  * mode: c

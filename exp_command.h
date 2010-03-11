@@ -348,7 +348,7 @@ EXTERN int		expSizeZero _ANSI_ARGS_((ExpState *));
 
 #define EXP_CMDINFO_CLOSE  "expect/cmdinfo/close"
 #define EXP_CMDINFO_RETURN "expect/cmdinfo/return"
-
+
 /*
  * Local Variables:
  * mode: c

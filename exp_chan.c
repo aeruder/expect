@@ -84,7 +84,7 @@ typedef struct ThreadSpecificData {
 
 static Tcl_ThreadDataKey dataKey;
 
-/*
+/*
  *----------------------------------------------------------------------
  *
  * ExpBlockModeProc --
@@ -223,7 +223,7 @@ ExpInputProc(ClientData instanceData, char *buf, int toRead, int *errorCodePtr)
     *errorCodePtr = errno;
     return -1;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -274,7 +274,7 @@ ExpOutputProc(ClientData instanceData, char *buf, int toWrite, int *errorCodePtr
     }
     return written;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -347,7 +347,7 @@ ExpCloseProc(ClientData instanceData, Tcl_Interp *interp)
     }
     return 0;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -391,7 +391,7 @@ ExpWatchProc(ClientData instanceData, int mask)
 	Tcl_DeleteFileHandler(esPtr->fdin);
     }
 }
-
+
 /*
  *----------------------------------------------------------------------
  *

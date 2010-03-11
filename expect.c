@@ -703,7 +703,7 @@ struct eval_out {
 
 
 
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -3257,7 +3257,7 @@ exp_init_sig(void) {
 	signal(SIGINT,sigint_handler);
 #endif
 }
-
+
 /*
  * Local Variables:
  * mode: c

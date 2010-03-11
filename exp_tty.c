@@ -806,7 +806,7 @@ exp_init_tty_cmds(struct Tcl_Interp *interp)
 {
 	exp_create_commands(interp,cmd_data);
 }
-
+
 /*
  * Local Variables:
  * mode: c

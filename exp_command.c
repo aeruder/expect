@@ -3577,7 +3577,7 @@ exp_init_most_cmds(Tcl_Interp *interp)
     Tcl_InitHashTable(&slaveNames,TCL_STRING_KEYS);
 #endif /* HAVE_PTYTRAP */
 }
-
+
 /*
  * Local Variables:
  * mode: c

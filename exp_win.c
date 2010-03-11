@@ -207,7 +207,7 @@ int fd;
 	sprintf(columns,"%d",win2size.columns);
     return columns;
 }
-
+
 /*
  * Local Variables:
  * mode: c

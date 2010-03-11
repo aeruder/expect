@@ -2248,7 +2248,7 @@ exp_init_interact_cmds(Tcl_Interp *interp)
     Tcl_IncrRefCount(tsdPtr->cmdObjInterpreter);
 #endif
 }
-
+
 /*
  * Local Variables:
  * mode: c

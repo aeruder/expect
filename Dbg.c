@@ -1436,7 +1436,7 @@ Dbg_StdinMode(int mode)
 {
   stdinmode = mode;
 }
-
+
 /*
  * Local Variables:
  * mode: c

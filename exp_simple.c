@@ -34,7 +34,7 @@ static fd_mask readyMasks[3*MASK_SIZE];
 static int numFdBits;		/* Number of valid bits in checkMasks
 				 * (one more than highest fd for which
 				 * Tcl_WatchFile has been called). */
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -96,7 +96,7 @@ Tcl_WatchFile(file, mask)
 	numFdBits = fd+1;
     }
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -148,7 +148,7 @@ Tcl_FileReady(file, mask)
     }
     return result;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -211,7 +211,7 @@ Tcl_WaitForEvent(timePtr)
     numFdBits = 0;
     memset((VOID *) checkMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
