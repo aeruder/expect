@@ -17,9 +17,7 @@ would appreciate credit if this program or parts of it are used.
 #include <stdlib.h>
 
 int
-main(argc, argv)
-int argc;
-char *argv[];
+main(int argc, char *argv[])
 {
 	int rc = 0;
 	char buffer [30];

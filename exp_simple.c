@@ -459,7 +459,7 @@ long usec;		/* microseconds */
 void
 exp_init_event()
 {
-	exp_event_exit = 0;
+	exp_event_exit = NULL;
 }
 
 #endif /* WHOLE FILE! */

@@ -34,8 +34,8 @@ would appreciate credit if this program or parts of it are used.
 #define FALSE 0
 #endif
 
-static int simple_interactor();
-static int zero();
+static int simple_interactor(Tcl_Interp *);
+static int zero(Tcl_Interp *, char *);
 
 /* most of the static variables in this file may be */
 /* moved into Tcl_Interp */
@@ -47,7 +47,7 @@ static Dbg_OutputProc *printproc = 0;
 static ClientData printdata = 0;
 static int stdinmode;
 
-static void print _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
+static void print TCL_VARARGS(Tcl_Interp *,interp);
 
 static int debugger_active = FALSE;
 
@@ -98,11 +98,11 @@ struct breakpoint {
 	struct breakpoint *next, *previous;
 };
 
-static struct breakpoint *break_base = 0;
+static struct breakpoint *break_base =  NULL;
 static int breakpoint_max_id = 0;
 
 static struct breakpoint *
-breakpoint_new()
+breakpoint_new(void)
 {
 	struct breakpoint *b = (struct breakpoint *)ckalloc(sizeof(struct breakpoint));
 	if (break_base) break_base->previous = b;
@@ -119,11 +119,8 @@ breakpoint_new()
 	return(b);
 }
 
-static
-void
-breakpoint_print(interp,b)
-Tcl_Interp *interp;
-struct breakpoint *b;
+static void
+breakpoint_print(Tcl_Interp *interp, struct breakpoint *b)
 {
     print(interp,"breakpoint %d: ",b->id);
 
@@ -148,10 +145,7 @@ struct breakpoint *b;
 }
 
 static void
-save_re_matches(interp, re, objPtr)
-Tcl_Interp *interp;
-Tcl_RegExp re;
-Tcl_Obj *objPtr;
+save_re_matches(Tcl_Interp *interp, Tcl_RegExp re, Tcl_Obj *objPtr)
 {
     Tcl_RegExpInfo info;
     int i, start;
@@ -1153,10 +1147,7 @@ print TCL_VARARGS_DEF(Tcl_Interp *,arg1)
 
 /*ARGSUSED*/
 Dbg_InterStruct
-Dbg_Interactor(interp,inter_proc,data)
-Tcl_Interp *interp;
-Dbg_InterProc *inter_proc;
-ClientData data;
+Dbg_Interactor(Tcl_Interp *interp, Dbg_InterProc *inter_proc, ClientData data)
 {
 	Dbg_InterStruct tmp;
 
@@ -1169,9 +1160,7 @@ ClientData data;
 
 /*ARGSUSED*/
 Dbg_IgnoreFuncsProc *
-Dbg_IgnoreFuncs(interp,proc)
-Tcl_Interp *interp;
-Dbg_IgnoreFuncsProc *proc;
+Dbg_IgnoreFuncs(Tcl_Interp *interp, Dbg_IgnoreFuncsProc *proc)
 {
 	Dbg_IgnoreFuncsProc *tmp = ignoreproc;
 	ignoreproc = (proc?proc:zero);
@@ -1180,10 +1169,7 @@ Dbg_IgnoreFuncsProc *proc;
 
 /*ARGSUSED*/
 Dbg_OutputStruct
-Dbg_Output(interp,proc,data)
-Tcl_Interp *interp;
-Dbg_OutputProc *proc;
-ClientData data;
+Dbg_Output(Tcl_Interp *interp, Dbg_OutputProc *proc, ClientData data)
 {
 	Dbg_OutputStruct tmp;
 
@@ -1196,17 +1182,13 @@ ClientData data;
 
 /*ARGSUSED*/
 int
-Dbg_Active(interp)
-Tcl_Interp *interp;
+Dbg_Active(Tcl_Interp *interp)
 {
 	return debugger_active;
 }
 
 char **
-Dbg_ArgcArgv(argc,argv,copy)
-int argc;
-char *argv[];
-int copy;
+Dbg_ArgcArgv(int argc, char *argv[], int copy)
 {
 	char **alloc;
 
@@ -1246,18 +1228,17 @@ static struct cmd_list {
 /* this may seem excessive, but this avoids the explicit test for non-zero */
 /* in the caller, and chances are that that test will always be pointless */
 /*ARGSUSED*/
-static int zero(interp,string)
+static int zero(Tcl_Interp *interp, char *string)
 Tcl_Interp *interp;
 char *string;
 {
 	return 0;
 }
 
-extern int expSetBlockModeProc _ANSI_ARGS_((int fd, int mode));
+extern int expSetBlockModeProc (int fd, int mode);
 
 static int
-simple_interactor(interp)
-Tcl_Interp *interp;
+simple_interactor(Tcl_Interp *interp)
 {
 	int rc;
 	char *ccmd;		/* pointer to complete command */
@@ -1379,8 +1360,7 @@ Tcl_Interp *interp;
 static char init_auto_path[] = "lappend auto_path $dbg_library";
 
 static void
-init_debugger(interp)
-Tcl_Interp *interp;
+init_debugger(Tcl_Interp *interp)
 {
 	struct cmd_list *c;
 
@@ -1404,11 +1384,10 @@ Tcl_Interp *interp;
 /* allows any other part of the application to jump to the debugger */
 /*ARGSUSED*/
 void
-Dbg_On(interp,immediate)
-Tcl_Interp *interp;
-int immediate;		/* if true, stop immediately */
-			/* should only be used in safe places */
-			/* i.e., when Tcl_Eval can be called */
+Dbg_On(Tcl_Interp *interp, int immediate)
+/* if immediate is true, stop immediately */
+/* should only be used in safe places */
+/* i.e., when Tcl_Eval can be called */
 {
 	if (!debugger_active) init_debugger(interp);
 
@@ -1431,8 +1410,7 @@ int immediate;		/* if true, stop immediately */
 }
 
 void
-Dbg_Off(interp)
-Tcl_Interp *interp;
+Dbg_Off(Tcl_Interp *interp)
 {
 	struct cmd_list *c;
 
@@ -1454,8 +1432,7 @@ Tcl_Interp *interp;
 /* allows any other part of the application to tell the debugger where the Tcl channel for stdin is. */
 /*ARGSUSED*/
 void
-Dbg_StdinMode(mode)
-     int mode;
+Dbg_StdinMode(int mode)
 {
   stdinmode = mode;
 }

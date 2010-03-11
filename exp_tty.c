@@ -273,10 +273,15 @@ exp_tty_break(
 #endif
 }
 
-/* take strings with newlines and insert carriage-returns.  This allows user */
-/* to write send_user strings without always putting in \r. */
-/* If len == 0, use strlen to compute it */
-/* NB: if terminal is not in raw mode, nothing is done. */
+/* take strings with newlines and insert carriage-returns. This allows user
+ * to write send_user strings without always putting in \r.
+ * If len == NULL, use strlen to compute length of the input string.
+ * Otherwise, len points at an int that holds the length, which is
+ * updated to the new length on the way out.
+ *
+ * NB: if terminal is not in raw mode, nothing is done.
+ */
+
 char *
 exp_cook(
     char *s,

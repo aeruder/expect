@@ -92,6 +92,10 @@ static Tcl_ThreadDataKey dataKey;
  *	Helper procedure to set blocking and nonblocking modes on a
  *	file based channel. Invoked by generic IO level code.
  *
+ *	The mode should be one of TCL_MODE_BLOCKING or
+ *	                          TCL_MODE_NONBLOCKING.
+ *	No validation is performed on the mode.
+ *
  * Results:
  *	0 if successful, errno when failed.
  *
@@ -103,11 +107,7 @@ static Tcl_ThreadDataKey dataKey;
 
 	/* ARGSUSED */
 static int
-ExpBlockModeProc(instanceData, mode)
-    ClientData instanceData;		/* Exp state. */
-    int mode;				/* The mode to set. Can be one of
-					 * TCL_MODE_BLOCKING or
-					 * TCL_MODE_NONBLOCKING. */
+ExpBlockModeProc(ClientData instanceData, int mode)
 {
     ExpState *esPtr = (ExpState *) instanceData;
 
@@ -141,11 +141,7 @@ ExpBlockModeProc(instanceData, mode)
 }
 
 int
-expSetBlockModeProc(fd, mode)
-    int fd;
-    int mode;				/* The mode to set. Can be one of
-					 * TCL_MODE_BLOCKING or
-					 * TCL_MODE_NONBLOCKING. */
+expSetBlockModeProc(int fd, int mode)
 {
     int curStatus;
     /*printf("ExpBlockModeProc(%d)\n",mode);
@@ -182,11 +178,13 @@ expSetBlockModeProc(fd, mode)
  * ExpInputProc --
  *
  *	This procedure is invoked from the generic IO level to read
- *	input from an exp-based channel.
+ *	input from an exp-based channel. The input is stored in the
+ *	buffer pointed at by buf, which can store up to toRead bytes.
  *
  * Results:
- *	The number of bytes read is returned or -1 on error. An output
- *	argument contains a POSIX error code if an error occurs, or zero.
+ *	The number of bytes read is returned or -1 on error. If there
+ *	is an error, the error code is stored in *errorCodePtr, which
+ *	is set to zero if no error occurs.
  *
  * Side effects:
  *	Reads input from the input device of the channel.
@@ -195,12 +193,7 @@ expSetBlockModeProc(fd, mode)
  */
 
 static int
-ExpInputProc(instanceData, buf, toRead, errorCodePtr)
-    ClientData instanceData;		/* Exp state. */
-    char *buf;				/* Where to store data read. */
-    int toRead;				/* How much space is available
-                                         * in the buffer? */
-    int *errorCodePtr;			/* Where to store error code. */
+ExpInputProc(ClientData instanceData, char *buf, int toRead, int *errorCodePtr)
 {
     ExpState *esPtr = (ExpState *) instanceData;
     int bytesRead;			/* How many bytes were actually
@@ -237,12 +230,13 @@ ExpInputProc(instanceData, buf, toRead, errorCodePtr)
  * ExpOutputProc--
  *
  *	This procedure is invoked from the generic IO level to write
- *	output to an exp channel.
+ *	output to an exp channel. The bytes to write are in the buffer
+ *	pointer at by buf, which holds toWrite bytes.
  *
  * Results:
- *	The number of bytes written is returned or -1 on error. An
- *	output argument	contains a POSIX error code if an error occurred,
- *	or zero.
+ *	The number of bytes written is returned or -1 on error. If there
+ *	is an error, the error code is stored in *errorCodePtr, which
+ *	is set to zero if no error occurs.
  *
  * Side effects:
  *	Writes output on the output device of the channel.
@@ -251,11 +245,7 @@ ExpInputProc(instanceData, buf, toRead, errorCodePtr)
  */
 
 static int
-ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
-    ClientData instanceData;		/* Exp state. */
-    char *buf;				/* The data buffer. */
-    int toWrite;			/* How many bytes to write? */
-    int *errorCodePtr;			/* Where to store error code. */
+ExpOutputProc(ClientData instanceData, char *buf, int toWrite, int *errorCodePtr)
 {
     ExpState *esPtr = (ExpState *) instanceData;
     int written = 0;
@@ -304,9 +294,7 @@ ExpOutputProc(instanceData, buf, toWrite, errorCodePtr)
 
 /*ARGSUSED*/
 static int
-ExpCloseProc(instanceData, interp)
-    ClientData instanceData;	/* Exp state. */
-    Tcl_Interp *interp;		/* For error reporting - unused. */
+ExpCloseProc(ClientData instanceData, Tcl_Interp *interp)
 {
     ExpState *esPtr = (ExpState *) instanceData;
     ExpState **nextPtrPtr;
@@ -366,6 +354,10 @@ ExpCloseProc(instanceData, interp)
  * ExpWatchProc --
  *
  *	Initialize the notifier to watch the fd from this channel.
+ *	The mask can be any combination of:
+ *		TCL_READABLE
+ *		TCL_WRITABLE
+ *		TCL_EXCEPTION
  *
  * Results:
  *	None.
@@ -378,11 +370,7 @@ ExpCloseProc(instanceData, interp)
  */
 
 static void
-ExpWatchProc(instanceData, mask)
-    ClientData instanceData;		/* The exp state. */
-    int mask;				/* Events of interest; an OR-ed
-                                         * combination of TCL_READABLE,
-                                         * TCL_WRITABLE and TCL_EXCEPTION. */
+ExpWatchProc(ClientData instanceData, int mask)
 {
     ExpState *esPtr = (ExpState *) instanceData;
 
@@ -411,6 +399,7 @@ ExpWatchProc(instanceData, mask)
  *
  *	Called from Tcl_GetChannelHandle to retrieve OS handles from
  *	an exp-based channel.
+ *	Specify direction as TCL_READABLE or TCL_WRITABLE
  *
  * Results:
  *	Returns TCL_OK with the fd in handlePtr, or TCL_ERROR if
@@ -423,7 +412,7 @@ ExpWatchProc(instanceData, mask)
  */
 
 static int
-ExpGetHandleProc(instanceData, direction, handlePtr)
+ExpGetHandleProc(ClientData instanceData, int direction, ClientData *handlePtr)
     ClientData instanceData;	/* The exp state. */
     int direction;		/* TCL_READABLE or TCL_WRITABLE */
     ClientData *handlePtr;	/* Where to store the handle.  */
@@ -442,7 +431,7 @@ ExpGetHandleProc(instanceData, direction, handlePtr)
 }
 
 int
-expChannelCountGet()
+expChannelCountGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->channelCount;
@@ -464,22 +453,22 @@ expSizeZero(esPtr)
 #endif
 /* return 0 for success or negative for failure */
 int
-expWriteChars(esPtr,buffer,lenBytes)
-     ExpState *esPtr;
-     char *buffer;
-     int lenBytes;
+expWriteChars(ExpState *esPtr, char *buffer, int lenBytes)
 {
   int rc;
  retry:
   rc = Tcl_WriteChars(esPtr->channel,buffer,lenBytes);
-  if ((rc == -1) && (errno == EAGAIN)) goto retry;
+  if ((rc == -1) && (errno == EAGAIN)) 
+  {
+      goto retry;
+  }
 
   if (!exp_strict_write) {
-    /*
-     * 5.41 compatbility behaviour. Ignore any and all write errors
-     * the OS may have thrown.
-     */
-    return 0;
+      /*
+      * 5.41 compatbility behaviour. Ignore any and all write errors
+      * the OS may have thrown.
+      */
+      return 0;
   }
 
   /* just return 0 rather than positive byte counts */
@@ -487,10 +476,7 @@ expWriteChars(esPtr,buffer,lenBytes)
 }
 
 int
-expWriteCharsUni(esPtr,buffer,lenChars)
-     ExpState *esPtr;
-     Tcl_UniChar *buffer;
-     int lenChars;
+expWriteCharsUni(ExpState *esPtr, Tcl_UniChar *buffer, int lenChars)
 {
   int rc;
   Tcl_DString ds;
@@ -506,8 +492,7 @@ expWriteCharsUni(esPtr,buffer,lenChars)
 }
 
 void
-expStateFree(esPtr)
-    ExpState *esPtr;
+expStateFree(ExpState *esPtr)
 {
   if (esPtr->fdBusy) {
     close(esPtr->fdin);
@@ -527,8 +512,7 @@ expStateFree(esPtr)
  * via spawn -open, Tcl can hang if we don't close the connections first.
  */
 void
-exp_close_all(interp)
-Tcl_Interp *interp;
+exp_close_all(Tcl_Interp *interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     ExpState *esPtr;
@@ -554,7 +538,7 @@ Tcl_Interp *interp;
  * according to Ousterhout this is the best way to do it.
  * returns the ExpState or 0 if nothing to wait on */
 ExpState *
-expWaitOnAny()
+expWaitOnAny(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     int result;
@@ -577,7 +561,7 @@ expWaitOnAny()
 }
 
 ExpState *
-expWaitOnOne() {
+expWaitOnOne(void) {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     ExpState *esPtr;
     int pid;
@@ -598,7 +582,7 @@ expWaitOnOne() {
 }
 
 void
-exp_background_channelhandlers_run_all()
+exp_background_channelhandlers_run_all(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     ExpState *esPtr;
@@ -613,11 +597,7 @@ exp_background_channelhandlers_run_all()
 }
 
 ExpState *
-expCreateChannel(interp,fdin,fdout,pid)
-    Tcl_Interp *interp;
-    int fdin;
-    int fdout;
-    int pid;
+expCreateChannel(Tcl_Interp *interp, int fdin, int fdout, int pid)
 {
     ExpState *esPtr;
     int mask;
@@ -701,7 +681,7 @@ expCreateChannel(interp,fdin,fdout,pid)
 }
 
 void
-expChannelInit() {
+expChannelInit(void) {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
     tsdPtr->channelCount = 0;
