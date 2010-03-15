@@ -51,70 +51,9 @@ would appreciate credit if this program or parts of it are used.
 #endif
 
 #include <signal.h>
-/*#include <memory.h> - deprecated - ANSI C moves them into string.h */
-#include "string.h"
+#include <string.h>
 
 #include <errno.h>
-
-#ifdef NO_STDLIB_H
-
-/*
- * Tcl's compat/stdlib.h
- */
-
-/*
- * stdlib.h --
- *
- *	Declares facilities exported by the "stdlib" portion of
- *	the C library.  This file isn't complete in the ANSI-C
- *	sense;  it only declares things that are needed by Tcl.
- *	This file is needed even on many systems with their own
- *	stdlib.h (e.g. SunOS) because not all stdlib.h files
- *	declare all the procedures needed here (such as strtod).
- *
- * Copyright (c) 1991 The Regents of the University of California.
- * Copyright (c) 1994 Sun Microsystems, Inc.
- *
- * See the file "license.terms" for information on usage and redistribution
- * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- *
- * RCS: @(#) $Id$
- */
-
-#ifndef _STDLIB
-#define _STDLIB
-
-#include <tcl.h>
-
-extern void		abort _ANSI_ARGS_((void));
-extern double		atof _ANSI_ARGS_((CONST char *string));
-extern int		atoi _ANSI_ARGS_((CONST char *string));
-extern long		atol _ANSI_ARGS_((CONST char *string));
-extern char *		calloc _ANSI_ARGS_((unsigned int numElements,
-			    unsigned int size));
-extern void		exit _ANSI_ARGS_((int status));
-extern int		free _ANSI_ARGS_((char *blockPtr));
-extern char *		getenv _ANSI_ARGS_((CONST char *name));
-extern char *		malloc _ANSI_ARGS_((unsigned int numBytes));
-extern void		qsort _ANSI_ARGS_((VOID *base, int n, int size,
-			    int (*compar)(CONST VOID *element1, CONST VOID
-			    *element2)));
-extern char *		realloc _ANSI_ARGS_((char *ptr, unsigned int numBytes));
-extern double		strtod _ANSI_ARGS_((CONST char *string, char **endPtr));
-extern long		strtol _ANSI_ARGS_((CONST char *string, char **endPtr,
-			    int base));
-extern unsigned long	strtoul _ANSI_ARGS_((CONST char *string,
-			    char **endPtr, int base));
-
-#endif /* _STDLIB */
-
-/*
- * end of Tcl's compat/stdlib.h
- */
-
-#else
-#include <stdlib.h>		/* for malloc */
-#endif
 
 #include "expect.h"
 #define TclRegError exp_TclRegError
@@ -324,26 +263,19 @@ static char regdummy;
  * Forward declarations for TclRegComp()'s friends.
  */
 
-static char *		reg _ANSI_ARGS_((int paren, int *flagp,
-			    struct regcomp_state *rcstate));
-static char *		regatom _ANSI_ARGS_((int *flagp,
-			    struct regcomp_state *rcstate));
-static char *		regbranch _ANSI_ARGS_((int *flagp,
-			    struct regcomp_state *rcstate));
-static void		regc _ANSI_ARGS_((int b,
-			    struct regcomp_state *rcstate));
-static void		reginsert _ANSI_ARGS_((int op, char *opnd,
-			    struct regcomp_state *rcstate));
-static char *		regnext _ANSI_ARGS_((char *p));
-static char *		regnode _ANSI_ARGS_((int op,
-			    struct regcomp_state *rcstate));
-static void 		regoptail _ANSI_ARGS_((char *p, char *val));
-static char *		regpiece _ANSI_ARGS_((int *flagp,
-			    struct regcomp_state *rcstate));
-static void 		regtail _ANSI_ARGS_((char *p, char *val));
+static char * reg(int paren, int *flagp, struct regcomp_state *rcstate);
+static char * regatom(int *flagp, struct regcomp_state *rcstate);
+static char * regbranch(int *flagp, struct regcomp_state *rcstate);
+static void   regc(int b, struct regcomp_state *rcstate);
+static void   reginsert(int op, char *opnd, struct regcomp_state *rcstate);
+static char * regnext(char *p);
+static char * regnode(int op, struct regcomp_state *rcstate);
+static void   regoptail(char *p, char *val);
+static char * regpiece(int *flagp, struct regcomp_state *rcstate);
+static void   regtail(char *p, char *val);
 
 #ifdef STRCSPN
-static int strcspn _ANSI_ARGS_((char *s1, char *s2));
+static int strcspn (char *s1, char *s2);
 #endif
 
 /*
@@ -362,8 +294,7 @@ static int strcspn _ANSI_ARGS_((char *s1, char *s2));
  * of the structure of the compiled regexp.
  */
 regexp *
-TclRegComp(exp)
-char *exp;
+TclRegComp(char *exp)
 {
 	register regexp *r;
 	register char *scan;
@@ -453,10 +384,7 @@ char *exp;
  * follows makes it hard to avoid.
  */
 static char *
-reg(paren, flagp, rcstate)
-int paren;			/* Parenthesized? */
-int *flagp;
-struct regcomp_state *rcstate;
+reg(int paren, int *flagp, struct regcomp_state *rcstate)
 {
 	register char *ret;
 	register char *br;
@@ -526,9 +454,7 @@ struct regcomp_state *rcstate;
  * Implements the concatenation operator.
  */
 static char *
-regbranch(flagp, rcstate)
-int *flagp;
-struct regcomp_state *rcstate;
+regbranch(int *flagp, struct regcomp_state *rcstate)
 {
 	register char *ret;
 	register char *chain;
@@ -567,9 +493,7 @@ struct regcomp_state *rcstate;
  * endmarker role is not redundant.
  */
 static char *
-regpiece(flagp, rcstate)
-int *flagp;
-struct regcomp_state *rcstate;
+regpiece(int *flagp, struct regcomp_state *rcstate)
 {
 	register char *ret;
 	register char op;
@@ -632,9 +556,7 @@ struct regcomp_state *rcstate;
  * separate node; the code is simpler that way and it's not worth fixing.
  */
 static char *
-regatom(flagp, rcstate)
-int *flagp;
-struct regcomp_state *rcstate;
+regatom(int *flagp, struct regcomp_state *rcstate)
 {
 	register char *ret;
 	int flags;
@@ -742,9 +664,7 @@ struct regcomp_state *rcstate;
  - regnode - emit a node
  */
 static char *			/* Location. */
-regnode(op, rcstate)
-int op;
-struct regcomp_state *rcstate;
+regnode(int op, struct regcomp_state *rcstate)
 {
 	register char *ret;
 	register char *ptr;
@@ -768,9 +688,7 @@ struct regcomp_state *rcstate;
  - regc - emit (if appropriate) a byte of code
  */
 static void
-regc(b, rcstate)
-int b;
-struct regcomp_state *rcstate;
+regc(int b; struct regcomp_state *rcstate)
 {
 	if (rcstate->regcode != &regdummy)
 		*rcstate->regcode++ = (char)b;
@@ -784,10 +702,7 @@ struct regcomp_state *rcstate;
  * Means relocating the operand.
  */
 static void
-reginsert(op, opnd, rcstate)
-int op;
-char *opnd;
-struct regcomp_state *rcstate;
+reginsert(int op, char *opnd, struct regcomp_state *rcstate)
 {
 	register char *src;
 	register char *dst;
@@ -814,9 +729,7 @@ struct regcomp_state *rcstate;
  - regtail - set the next-pointer at the end of a node chain
  */
 static void
-regtail(p, val)
-char *p;
-char *val;
+regtail(char *p, char *val)
 {
 	register char *scan;
 	register char *temp;
@@ -846,9 +759,7 @@ char *val;
  - regoptail - regtail on operand of first argument; nop if operandless
  */
 static void
-regoptail(p, val)
-char *p;
-char *val;
+regoptail(char *p, char *val)
 {
 	/* "Operandless" and "op != BRANCH" are synonymous in practice. */
 	if (p == NULL || p == &regdummy || OP(p) != BRANCH)
@@ -873,27 +784,21 @@ struct regexec_state  {
 /*
  * Forwards.
  */
-static int 		regtry _ANSI_ARGS_((regexp *prog, char *string,
-			    struct regexec_state *restate));
-static int 		regmatch _ANSI_ARGS_((char *prog,
-			    struct regexec_state *restate));
-static int 		regrepeat _ANSI_ARGS_((char *p,
-			    struct regexec_state *restate));
+static int regtry (regexp *prog, char *string, struct regexec_state *restate);
+static int regmatch (char *prog, struct regexec_state *restate);
+static int regrepeat (char *p, struct regexec_state *restate);
 
 #ifdef DEBUG
 int regnarrate = 0;
-void regdump _ANSI_ARGS_((regexp *r));
-static char *regprop _ANSI_ARGS_((char *op));
+void regdump (regexp *r);
+static char *regprop (char *op);
 #endif
 
 /*
  - TclRegExec - match a regexp against a string
  */
 int
-TclRegExec(prog, string, start)
-register regexp *prog;
-register char *string;
-char *start;
+TclRegExec(register regexp *prog, register char *string, char *start)
 {
 	register char *s;
 	struct regexec_state state;
@@ -955,10 +860,7 @@ char *start;
  - regtry - try match at specific point
  */
 static int			/* 0 failure, 1 success */
-regtry(prog, string, restate)
-regexp *prog;
-char *string;
-struct regexec_state *restate;
+regtry(regexp *prog, char *string, struct regexec_state *restate)
 {
 	register int i;
 	register char **sp;
@@ -993,9 +895,7 @@ struct regexec_state *restate;
  * by recursion.
  */
 static int			/* 0 failure, 1 success */
-regmatch(prog, restate)
-char *prog;
-struct regexec_state *restate;
+regmatch(char *prog, struct regexec_state *restate)
 {
     register char *scan;	/* Current node. */
     char *next;		/* Next node. */
@@ -1194,9 +1094,7 @@ struct regexec_state *restate;
  - regrepeat - repeatedly match something simple, report how many
  */
 static int
-regrepeat(p, restate)
-char *p;
-struct regexec_state *restate;
+regrepeat(char *p, struct regexec_state *restate)
 {
 	register int count = 0;
 	register char *scan;
@@ -1241,8 +1139,7 @@ struct regexec_state *restate;
  - regnext - dig the "next" pointer out of a node
  */
 static char *
-regnext(p)
-register char *p;
+regnext(register char *p)
 {
 	register int offset;
 
@@ -1261,14 +1158,13 @@ register char *p;
 
 #ifdef DEBUG
 
-static char *regprop();
+static char *regprop(char *);
 
 /*
  - regdump - dump a regexp onto stdout in vaguely comprehensible form
  */
 void
-regdump(r)
-regexp *r;
+regdump(regexp *r)
 {
 	register char *s;
 	register char op = EXACTLY;	/* Arbitrary non-END op. */
@@ -1310,8 +1206,7 @@ regexp *r;
  - regprop - printable representation of opcode
  */
 static char *
-regprop(op)
-char *op;
+regprop(char *op)
 {
 	register char *p;
 	static char buf[50];
@@ -1411,9 +1306,7 @@ char *op;
  */
 
 static int
-strcspn(s1, s2)
-char *s1;
-char *s2;
+strcspn(char *s1, char *s2)
 {
 	register char *scan1;
 	register char *scan2;
@@ -1449,14 +1342,13 @@ char *s2;
  */
 
 void
-exp_TclRegError(string)
-    char *string;			/* Error message. */
+exp_TclRegError(char *string)
 {
     errMsg = string;
 }
 
 char *
-TclGetRegError()
+TclGetRegError(void)
 {
     return errMsg;
 }
@@ -1494,8 +1386,7 @@ TclGetRegError()
 
 static
 char *
-Tcl_ErrnoMsg(err)
-    int err;			/* Error number (such as in errno variable). */
+Tcl_ErrnoMsg(int err)
 {
     switch (err) {
 #ifdef E2BIG
@@ -1932,10 +1823,8 @@ Tcl_ErrnoMsg(err)
  * our own.
  */
 
-static
-void
-expDiagLogU(str)
-     char *str;
+static void
+expDiagLogU(char *str)
 {
   if (exp_is_debugging) {
     fprintf(stderr,str);
@@ -1973,12 +1862,8 @@ expDiagLogU(str)
  * 3) much of code is stolen from Tcl_StringMatch
  * 4) front-anchor is assumed (Tcl_StringMatch retries for non-front-anchor)
  */
-static
-int
-Exp_StringMatch2(string,pattern)
-    register char *string;	/* String. */
-    register char *pattern;	/* Pattern, which may contain
-				 * special characters. */
+static int
+Exp_StringMatch2(register char *string, register char *pattern)
 {
     char c2;
     int match = 0;	/* # of chars matched */
@@ -2106,12 +1991,8 @@ Exp_StringMatch2(string,pattern)
 }
 
 
-static
-int	/* returns # of chars that matched */
-Exp_StringMatch(string, pattern,offset)
-char *string;
-char *pattern;
-int *offset;	/* offset from beginning of string where pattern matches */
+static int	/* returns # of chars that matched */
+Exp_StringMatch(char *string, char *pattern, int *offset)
 {
 	char *s;
 	int sm;	/* count of chars matched or -1 */
@@ -2154,10 +2035,10 @@ int *offset;	/* offset from beginning of string where pattern matches */
 
 #define EXP_MATCH_MAX	2000
 /* public */
-char *exp_buffer = 0;
-char *exp_buffer_end = 0;
-char *exp_match = 0;
-char *exp_match_end = 0;
+char *exp_buffer = NULL;
+char *exp_buffer_end = NULL;
+char *exp_match = NULL;
+char *exp_match_end = NULL;
 int exp_match_max = EXP_MATCH_MAX;	/* bytes */
 int exp_full_buffer = FALSE;		/* don't return on full buffer */
 int exp_remove_nulls = TRUE;
@@ -2166,12 +2047,12 @@ int exp_pty_timeout = 5;		/* seconds - see CRAY below */
 int exp_autoallocpty = TRUE;		/* if TRUE, we do allocation */
 int exp_pty[2];				/* master is [0], slave is [1] */
 int exp_pid;
-char *exp_stty_init = 0;		/* initial stty args */
+char *exp_stty_init = NULL;		/* initial stty args */
 int exp_ttycopy = TRUE;			/* copy tty parms from /dev/tty */
 int exp_ttyinit = TRUE;			/* set tty parms to sane state */
 int exp_console = FALSE;		/* redirect console */
-void (*exp_child_exec_prelude)() = 0;
-void (*exp_close_in_child)() = 0;
+void (*exp_child_exec_prelude)() = NULL;
+void (*exp_close_in_child)() = NULL;
 
 #ifdef HAVE_SIGLONGJMP
 sigjmp_buf exp_readenv;		/* for interruptable read() */
@@ -2182,20 +2063,20 @@ jmp_buf exp_readenv;		/* for interruptable read() */
 int exp_reading = FALSE;	/* whether we can longjmp or not */
 
 int exp_is_debugging = FALSE;
-FILE *exp_debugfile = 0;
+FILE *exp_debugfile = NULL;
 
-FILE *exp_logfile = 0;
+FILE *exp_logfile = NULL;
 int exp_logfile_all = FALSE;	/* if TRUE, write log of all interactions */
 int exp_loguser = TRUE;		/* if TRUE, user sees interactions on stdout */
 
 
-char *exp_printify();
-int exp_getptymaster();
-int exp_getptyslave();
+char *exp_printify(char *);
+int exp_getptymaster(void);
+int exp_getptyslave(int, int, CONST char *);
 
 #define sysreturn(x)	return(errno = x, -1)
 
-void exp_init_pty();
+void exp_init_pty(void);
 
 /*
    The following functions are linked from the Tcl library.  They
@@ -2223,17 +2104,14 @@ static int fd_alloc_max = -1;	/* max fd allocated */
 
 /* translate fd or fp to fd */
 static struct f *
-fdfp2f(fd,fp)
-int fd;
-FILE *fp;
+fdfp2f(int fd, FILE *fp)
 {
 	if (fd == -1) return(fs + fileno(fp));
 	else return(fs + fd);
 }
 
 static struct f *
-fd_new(fd)
-int fd;
+fd_new(int fd)
 {
 	int i, low;
 	struct f *fp;
@@ -2269,9 +2147,8 @@ int fd;
 
 }
 
-static
-void
-exp_setpgrp()
+static void
+exp_setpgrp(void)
 {
 #ifdef MIPS_BSD
     /* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
@@ -2288,9 +2165,7 @@ exp_setpgrp()
 
 /* returns fd of master side of pty */
 int
-exp_spawnv(file,argv)
-char *file;
-char *argv[];	/* some compiler complains about **argv? */
+exp_spawnv(char *file, char *argv[])
 {
 	int cc;
 	int errorfd;	/* place to stash fileno(stderr) in child */
@@ -2722,8 +2597,7 @@ exp_spawnl TCL_VARARGS_DEF(char *,arg1)
 
 /* allow user-provided fd to be passed to expect funcs */
 int
-exp_spawnfd(fd)
-int fd;
+exp_spawnfd(int fd)
 {
 	if (!fd_new(fd)) {
 		errno = ENOMEM;
@@ -2736,9 +2610,7 @@ int fd;
 /* not strlen(s).  This count does not include the trailing null. */
 /* returns number of nulls removed. */
 static int
-rm_nulls(s,c)
-char *s;
-int c;
+rm_nulls(char *s, int c)
 {
 	char *s2 = s;	/* points to place in original string to put */
 			/* next non-null character */
@@ -2761,8 +2633,7 @@ static int i_read_errno;/* place to save errno, if i_read() == -1, so it
 
 /*ARGSUSED*/
 static void
-sigalarm_handler(n)
-int n;			/* signal number, unused by us */
+sigalarm_handler(int n)
 {
 #ifdef REARM_SIG
 	signal(SIGALRM,sigalarm_handler);
@@ -2777,12 +2648,7 @@ int n;			/* signal number, unused by us */
 
 /* interruptable read */
 static int
-i_read(fd,fp,buffer,length,timeout)
-int fd;
-FILE *fp;
-char *buffer;
-int length;
-int timeout;
+i_read(int fd, FILE *fp, char *buffer, int length, int timeout)
 {
 	int cc = -2;
 
@@ -2884,10 +2750,7 @@ int timeout;
 	exp_match_end
 */
 static int
-expectv(fd,fp,ecases)
-int fd;
-FILE *fp;
-struct exp_case *ecases;
+expectv(int fd, FILE *fp, struct exp_case *ecases)
 {
 	int cc = 0;		/* number of chars returned in a single read */
 	int buf_length;		/* numbers of chars in exp_buffer */
@@ -3150,17 +3013,13 @@ struct exp_case *ecases;
 }
 
 int
-exp_fexpectv(fp,ecases)
-FILE *fp;
-struct exp_case *ecases;
+exp_fexpectv(FILE *fp, struct exp_case *ecases)
 {
 	return(expectv(-1,fp,ecases));
 }
 
 int
-exp_expectv(fd,ecases)
-int fd;
-struct exp_case *ecases;
+exp_expectv(int fd, struct exp_case *ecases)
 {
 	return(expectv(fd,(FILE *)0,ecases));
 }
@@ -3300,8 +3159,7 @@ exp_fexpectl TCL_VARARGS_DEF(FILE *,arg1)
 
 /* like popen(3) but works in both directions */
 FILE *
-exp_popen(program)
-char *program;
+exp_popen(char *program)
 {
 	FILE *fp;
 	int ec;
@@ -3313,7 +3171,7 @@ char *program;
 }
 
 int
-exp_disconnect()
+exp_disconnect(void)
 {
 	int ttyfd;
 
@@ -3396,8 +3254,7 @@ exp_errorlog TCL_VARARGS_DEF(char *,arg1)
 #include <ctype.h>
 
 char *
-exp_printify(s)
-char *s;
+exp_printify(char *s)
 {
 	static int destlen = 0;
 	static char *dest = 0;

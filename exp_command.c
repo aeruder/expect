@@ -306,8 +306,7 @@ exp_trap_off(char *name)
 #endif
 }
 
-static
-void
+static void
 expBusy(ExpState *esPtr)
 {
     int x = open("/dev/null",0);
@@ -425,7 +424,7 @@ expStdinoutIs(ExpState *esPtr)
 }
 
 ExpState *
-expStdinoutGet()
+expStdinoutGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -433,7 +432,7 @@ expStdinoutGet()
 }
 
 ExpState *
-expDevttyGet()
+expDevttyGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -532,9 +531,8 @@ set_pgrp(int fd)
 }
 #endif
 
-static
-void
-expSetpgrp()
+static void
+expSetpgrp(void)
 {
 #ifdef MIPS_BSD
     /* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
@@ -1585,7 +1583,7 @@ unit_random()
 }
 
 void
-exp_init_unit_random()
+exp_init_unit_random(void)
 {
     srand(getpid());
 }
@@ -1646,7 +1644,7 @@ struct exp_state_list *exp_state_list_pool = 0;
 #define EXP_FD_INIT_COUNT	10
 
 struct exp_i *
-exp_new_i()
+exp_new_i(void)
 {
     int n;
     struct exp_i *i;
@@ -2806,7 +2804,7 @@ struct forked_proc {
 } *forked_proc_base = 0;
 
 void
-fork_clear_all()
+fork_clear_all(void)
 {
     struct forked_proc *f;
 
@@ -2865,10 +2863,10 @@ Exp_WaitObjCmd(
     int objc,
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
-    char *chanName = 0;
+    char *chanName = NULL;
     struct ExpState *esPtr;
-    struct forked_proc *fp = 0;	/* handle to a pure forked proc */
-    struct ExpState esTmp;	/* temporary memory for either f or fp */
+    struct forked_proc *fp = NULL;	/* handle to a pure forked proc */
+    struct ExpState esTmp;		/* temporary memory for either f or fp */
     char spawn_id[20];
 
     int nowait = FALSE;
@@ -3503,9 +3501,7 @@ exp_flageq_code(
 }
 
 void
-exp_create_commands(interp,c)
-    Tcl_Interp *interp;
-    struct exp_cmd_data *c;
+exp_create_commands(Tcl_Interp *interp, struct exp_cmd_data *c)
 {
     Namespace *globalNsPtr = (Namespace *) Tcl_GetGlobalNamespace(interp);
     Namespace *currNsPtr   = (Namespace *) Tcl_GetCurrentNamespace(interp);

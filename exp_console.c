@@ -38,15 +38,14 @@ would appreciate credit if this program or parts of it are used.
 #include "exp_log.h"
 
 static void
-exp_console_manipulation_failed(s)
-char *s;
+exp_console_manipulation_failed(char *s)
 {
     expErrorLog("expect: spawn: cannot %s console, check permissions of /dev/console\n",s);
     exit(-1);
 }
 
 void
-exp_console_set()
+exp_console_set(void)
 {
 #ifdef SRIOCSREDIR
 	int fd;
