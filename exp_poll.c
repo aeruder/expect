@@ -115,11 +115,9 @@ static int initialized = 0;
  * Static routines defined in this file.
  */
 
-static void		InitNotifier _ANSI_ARGS_((void));
-static void		NotifierExitHandler _ANSI_ARGS_((
-			    ClientData clientData));
-static int		FileHandlerEventProc _ANSI_ARGS_((Tcl_Event *evPtr,
-			    int flags));
+static void		InitNotifier (void);
+static void		NotifierExitHandler ( ClientData clientData);
+static int		FileHandlerEventProc(Tcl_Event *evPtr, int flags);
 
 /*
  *----------------------------------------------------------------------
@@ -138,10 +136,10 @@ static int		FileHandlerEventProc _ANSI_ARGS_((Tcl_Event *evPtr,
  */
 
 static void
-InitNotifier()
+InitNotifier(void)
 {
     initialized = 1;
-    memset(&notifier, 0, sizeof(notifier));
+    /*memset(&notifier, 0, sizeof(notifier));*/
     Tcl_CreateExitHandler(NotifierExitHandler, NULL);
 }
 
@@ -163,7 +161,7 @@ InitNotifier()
  */
 
 static void
-NotifierExitHandler(clientData)
+NotifierExitHandler(ClientData clientData)
     ClientData clientData;		/* Not used. */
 {
     initialized = 0;
@@ -188,8 +186,7 @@ NotifierExitHandler(clientData)
  */
 
 void
-Tcl_SetTimer(timePtr)
-    Tcl_Time *timePtr;		/* Timeout value, may be NULL. */
+Tcl_SetTimer(Tcl_Time *timePtr)
 {
     /*
      * The interval timer doesn't do anything in this implementation,
@@ -216,15 +213,15 @@ Tcl_SetTimer(timePtr)
  */
 
 void
-Tcl_CreateFileHandler(fd, mask, proc, clientData)
-    int fd;			/* Handle of stream to watch. */
-    int mask;			/* OR'ed combination of TCL_READABLE,
+Tcl_CreateFileHandler(
+    int fd,			/* Handle of stream to watch. */
+    int mask,			/* OR'ed combination of TCL_READABLE,
 				 * TCL_WRITABLE, and TCL_EXCEPTION:
 				 * indicates conditions under which
 				 * proc should be called. */
-    Tcl_FileProc *proc;		/* Procedure to call for each
+    Tcl_FileProc *proc,		/* Procedure to call for each
 				 * selected event. */
-    ClientData clientData;	/* Arbitrary data to pass to proc. */
+    ClientData clientData)	/* Arbitrary data to pass to proc. */
 {
     FileHandler *filePtr;
     int index, bit;
@@ -294,8 +291,7 @@ Tcl_CreateFileHandler(fd, mask, proc, clientData)
  */
 
 void
-Tcl_DeleteFileHandler(fd)
-    int fd;		/* Stream id for which to remove callback procedure. */
+Tcl_DeleteFileHandler(int fd)
 {
     FileHandler *filePtr, *prevPtr, *lastPtr;
     int index, bit, mask, i;
@@ -381,9 +377,9 @@ Tcl_DeleteFileHandler(fd)
  */
 
 static int
-FileHandlerEventProc(evPtr, flags)
-    Tcl_Event *evPtr;		/* Event to service. */
-    int flags;			/* Flags that indicate what events to
+FileHandlerEventProc(
+    Tcl_Event *evPtr,		/* Event to service. */
+    int flags)			/* Flags that indicate what events to
 				 * handle, such as TCL_FILE_EVENTS. */
 {
     FileHandler *filePtr;
@@ -449,8 +445,8 @@ FileHandlerEventProc(evPtr, flags)
  */
 
 int
-Tcl_WaitForEvent(timePtr)
-    Tcl_Time *timePtr;		/* Maximum block time, or NULL. */
+Tcl_WaitForEvent(timePtr
+    Tcl_Time *timePtr)		/* Maximum block time, or NULL. */
 {
     FileHandler *filePtr;
     FileHandlerEvent *fileEvPtr;

@@ -85,8 +85,7 @@ static int env_valid = FALSE;	/* whether we can longjmp or not */
 
 /*ARGSUSED*/
 static RETSIGTYPE
-sigalarm_handler(n)
-int n;		/* unused, for compatibility with STDC */
+sigalarm_handler(int n)
 {
 #ifdef REARM_SIG
 	signal(SIGALRM,sigalarm_handler);
@@ -103,11 +102,7 @@ int n;		/* unused, for compatibility with STDC */
 
 /* interruptable read */
 static int
-i_read(fd,buffer,length,timeout)
-int fd;
-char *buffer;
-int length;
-int timeout;
+i_read( int fd, char *buffer, int length, int timeout)
 {
 	int cc = -2;
 
@@ -141,7 +136,7 @@ static time_t current_time;	/* time when testing began */
 /* if TRUE, begin testing, else end testing */
 /* returns -1 for failure, 0 for success */
 int
-exp_pty_test_start()
+exp_pty_test_start(void)
 {
 	int lfd;	/* locksrc file descriptor */
 
@@ -175,7 +170,7 @@ exp_pty_test_start()
 }
 
 void
-exp_pty_test_end()
+exp_pty_test_end(void)
 {
 	signal(SIGALRM,oldAlarmHandler);
 #ifndef O_NOCTTY
@@ -302,28 +297,22 @@ exp_pty_lock(
  * ones that call expDiagLog from the two different environments.
  */
 
-static void		(*expDiagLogPtrVal) _ANSI_ARGS_((char *));
+static void		(*expDiagLogPtrVal) (char *);
 
 void
-expDiagLogPtrSet(fn)
-     void (*fn) _ANSI_ARGS_((char *));
+expDiagLogPtrSet( void (*fn) (char *))
 {
   expDiagLogPtrVal = fn;
 }
 
 void
-expDiagLogPtr(str)
-     char *str;
+expDiagLogPtr( char *str)
 {
   (*expDiagLogPtrVal)(str);
 }
 
-
-
 void
-expDiagLogPtrX(fmt,num)
-     char *fmt;
-     int num;
+expDiagLogPtrX( char *fmt, int num)
 {
   static char buf[1000];
   sprintf(buf,fmt,num);
@@ -332,9 +321,7 @@ expDiagLogPtrX(fmt,num)
 
 
 void
-expDiagLogPtrStr(fmt,str1)
-     char *fmt;
-     char *str1;
+expDiagLogPtrStr( char *fmt, char *str1)
 {
   static char buf[1000];
   sprintf(buf,fmt,str1);
@@ -342,27 +329,23 @@ expDiagLogPtrStr(fmt,str1)
 }
 
 void
-expDiagLogPtrStrStr(fmt,str1,str2)
-     char *fmt;
-     char *str1, *str2;
+expDiagLogPtrStrStr( char *fmt, char *str1, char *str2)
 {
   static char buf[1000];
   sprintf(buf,fmt,str1,str2);
   (*expDiagLogPtrVal)(buf);
 }
 
-static char *		(*expErrnoMsgVal) _ANSI_ARGS_((int));
+static char *		(*expErrnoMsgVal) (int);
 
 char *
-expErrnoMsg(errorNo)
-int errorNo;
+expErrnoMsg( int errorNo)
 {
   return (*expErrnoMsgVal)(errorNo);
 }
 
 void
-expErrnoMsgSet(fn)
-     char * (*fn) _ANSI_ARGS_((int));
+expErrnoMsgSet( char * (*fn) (int))
 {
   expErrnoMsgVal = fn;
 }

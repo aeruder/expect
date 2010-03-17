@@ -59,9 +59,8 @@ would appreciate credit if this program or parts of it are used.
 #include <ctype.h>		/* all this for ispunct! */
 
 #include "tclInt.h"		/* need OpenFile */
-/*#include <varargs.h>		tclInt.h drags in varargs.h.  Since Pyramid */
-/*				objects to including varargs.h twice, just */
-/*				omit this one. */
+
+#include <varargs.h>
 
 #include "tcl.h"
 #include "string.h"

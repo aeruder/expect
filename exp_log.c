@@ -5,15 +5,10 @@
 
 #include "expect_cf.h"
 #include <stdio.h>
-/*#include <varargs.h>		tclInt.h drags in varargs.h.  Since Pyramid */
-/*				objects to including varargs.h twice, just */
-/*				omit this one. */
+#include <varargs.h>
+
 #include "tclInt.h"
-#ifdef NO_STDLIB_H
-#include "../compat/stdlib.h"
-#else
-#include <stdlib.h>		/* for malloc */
-#endif
+#include <stdlib.h>
 #include <ctype.h>
 
 #include "expect_comm.h"
@@ -46,7 +41,7 @@ static Tcl_ThreadDataKey dataKey;
  */
 static char bigbuf[2000];
 
-static void expDiagWriteCharsUni _ANSI_ARGS_((Tcl_UniChar *str,int len));
+static void expDiagWriteCharsUni (Tcl_UniChar *str,int len);
 
 /*
  * Following this are several functions that log the conversation.  Some
@@ -80,10 +75,7 @@ static void expDiagWriteCharsUni _ANSI_ARGS_((Tcl_UniChar *str,int len));
  */
 
 int
-expWriteBytesAndLogIfTtyU(esPtr,buf,lenChars)
-    ExpState *esPtr;
-    Tcl_UniChar *buf;
-    int lenChars;
+expWriteBytesAndLogIfTtyU( ExpState *esPtr, Tcl_UniChar *buf, int lenChars)
 {
     int wc;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
@@ -109,8 +101,7 @@ expWriteBytesAndLogIfTtyU(esPtr,buf,lenChars)
  */
 
 void
-expLogDiagU(buf)
-char *buf;
+expLogDiagU( char *buf)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -128,10 +119,7 @@ char *buf;
  * Also send to Diag and Log if appropriate.
  */
 void
-expLogInteractionU(esPtr,buf,buflen)
-    ExpState *esPtr;
-    Tcl_UniChar *buf;
-    int buflen;
+expLogInteractionU( ExpState *esPtr, Tcl_UniChar *buf, int buflen)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -187,9 +175,7 @@ expStdoutLog TCL_VARARGS_DEF(int,arg1)
 /* send to log if open */
 /* use this function for logging the parent/child conversation */
 void
-expStdoutLogU(buf,force_stdout)
-char *buf;
-int force_stdout;	/* override value of logUser */
+expStdoutLogU( char *buf, int force_stdout)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     int length;
@@ -236,8 +222,7 @@ expErrorLog TCL_VARARGS_DEF(char *,arg1)
 /* use this function for logging the parent/child conversation */
 /*ARGSUSED*/
 void
-expErrorLogU(buf)
-char *buf;
+expErrorLogU( char *buf)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -279,8 +264,7 @@ expDiagLog TCL_VARARGS_DEF(char *,arg1)
 /* expDiagLog for unformatted strings
    this also takes care of arbitrary large strings */
 void
-expDiagLogU(str)
-char *str;
+expDiagLogU( char *str)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -317,8 +301,7 @@ expPrintf TCL_VARARGS_DEF(char *,arg1)
 
 
 void
-expDiagToStderrSet(val)
-    int val;
+expDiagToStderrSet( int val)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -333,15 +316,14 @@ expDiagToStderrGet() {
 }
 
 Tcl_Channel
-expDiagChannelGet()
+expDiagChannelGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->diagChannel;
 }
 
 void
-expDiagChannelClose(interp)
-    Tcl_Interp *interp;
+expDiagChannelClose( Tcl_Interp *interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -355,9 +337,7 @@ expDiagChannelClose(interp)
    command doesn't currently give the channel name to the user so
    this is kind of useless - but we might change this someday */
 int
-expDiagChannelOpen(interp,filename)
-    Tcl_Interp *interp;
-    char *filename;
+expDiagChannelOpen( Tcl_Interp *interp, char *filename)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     char *newfilename;
@@ -385,8 +365,7 @@ expDiagChannelOpen(interp,filename)
 }
 
 void
-expDiagWriteObj(obj)
-    Tcl_Obj *obj;
+expDiagWriteObj( Tcl_Obj *obj)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -397,9 +376,7 @@ expDiagWriteObj(obj)
 
 /* write 8-bit bytes */
 void
-expDiagWriteBytes(str,len)
-char *str;
-int len;
+expDiagWriteBytes( char *str, int len)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -410,9 +387,7 @@ int len;
 
 /* write UTF chars */
 void
-expDiagWriteChars(str,len)
-char *str;
-int len;
+expDiagWriteChars( char *str, int len)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -423,9 +398,7 @@ int len;
 
 /* write Unicode chars */
 static void
-expDiagWriteCharsUni(str,len)
-Tcl_UniChar *str;
-int len;
+expDiagWriteCharsUni( Tcl_UniChar *str, int len)
 {
     Tcl_DString ds;
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
@@ -439,7 +412,7 @@ int len;
 }
 
 char *
-expDiagFilename()
+expDiagFilename(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -447,8 +420,7 @@ expDiagFilename()
 }
 
 void
-expLogChannelClose(interp)
-    Tcl_Interp *interp;
+expLogChannelClose( Tcl_Interp *interp)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -472,10 +444,7 @@ expLogChannelClose(interp)
    command doesn't currently give the channel name to the user so
    this is kind of useless - but we might change this someday */
 int
-expLogChannelOpen(interp,filename,append)
-    Tcl_Interp *interp;
-    char *filename;
-    int append;
+expLogChannelOpen( Tcl_Interp *interp, char *filename, int append)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     char *newfilename;
@@ -511,30 +480,28 @@ expLogChannelOpen(interp,filename,append)
 }
 
 int
-expLogAppendGet()
+expLogAppendGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->logAppend;
 }
 
 void
-expLogAppendSet(app)
-    int app;
+expLogAppendSet( int app)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     tsdPtr->logAppend = app;
 }
 
 int
-expLogAllGet()
+expLogAllGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->logAll;
 }
 
 void
-expLogAllSet(app)
-    int app;
+expLogAllSet( int app)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     tsdPtr->logAll = app;
@@ -542,37 +509,35 @@ expLogAllSet(app)
 }
 
 int
-expLogToStdoutGet()
+expLogToStdoutGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->logUser;
 }
 
 void
-expLogToStdoutSet(app)
-    int app;
+expLogToStdoutSet( int app)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     tsdPtr->logUser = app;
 }
 
 int
-expLogLeaveOpenGet()
+expLogLeaveOpenGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->logLeaveOpen;
 }
 
 void
-expLogLeaveOpenSet(app)
-    int app;
+expLogLeaveOpenSet( int app)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     tsdPtr->logLeaveOpen = app;
 }
 
 Tcl_Channel
-expLogChannelGet()
+expLogChannelGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->logChannel;
@@ -580,9 +545,7 @@ expLogChannelGet()
 
 /* to set to a pre-opened channel (presumably by tcl::open) */
 int
-expLogChannelSet(interp,name)
-    Tcl_Interp *interp;
-    char *name;
+expLogChannelSet( Tcl_Interp *interp, char *name)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -600,7 +563,7 @@ expLogChannelSet(interp,name)
 }
 
 char *
-expLogFilenameGet()
+expLogFilenameGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -608,7 +571,7 @@ expLogFilenameGet()
 }
 
 int
-expLogUserGet()
+expLogUserGet(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -616,8 +579,7 @@ expLogUserGet()
 }
 
 void
-expLogUserSet(logUser)
-    int logUser;
+expLogUserSet( int logUser)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -629,8 +591,7 @@ expLogUserSet(logUser)
 /* generate printable versions of random ASCII strings.  Primarily used */
 /* in diagnostic mode, "expect -d" */
 static char *
-expPrintifyReal(s)
-char *s;
+expPrintifyReal( char *s)
 {
 	static int destlen = 0;
 	static char *dest = 0;
@@ -669,9 +630,7 @@ char *s;
 /* generate printable versions of random ASCII strings.  Primarily used */
 /* in diagnostic mode, "expect -d" */
 static char *
-expPrintifyRealUni(s,numchars)
-Tcl_UniChar *s;
-int numchars;
+expPrintifyRealUni( Tcl_UniChar *s, int numchars)
 {
   static int destlen = 0;
   static char *dest = 0;
@@ -710,8 +669,7 @@ int numchars;
 }
 
 char *
-expPrintifyObj(obj)
-    Tcl_Obj *obj;
+expPrintifyObj( Tcl_Obj *obj)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -722,8 +680,7 @@ expPrintifyObj(obj)
 }
 
 char *
-expPrintify(s) /* INTL */
-char *s;
+expPrintify(char *s) /* INTL */
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -734,9 +691,7 @@ char *s;
 }
  
 char *
-expPrintifyUni(s,numchars) /* INTL */
-Tcl_UniChar *s;
-int numchars;
+expPrintifyUni( Tcl_UniChar *s, int numchars) /* INTL */
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -747,7 +702,7 @@ int numchars;
 }
  
 void
-expDiagInit()
+expDiagInit(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -757,7 +712,7 @@ expDiagInit()
 }
 
 void
-expLogInit()
+expLogInit(void)
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 

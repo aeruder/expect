@@ -11,22 +11,10 @@ would appreciate credit if this program or parts of it are used.
 #include <stdio.h>
 
 #include "tcldbgcf.h"
-#if 0
-/* tclInt.h drags in stdlib.  By claiming no-stdlib, force it to drag in */
-/* Tcl's compat version.  This avoids having to test for its presence */
-/* which is too tricky - configure can't generate two cf files, so when */
-/* Expect (or any app) uses the debugger, there's no way to get the info */
-/* about whether stdlib exists or not, except pointing the debugger at */
-/* an app-dependent .h file and I don't want to do that. */
-#define NO_STDLIB_H
-#endif
-
 
 #include "tclInt.h"
-/*#include <varargs.h>		tclInt.h drags in varargs.h.  Since Pyramid */
-/*				objects to including varargs.h twice, just */
-/*				omit this one. */
-/*#include "string.h"		tclInt.h drags this in, too! */
+#include <varargs.h>
+#include <string.h>
 #include "tcldbg.h"
 
 #ifndef TRUE

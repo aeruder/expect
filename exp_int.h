@@ -20,20 +20,16 @@ would appreciate credit if this program or parts of it are used.
 #endif
 
 #include <errno.h>
+#include <stdlib.h>
 
-void	exp_console_set     _ANSI_ARGS_((void));
-void	expDiagLogPtrSet    _ANSI_ARGS_((void (*)_ANSI_ARGS_((char *))));
-void	expDiagLogPtr       _ANSI_ARGS_((char *));
-void	expDiagLogPtrX      _ANSI_ARGS_((char *,int));
-void	expDiagLogPtrStr    _ANSI_ARGS_((char *,char *));
-void	expDiagLogPtrStrStr _ANSI_ARGS_((char *,char *,char *));
-void	expErrnoMsgSet      _ANSI_ARGS_((char * (*) _ANSI_ARGS_((int))));
-char * expErrnoMsg    _ANSI_ARGS_((int));
+void	exp_console_set     (void);
+void	expDiagLogPtrSet    (void (*)(char *));
+void	expDiagLogPtr       (char *);
+void	expDiagLogPtrX      (char *,int);
+void	expDiagLogPtrStr    (char *,char *);
+void	expDiagLogPtrStrStr (char *,char *,char *);
+void	expErrnoMsgSet      (char * (*) (int));
+char * expErrnoMsg    (int);
 
-#ifdef NO_STDLIB_H
-#  include "../compat/stdlib.h"
-#else
-#  include <stdlib.h>		/* for malloc */
-#endif /*NO_STDLIB_H*/
 
 #endif /* _EXPECT_INT_H */

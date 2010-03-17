@@ -529,7 +529,7 @@ static int deferred_interrupt = FALSE;	/* if signal is received, but not */
 				/* be handled next time through expIRead */
 
 static void
-sigchld_handler()
+sigchld_handler(void)
 {
   if (reading) {
 #ifdef HAVE_SIGLONGJMP
