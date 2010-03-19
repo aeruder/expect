@@ -246,7 +246,7 @@ exp_update_current_from_real_tty() {
 #endif
 
 void
-exp_init_stdio()
+exp_init_stdio(void)
 {
 	exp_stdin_is_tty = isatty(0);
 	exp_stdout_is_tty = isatty(1);

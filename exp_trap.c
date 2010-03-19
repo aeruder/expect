@@ -50,7 +50,7 @@ static struct trap {
 
 int sigchld_count = 0;	/* # of sigchlds caught but not yet processed */
 
-static int eval_trap_action();
+static int eval_trap_action(Tcl_Interp *, int, struct trap *, int);
 
 static int got_sig;		/* this records the last signal received */
 				/* it is only a hint and can be wiped out */
@@ -61,8 +61,7 @@ static int got_sig;		/* this records the last signal received */
 static Tcl_AsyncHandler async_handler;
 
 static CONST char *
-signal_to_string(sig)
-int sig;
+signal_to_string(int sig)
 {
 	if (sig <= 0 || sig > NSIG) return("SIGNAL OUT OF RANGE");
 	return(traps[sig].name);
@@ -78,10 +77,7 @@ int exp_nostack_dump = FALSE;	/* TRUE if user has requested unrolling of */
 
 /*ARGSUSED*/
 static int
-tophalf(clientData,interp,code)
-ClientData clientData;
-Tcl_Interp *interp;
-int code;
+tophalf( ClientData clientData, Tcl_Interp *interp, int code)
 {
 	struct trap *trap;	/* last trap processed */
 	int rc;
@@ -165,8 +161,7 @@ static int rearming_sigchld = FALSE;
 
 /* called upon receipt of a user-declared signal */
 static void
-bottomhalf(sig)
-int sig;
+bottomhalf( int sig)
 {
 #ifdef REARM_SIG
 	/*
@@ -210,8 +205,7 @@ int sig;
 
 /*ARGSUSED*/
 void
-exp_rearm_sigchld(interp)
-Tcl_Interp *interp;
+exp_rearm_sigchld( Tcl_Interp *interp)
 {
 #ifdef REARM_SIG
 	if (rearm_sigchld) {
@@ -234,7 +228,7 @@ Tcl_Interp *interp;
 
 
 void
-exp_init_trap()
+exp_init_trap(void)
 {
 	int i;
 
@@ -269,9 +263,7 @@ exp_init_trap()
 /* given signal index or name as string, */
 /* returns signal index or -1 if bad arg */
 int
-exp_string_to_signal(interp,s)
-Tcl_Interp *interp;
-char *s;
+exp_string_to_signal( Tcl_Interp *interp, char *s)
 {
 	int sig;
 	CONST char *name;
@@ -294,13 +286,9 @@ char *s;
 
 /*ARGSUSED*/
 int
-Exp_TrapObjCmd(clientData, interp, objc, objv)
-ClientData clientData;
-Tcl_Interp *interp;
-int objc;
-Tcl_Obj *CONST objv[];
+Exp_TrapObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
-	char *action = 0;
+	char *action = NULL;
 	int n;		/* number of signals in list */
 	Tcl_Obj **list;	/* list of signals */
 	char *arg;
@@ -429,11 +417,7 @@ Tcl_Obj *CONST objv[];
 
 /* called by tophalf() to process the given signal */
 static int
-eval_trap_action(interp,sig,trap,oldcode)
-Tcl_Interp *interp;
-int sig;
-struct trap *trap;
-int oldcode;
+eval_trap_action( Tcl_Interp *interp, int sig, struct trap *trap, int oldcode)
 {
 	int code_flag;
 	int newcode;
@@ -543,8 +527,7 @@ cmd_data[]  = {
 {0}};
 
 void
-exp_init_trap_cmds(interp)
-Tcl_Interp *interp;
+exp_init_trap_cmds( Tcl_Interp *interp)
 {
 	exp_create_commands(interp,cmd_data);
 }

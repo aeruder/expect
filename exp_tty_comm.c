@@ -23,7 +23,7 @@ int exp_disconnected = FALSE;		/* not disc. from controlling tty */
 #define tty_cooked exp_tty_cooked
 
 void
-exp_init_tty()
+exp_init_tty(void)
 {
 	extern exp_tty exp_tty_original;
 

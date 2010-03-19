@@ -78,8 +78,7 @@ typedef struct {
 static exp_winsize winsize = {0, 0};
 static exp_winsize win2size = {0, 0};
 
-int exp_window_size_set(fd)
-int fd;
+int exp_window_size_set( int fd)
 {
 #ifdef TIOCSWINSZ
 	ioctl(fd,TIOCSWINSZ,&winsize);
@@ -89,8 +88,7 @@ int fd;
 #endif
 }
 
-int exp_window_size_get(fd)
-int fd;
+int exp_window_size_get( int fd)
 {
 #ifdef TIOCGWINSZ
 	ioctl(fd,TIOCGWINSZ,&winsize);
@@ -105,15 +103,14 @@ int fd;
 }
 
 void
-exp_win_rows_set(rows)
-char *rows;
+exp_win_rows_set( char *rows)
 {
 	winsize.rows = atoi(rows);
 	exp_window_size_set(exp_dev_tty);
 }
 
 char*
-exp_win_rows_get()
+exp_win_rows_get(void)
 {
     static char rows [20];
 	exp_window_size_get(exp_dev_tty);
@@ -122,15 +119,14 @@ exp_win_rows_get()
 }
 
 void
-exp_win_columns_set(columns)
-char *columns;
+exp_win_columns_set( char *columns)
 {
 	winsize.columns = atoi(columns);
 	exp_window_size_set(exp_dev_tty);
 }
 
 char*
-exp_win_columns_get()
+exp_win_columns_get(void)
 {
     static char columns [20];
 	exp_window_size_get(exp_dev_tty);
@@ -142,8 +138,7 @@ exp_win_columns_get()
  * separate copy of everything above - used for handling user stty requests
  */
 
-int exp_win2_size_set(fd)
-int fd;
+int exp_win2_size_set( int fd)
 {
 #ifdef TIOCSWINSZ
 			ioctl(fd,TIOCSWINSZ,&win2size);
@@ -153,8 +148,7 @@ int fd;
 #endif
 }
 
-int exp_win2_size_get(fd)
-int fd;
+int exp_win2_size_get( int fd)
 {
 #ifdef TIOCGWINSZ
 	ioctl(fd,TIOCGWINSZ,&win2size);
@@ -165,9 +159,7 @@ int fd;
 }
 
 void
-exp_win2_rows_set(fd,rows)
-int fd;
-char *rows;
+exp_win2_rows_set( int fd, char *rows)
 {
 	exp_win2_size_get(fd);
 	win2size.rows = atoi(rows);
@@ -175,8 +167,7 @@ char *rows;
 }
 
 char*
-exp_win2_rows_get(fd)
-int fd;
+exp_win2_rows_get( int fd)
 {
     static char rows [20];
 	exp_win2_size_get(fd);
@@ -189,8 +180,7 @@ int fd;
 }
 
 void
-exp_win2_columns_set(fd,columns)
-int fd;
+exp_win2_columns_set( int fd)
 char *columns;
 {
 	exp_win2_size_get(fd);
@@ -199,8 +189,7 @@ char *columns;
 }
 
 char*
-exp_win2_columns_get(fd)
-int fd;
+exp_win2_columns_get( int fd)
 {
     static char columns [20];
 	exp_win2_size_get(fd);

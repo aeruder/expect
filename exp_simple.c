@@ -61,9 +61,9 @@ static int numFdBits;		/* Number of valid bits in checkMasks
  */
 
 void
-Tcl_WatchFile(file, mask)
-    Tcl_File file;	/* Generic file handle for a stream. */
-    int mask;			/* OR'ed combination of TCL_READABLE,
+Tcl_WatchFile(
+    Tcl_File file,	/* Generic file handle for a stream. */
+    int mask)			/* OR'ed combination of TCL_READABLE,
 				 * TCL_WRITABLE, and TCL_EXCEPTION:
 				 * indicates conditions to wait for
 				 * in select. */
@@ -120,9 +120,9 @@ Tcl_WatchFile(file, mask)
  */
 
 int
-Tcl_FileReady(file, mask)
-    Tcl_File file;	/* Generic file handle for a stream. */
-    int mask;			/* OR'ed combination of TCL_READABLE,
+Tcl_FileReady(
+    Tcl_File file,	/* Generic file handle for a stream. */
+    int mask)			/* OR'ed combination of TCL_READABLE,
 				 * TCL_WRITABLE, and TCL_EXCEPTION:
 				 * indicates conditions caller cares about. */
 {
@@ -171,8 +171,7 @@ Tcl_FileReady(file, mask)
  */
 
 void
-Tcl_WaitForEvent(timePtr)
-    Tcl_Time *timePtr;		/* Specifies the maximum amount of time
+Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
 				 * that this procedure should block before
 				 * returning.  The time is given as an
 				 * interval, not an absolute wakeup time.
@@ -229,8 +228,7 @@ Tcl_WaitForEvent(timePtr)
  */
 
 void
-Tcl_Sleep(ms)
-    int ms;			/* Number of milliseconds to sleep. */
+Tcl_Sleep(int ms)
 {
     static struct timeval delay;
     Tcl_Time before, after;
