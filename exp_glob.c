@@ -28,7 +28,7 @@ Exp_StringCaseMatch2 (CONST Tcl_UniChar *string, /* String. */
 /* Exp_StringMatch allow's implements the unanchored front (or conversely */
 /* the '^') feature.  Exp_StringMatch2 does the rest of the work. */
 
-int	/* returns # of CHARS that matched */
+int	/* returns # of chars that matched */
 Exp_StringCaseMatch(		/* INTL */
      Tcl_UniChar *string,
      Tcl_UniChar *pattern,

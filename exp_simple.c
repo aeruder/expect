@@ -180,7 +180,7 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
     struct timeval timeout, *timeoutPtr;
     int numFound;
 
-    memcpy((VOID *) readyMasks, (VOID *) checkMasks,
+    memcpy((void *) readyMasks, (void *) checkMasks,
 	    3*MASK_SIZE*sizeof(fd_mask));
     if (timePtr == NULL) {
 	timeoutPtr = NULL;
@@ -199,7 +199,7 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
      */
 
     if (numFound == -1) {
-	memset((VOID *) readyMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
+	memset((void *) readyMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
     }
 
     /*
@@ -208,7 +208,7 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
      */
 
     numFdBits = 0;
-    memset((VOID *) checkMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
+    memset((void *) checkMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
 }
 
 /*

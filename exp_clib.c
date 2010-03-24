@@ -2051,8 +2051,8 @@ char *exp_stty_init = NULL;		/* initial stty args */
 int exp_ttycopy = TRUE;			/* copy tty parms from /dev/tty */
 int exp_ttyinit = TRUE;			/* set tty parms to sane state */
 int exp_console = FALSE;		/* redirect console */
-void (*exp_child_exec_prelude)() = NULL;
-void (*exp_close_in_child)() = NULL;
+void (*exp_child_exec_prelude)()void = NULL;
+void (*exp_close_in_child)(void) = NULL;
 
 #ifdef HAVE_SIGLONGJMP
 sigjmp_buf exp_readenv;		/* for interruptable read() */

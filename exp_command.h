@@ -89,8 +89,8 @@ typedef struct ExpOrigin {
 
 typedef struct ExpUniBuf {
     Tcl_UniChar* buffer;    /* char buffer, holdings unicode chars (fixed width) */
-    int          max;       /* number of CHARS the buffer has space for (== old msize) */
-    int          use;       /* number of CHARS the buffer is currently holding */
+    int          max;       /* number of chars the buffer has space for (== old msize) */
+    int          use;       /* number of chars the buffer is currently holding */
     Tcl_Obj*     newchars;  /* Object to hold newly read characters */
 } ExpUniBuf;
 
