@@ -239,7 +239,7 @@ TclGetFrame2(interp, origFramePtr, string, framePtrPtr, dir)
 	}
 	framePtr = origFramePtr; /* start search here */
 	
-    } else if (isdigit(*string)) {
+    } else if (isdigit((unsigned char)*string)) {
 	if (Tcl_GetInt(interp, string, &level) != TCL_OK) {
 	    return TCL_ERROR;
 	}
