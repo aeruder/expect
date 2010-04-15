@@ -35,22 +35,16 @@
 #include "exp_prog.h"
 #include "exp_command.h"
 #include "exp_log.h"
+#include "exp_event.h"
 #include "tcldbg.h" /* Dbg_StdinMode */
 
-extern int		expSetBlockModeProc _ANSI_ARGS_((int fd, int mode));
-static int		ExpBlockModeProc _ANSI_ARGS_((ClientData instanceData,
-			    int mode));
-static int		ExpCloseProc _ANSI_ARGS_((ClientData instanceData,
-			    Tcl_Interp *interp));
-static int		ExpInputProc _ANSI_ARGS_((ClientData instanceData,
-		            char *buf, int toRead, int *errorCode));
-static int		ExpOutputProc _ANSI_ARGS_((
-			    ClientData instanceData, char *buf, int toWrite,
-                            int *errorCode));
-static void		ExpWatchProc _ANSI_ARGS_((ClientData instanceData,
-		            int mask));
-static int		ExpGetHandleProc _ANSI_ARGS_((ClientData instanceData,
-		            int direction, ClientData *handlePtr));
+extern int		expSetBlockModeProc (int fd, int mode);
+static int		ExpBlockModeProc (ClientData instanceData, int mode);
+static int		ExpCloseProc (ClientData instanceData, Tcl_Interp *interp);
+static int		ExpInputProc (ClientData instanceData, char *buf, int toRead, int *errorCode);
+static int		ExpOutputProc ( ClientData instanceData, char *buf, int toWrite, int *errorCode);
+static void		ExpWatchProc (ClientData instanceData, int mask);
+static int		ExpGetHandleProc (ClientData instanceData, int direction, ClientData *handlePtr);
 
 /*
  * This structure describes the channel type structure for Expect-based IO:
