@@ -225,6 +225,8 @@ handle_eval_error(Tcl_Interp *interp, int check_for_nostack)
 	expErrorLogU("\r\n");
 }
 
+extern int exp_tty_cooked_echo(Tcl_Interp *interp, exp_tty *tty_old, int *was_raw, int *was_echo);
+
 /* user has pressed escape char from interact or somehow requested expect.
 If a user-supplied command returns:
 

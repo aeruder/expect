@@ -247,7 +247,7 @@ exp_one_arg_braced(Tcl_Obj *objPtr)	/* INTL */
 			continue;
 		}
 
-		if (!isspace(*p)) { /* INTL: ISO space */
+		if (!isspace((unsigned char)*p)) { /* INTL: ISO space */
 			return(seen_nl);
 		}
 	}

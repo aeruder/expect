@@ -78,7 +78,7 @@ typedef struct {
 static exp_winsize winsize = {0, 0};
 static exp_winsize win2size = {0, 0};
 
-int exp_window_size_set( int fd)
+void exp_window_size_set( int fd)
 {
 #ifdef TIOCSWINSZ
 	ioctl(fd,TIOCSWINSZ,&winsize);
@@ -88,7 +88,7 @@ int exp_window_size_set( int fd)
 #endif
 }
 
-int exp_window_size_get( int fd)
+void exp_window_size_get( int fd)
 {
 #ifdef TIOCGWINSZ
 	ioctl(fd,TIOCGWINSZ,&winsize);

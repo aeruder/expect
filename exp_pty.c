@@ -15,10 +15,10 @@ would appreciate credit if this program or parts of it are used.
 #ifdef HAVE_SYS_FCNTL_H
 #  include <sys/fcntl.h>
 #else
-#  include <fcntl.h>
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>

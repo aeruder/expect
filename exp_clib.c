@@ -14,7 +14,11 @@ would appreciate credit if this program or parts of it are used.
 #  include <inttypes.h>
 #endif
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -2163,6 +2167,7 @@ exp_setpgrp(void)
 #endif
 }
 
+extern void exp_init_tty(void);
 /* returns fd of master side of pty */
 int
 exp_spawnv(char *file, char *argv[])
@@ -2218,7 +2223,7 @@ when trapping, see below in child half of fork */
 	}
 	fcntl(exp_pty[0],F_SETFD,1);	/* close on exec */
 #ifdef PTYTRAP_DIES
-	exp_slave_control(exp_pty[0],1);*/
+	exp_slave_control(exp_pty[0],1);
 #endif
 
 	if (!fd_new(exp_pty[0])) {
@@ -3278,7 +3283,7 @@ exp_printify(char *s)
 			strcpy(d,"\\n");		d += 2;
 		} else if (*s == '\t') {
 			strcpy(d,"\\t");		d += 2;
-		} else if (isascii(*s) && isprint(*s)) {
+		} else if (isascii((unsigned char)*s) && isprint((unsigned char)*s)) {
 			*d = *s;			d += 1;
 		} else {
 			sprintf(d,"\\x%02x",*s & 0xff);	d += 4;
