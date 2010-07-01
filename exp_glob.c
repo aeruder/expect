@@ -17,25 +17,25 @@ would appreciate credit if this program or parts of it are used.
 
 /* Proper forward declaration of internal function */
 static int
-Exp_StringCaseMatch2 (CONST Tcl_UniChar *string, /* String. */
+Exp_StringCaseMatch2 _ANSI_ARGS_((CONST Tcl_UniChar *string, /* String. */
 				  CONST Tcl_UniChar *stop,   /* First char _after_ string */
 				  CONST Tcl_UniChar *pattern,	 /* Pattern, which may contain
 								  * special characters. */
 				  CONST Tcl_UniChar *pstop,   /* First char _after_ pattern */
-				  int nocase);
+				  int nocase));
 
 /* The following functions implement expect's glob-style string matching */
 /* Exp_StringMatch allow's implements the unanchored front (or conversely */
 /* the '^') feature.  Exp_StringMatch2 does the rest of the work. */
 
-int	/* returns # of chars that matched */
-Exp_StringCaseMatch(		/* INTL */
-     Tcl_UniChar *string,
-     Tcl_UniChar *pattern,
-     int strlen,
-     int plen,
-     int nocase,
-     int *offset)	/* offset in chars from beginning of string where pattern matches */
+int	/* returns # of CHARS that matched */
+Exp_StringCaseMatch(string, strlen, pattern, plen, nocase, offset)		/* INTL */
+     Tcl_UniChar *string;
+     Tcl_UniChar *pattern;
+     int strlen;
+     int plen;
+     int nocase;
+     int *offset;	/* offset in chars from beginning of string where pattern matches */
 {
     CONST Tcl_UniChar *s;
     CONST Tcl_UniChar *stop = string + strlen;
@@ -123,13 +123,13 @@ Exp_StringCaseMatch(		/* INTL */
 */
 
 static int
-Exp_StringCaseMatch2(	/* INTL */
-     register CONST Tcl_UniChar *string, /* String. */
-     register CONST Tcl_UniChar *stop,   /* First char _after_ string */
-     register CONST Tcl_UniChar *pattern,	 /* Pattern, which may contain
+Exp_StringCaseMatch2(string,stop,pattern,pstop,nocase)	/* INTL */
+     register CONST Tcl_UniChar *string; /* String. */
+     register CONST Tcl_UniChar *stop;   /* First char _after_ string */
+     register CONST Tcl_UniChar *pattern;	 /* Pattern, which may contain
 				 * special characters. */
-     register CONST Tcl_UniChar *pstop,   /* First char _after_ pattern */
-    int nocase)
+     register CONST Tcl_UniChar *pstop;   /* First char _after_ pattern */
+    int nocase;
 {
     Tcl_UniChar ch1, ch2, p;
     int match = 0;	/* # of bytes matched */
@@ -389,7 +389,7 @@ Exp_StringCaseMatch2(	/* INTL */
 	match += (string - oldString);  /* incr by # matched chars */
     }
 }
-
+
 /*
  * Local Variables:
  * mode: c

@@ -6,7 +6,10 @@
 /* like memcpy but can handle overlap */
 #ifndef HAVE_MEMMOVE
 char *
-memmove( void *dest, const void *src, int n)
+memmove(dest,src,n)
+VOID *dest;
+CONST VOID *src;
+int n;
 {
 	char *d;
 	CONST char *s;

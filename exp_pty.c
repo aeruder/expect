@@ -12,9 +12,13 @@ would appreciate credit if this program or parts of it are used.
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+#ifdef HAVE_SYS_FCNTL_H
+#  include <sys/fcntl.h>
+#else
+#  include <fcntl.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -81,7 +85,8 @@ static int env_valid = FALSE;	/* whether we can longjmp or not */
 
 /*ARGSUSED*/
 static RETSIGTYPE
-sigalarm_handler(int n)
+sigalarm_handler(n)
+int n;		/* unused, for compatibility with STDC */
 {
 #ifdef REARM_SIG
 	signal(SIGALRM,sigalarm_handler);
@@ -98,7 +103,11 @@ sigalarm_handler(int n)
 
 /* interruptable read */
 static int
-i_read( int fd, char *buffer, int length, int timeout)
+i_read(fd,buffer,length,timeout)
+int fd;
+char *buffer;
+int length;
+int timeout;
 {
 	int cc = -2;
 
@@ -132,7 +141,7 @@ static time_t current_time;	/* time when testing began */
 /* if TRUE, begin testing, else end testing */
 /* returns -1 for failure, 0 for success */
 int
-exp_pty_test_start(void)
+exp_pty_test_start()
 {
 	int lfd;	/* locksrc file descriptor */
 
@@ -166,7 +175,7 @@ exp_pty_test_start(void)
 }
 
 void
-exp_pty_test_end(void)
+exp_pty_test_end()
 {
 	signal(SIGALRM,oldAlarmHandler);
 #ifndef O_NOCTTY
@@ -293,22 +302,28 @@ exp_pty_lock(
  * ones that call expDiagLog from the two different environments.
  */
 
-static void		(*expDiagLogPtrVal) (char *);
+static void		(*expDiagLogPtrVal) _ANSI_ARGS_((char *));
 
 void
-expDiagLogPtrSet( void (*fn) (char *))
+expDiagLogPtrSet(fn)
+     void (*fn) _ANSI_ARGS_((char *));
 {
   expDiagLogPtrVal = fn;
 }
 
 void
-expDiagLogPtr( char *str)
+expDiagLogPtr(str)
+     char *str;
 {
   (*expDiagLogPtrVal)(str);
 }
 
+
+
 void
-expDiagLogPtrX( char *fmt, int num)
+expDiagLogPtrX(fmt,num)
+     char *fmt;
+     int num;
 {
   static char buf[1000];
   sprintf(buf,fmt,num);
@@ -317,7 +332,9 @@ expDiagLogPtrX( char *fmt, int num)
 
 
 void
-expDiagLogPtrStr( char *fmt, char *str1)
+expDiagLogPtrStr(fmt,str1)
+     char *fmt;
+     char *str1;
 {
   static char buf[1000];
   sprintf(buf,fmt,str1);
@@ -325,23 +342,27 @@ expDiagLogPtrStr( char *fmt, char *str1)
 }
 
 void
-expDiagLogPtrStrStr( char *fmt, char *str1, char *str2)
+expDiagLogPtrStrStr(fmt,str1,str2)
+     char *fmt;
+     char *str1, *str2;
 {
   static char buf[1000];
   sprintf(buf,fmt,str1,str2);
   (*expDiagLogPtrVal)(buf);
 }
 
-static char *		(*expErrnoMsgVal) (int);
+static char *		(*expErrnoMsgVal) _ANSI_ARGS_((int));
 
 char *
-expErrnoMsg( int errorNo)
+expErrnoMsg(errorNo)
+int errorNo;
 {
   return (*expErrnoMsgVal)(errorNo);
 }
 
 void
-expErrnoMsgSet( char * (*fn) (int))
+expErrnoMsgSet(fn)
+     char * (*fn) _ANSI_ARGS_((int));
 {
   expErrnoMsgVal = fn;
 }

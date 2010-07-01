@@ -34,7 +34,7 @@ static fd_mask readyMasks[3*MASK_SIZE];
 static int numFdBits;		/* Number of valid bits in checkMasks
 				 * (one more than highest fd for which
 				 * Tcl_WatchFile has been called). */
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -61,9 +61,9 @@ static int numFdBits;		/* Number of valid bits in checkMasks
  */
 
 void
-Tcl_WatchFile(
-    Tcl_File file,	/* Generic file handle for a stream. */
-    int mask)			/* OR'ed combination of TCL_READABLE,
+Tcl_WatchFile(file, mask)
+    Tcl_File file;	/* Generic file handle for a stream. */
+    int mask;			/* OR'ed combination of TCL_READABLE,
 				 * TCL_WRITABLE, and TCL_EXCEPTION:
 				 * indicates conditions to wait for
 				 * in select. */
@@ -96,7 +96,7 @@ Tcl_WatchFile(
 	numFdBits = fd+1;
     }
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -120,9 +120,9 @@ Tcl_WatchFile(
  */
 
 int
-Tcl_FileReady(
-    Tcl_File file,	/* Generic file handle for a stream. */
-    int mask)			/* OR'ed combination of TCL_READABLE,
+Tcl_FileReady(file, mask)
+    Tcl_File file;	/* Generic file handle for a stream. */
+    int mask;			/* OR'ed combination of TCL_READABLE,
 				 * TCL_WRITABLE, and TCL_EXCEPTION:
 				 * indicates conditions caller cares about. */
 {
@@ -148,7 +148,7 @@ Tcl_FileReady(
     }
     return result;
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -171,7 +171,8 @@ Tcl_FileReady(
  */
 
 void
-Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
+Tcl_WaitForEvent(timePtr)
+    Tcl_Time *timePtr;		/* Specifies the maximum amount of time
 				 * that this procedure should block before
 				 * returning.  The time is given as an
 				 * interval, not an absolute wakeup time.
@@ -180,7 +181,7 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
     struct timeval timeout, *timeoutPtr;
     int numFound;
 
-    memcpy((void *) readyMasks, (void *) checkMasks,
+    memcpy((VOID *) readyMasks, (VOID *) checkMasks,
 	    3*MASK_SIZE*sizeof(fd_mask));
     if (timePtr == NULL) {
 	timeoutPtr = NULL;
@@ -199,7 +200,7 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
      */
 
     if (numFound == -1) {
-	memset((void *) readyMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
+	memset((VOID *) readyMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
     }
 
     /*
@@ -208,9 +209,9 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
      */
 
     numFdBits = 0;
-    memset((void *) checkMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
+    memset((VOID *) checkMasks, 0, 3*MASK_SIZE*sizeof(fd_mask));
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -228,7 +229,8 @@ Tcl_WaitForEvent(Tcl_Time *timePtr) /* Specifies the maximum amount of time
  */
 
 void
-Tcl_Sleep(int ms)
+Tcl_Sleep(ms)
+    int ms;			/* Number of milliseconds to sleep. */
 {
     static struct timeval delay;
     Tcl_Time before, after;
@@ -457,7 +459,7 @@ long usec;		/* microseconds */
 void
 exp_init_event()
 {
-	exp_event_exit = NULL;
+	exp_event_exit = 0;
 }
 
 #endif /* WHOLE FILE! */

@@ -78,7 +78,8 @@ typedef struct {
 static exp_winsize winsize = {0, 0};
 static exp_winsize win2size = {0, 0};
 
-void exp_window_size_set( int fd)
+int exp_window_size_set(fd)
+int fd;
 {
 #ifdef TIOCSWINSZ
 	ioctl(fd,TIOCSWINSZ,&winsize);
@@ -88,7 +89,8 @@ void exp_window_size_set( int fd)
 #endif
 }
 
-void exp_window_size_get( int fd)
+int exp_window_size_get(fd)
+int fd;
 {
 #ifdef TIOCGWINSZ
 	ioctl(fd,TIOCGWINSZ,&winsize);
@@ -103,14 +105,15 @@ void exp_window_size_get( int fd)
 }
 
 void
-exp_win_rows_set( char *rows)
+exp_win_rows_set(rows)
+char *rows;
 {
 	winsize.rows = atoi(rows);
 	exp_window_size_set(exp_dev_tty);
 }
 
 char*
-exp_win_rows_get(void)
+exp_win_rows_get()
 {
     static char rows [20];
 	exp_window_size_get(exp_dev_tty);
@@ -119,14 +122,15 @@ exp_win_rows_get(void)
 }
 
 void
-exp_win_columns_set( char *columns)
+exp_win_columns_set(columns)
+char *columns;
 {
 	winsize.columns = atoi(columns);
 	exp_window_size_set(exp_dev_tty);
 }
 
 char*
-exp_win_columns_get(void)
+exp_win_columns_get()
 {
     static char columns [20];
 	exp_window_size_get(exp_dev_tty);
@@ -138,7 +142,8 @@ exp_win_columns_get(void)
  * separate copy of everything above - used for handling user stty requests
  */
 
-int exp_win2_size_set( int fd)
+int exp_win2_size_set(fd)
+int fd;
 {
 #ifdef TIOCSWINSZ
 			ioctl(fd,TIOCSWINSZ,&win2size);
@@ -148,7 +153,8 @@ int exp_win2_size_set( int fd)
 #endif
 }
 
-int exp_win2_size_get( int fd)
+int exp_win2_size_get(fd)
+int fd;
 {
 #ifdef TIOCGWINSZ
 	ioctl(fd,TIOCGWINSZ,&win2size);
@@ -159,7 +165,9 @@ int exp_win2_size_get( int fd)
 }
 
 void
-exp_win2_rows_set( int fd, char *rows)
+exp_win2_rows_set(fd,rows)
+int fd;
+char *rows;
 {
 	exp_win2_size_get(fd);
 	win2size.rows = atoi(rows);
@@ -167,7 +175,8 @@ exp_win2_rows_set( int fd, char *rows)
 }
 
 char*
-exp_win2_rows_get( int fd)
+exp_win2_rows_get(fd)
+int fd;
 {
     static char rows [20];
 	exp_win2_size_get(fd);
@@ -180,7 +189,8 @@ exp_win2_rows_get( int fd)
 }
 
 void
-exp_win2_columns_set( int fd)
+exp_win2_columns_set(fd,columns)
+int fd;
 char *columns;
 {
 	exp_win2_size_get(fd);
@@ -189,14 +199,15 @@ char *columns;
 }
 
 char*
-exp_win2_columns_get( int fd)
+exp_win2_columns_get(fd)
+int fd;
 {
     static char columns [20];
 	exp_win2_size_get(fd);
 	sprintf(columns,"%d",win2size.columns);
     return columns;
 }
-
+
 /*
  * Local Variables:
  * mode: c

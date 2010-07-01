@@ -285,6 +285,6 @@ exp_init_event()
 #endif
 #endif
 
-	exp_event_exit = NULL;
+	exp_event_exit = 0;
 }
 #endif /* WHOLE FILE !!!! */

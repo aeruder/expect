@@ -529,7 +529,7 @@ static int deferred_interrupt = FALSE;	/* if signal is received, but not */
 				/* be handled next time through expIRead */
 
 static void
-sigchld_handler(void)
+sigchld_handler()
 {
   if (reading) {
 #ifdef HAVE_SIGLONGJMP
@@ -2248,7 +2248,7 @@ exp_init_interact_cmds(Tcl_Interp *interp)
     Tcl_IncrRefCount(tsdPtr->cmdObjInterpreter);
 #endif
 }
-
+
 /*
  * Local Variables:
  * mode: c

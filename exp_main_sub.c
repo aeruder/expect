@@ -31,15 +31,28 @@
 #ifndef EXP_VERSION
 #define EXP_VERSION PACKAGE_VERSION
 #endif
+#ifdef __CENTERLINE__
+#undef	EXP_VERSION
+#define	EXP_VERSION		"5.43.0"		/* I give up! */
+					/* It is not necessary that number */
+					/* be accurate.  It is just here to */
+					/* pacify Centerline which doesn't */
+					/* seem to be able to get it from */
+					/* the Makefile. */
+#undef	SCRIPTDIR
+#define SCRIPTDIR	"example/"
+#undef	EXECSCRIPTDIR
+#define EXECSCRIPTDIR	"example/"
+#endif
 char exp_version[] = PACKAGE_VERSION;
 #define NEED_TCL_MAJOR		7
 #define NEED_TCL_MINOR		5
 
 char *exp_argv0 = "this program";	/* default program name */
-void (*exp_app_exit)(Tcl_Interp *) = NULL;
-void (*exp_event_exit)(Tcl_Interp *) = NULL;
-FILE *exp_cmdfile = NULL;
-char *exp_cmdfilename = NULL;
+void (*exp_app_exit)() = 0;
+void (*exp_event_exit)() = 0;
+FILE *exp_cmdfile = 0;
+char *exp_cmdfilename = 0;
 int exp_cmdlinecmds = FALSE;
 int exp_interactive =  FALSE;
 int exp_buffer_command_input = FALSE;/* read in entire cmdfile at once */
@@ -55,7 +68,8 @@ int exp_strict_write = 0;
 
 
 static void
-usage(Tcl_Interp *interp)
+usage(interp)
+Tcl_Interp *interp;
 {
   char buffer [] = "exit 1";
   expErrorLog("usage: expect [-div] [-c cmds] [[-f] cmdfile] [args]\r\n");
@@ -67,21 +81,25 @@ usage(Tcl_Interp *interp)
 
 /* this clumsiness because pty routines don't know Tcl definitions */
 /*ARGSUSED*/
-static void
-exp_pty_exit_for_tcl(ClientData clientData)
+static
+void
+exp_pty_exit_for_tcl(clientData)
+ClientData clientData;
 {
   exp_pty_exit();
 }
 
-static void
-exp_init_pty_exit(void)
+static
+void
+exp_init_pty_exit()
 {
   Tcl_CreateExitHandler(exp_pty_exit_for_tcl,(ClientData)0);
 }
 
 /* This can be called twice or even recursively - it's safe. */
 void
-exp_exit_handlers(ClientData clientData)
+exp_exit_handlers(clientData)
+ClientData clientData;
 {
 	extern int exp_forked;
 
@@ -133,7 +151,8 @@ exp_exit_handlers(ClientData clientData)
 }
 
 static int
-history_nextid(Tcl_Interp *interp)
+history_nextid(interp)
+Tcl_Interp *interp;
 {
     /* unncessarily tricky coding - if nextid isn't defined,
        maintain our own static version */
@@ -156,7 +175,11 @@ static char prompt1_default[] = "expect%d.%d> ";
 
 /*ARGSUSED*/
 int
-Exp_Prompt1ObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+Exp_Prompt1ObjCmd(clientData, interp, objc, objv)
+ClientData clientData;
+Tcl_Interp *interp;
+int objc;
+Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
     static char buffer[200];
 
@@ -169,7 +192,11 @@ Exp_Prompt1ObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *
 
 /*ARGSUSED*/
 int
-Exp_Prompt2ObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+Exp_Prompt2ObjCmd(clientData, interp, objc, objv)
+ClientData clientData;
+Tcl_Interp *interp;
+int objc;
+Tcl_Obj *CONST objv[];
 {
     Tcl_SetResult(interp,prompt2_default,TCL_STATIC);
     return(TCL_OK);
@@ -177,7 +204,9 @@ Exp_Prompt2ObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *
 
 /*ARGSUSED*/
 static int
-ignore_procs(Tcl_Interp *interp, char *s)
+ignore_procs(interp,s)
+Tcl_Interp *interp;
+char *s;		/* function name */
 {
 	return ((s[0] == 'p') &&
 		(s[1] == 'r') &&
@@ -193,7 +222,9 @@ ignore_procs(Tcl_Interp *interp, char *s)
 
 /* handle an error from Tcl_Eval or Tcl_EvalFile */
 static void
-handle_eval_error(Tcl_Interp *interp, int check_for_nostack)
+handle_eval_error(interp,check_for_nostack)
+Tcl_Interp *interp;
+int check_for_nostack;
 {
 	char *msg;
 
@@ -225,8 +256,6 @@ handle_eval_error(Tcl_Interp *interp, int check_for_nostack)
 	expErrorLogU("\r\n");
 }
 
-extern int exp_tty_cooked_echo(Tcl_Interp *interp, exp_tty *tty_old, int *was_raw, int *was_echo);
-
 /* user has pressed escape char from interact or somehow requested expect.
 If a user-supplied command returns:
 
@@ -237,7 +266,9 @@ EXP_TCL_RETURN,	return TCL_RETURN
 anything else	return it
 */
 int
-exp_interpreter(Tcl_Interp *interp, Tcl_Obj *eofObj)
+exp_interpreter(interp,eofObj)
+Tcl_Interp *interp;
+Tcl_Obj *eofObj;
 {
     Tcl_Obj *commandPtr = NULL;
     int code;
@@ -278,14 +309,14 @@ exp_interpreter(Tcl_Interp *interp, Tcl_Obj *eofObj)
 	    code = Tcl_Eval(interp,prompt1);
 	    if (code == TCL_OK) {
 		expStdoutLogU(Tcl_GetStringResult(interp),1);
-	    } else expStdoutLog(1,prompt1_default,iPtr->numLevels,history_nextid(interp));
+	    }
+	    else expStdoutLog(1,prompt1_default,iPtr->numLevels,history_nextid(interp));
 	} else {
 	    code = Tcl_Eval(interp,prompt2);
 	    if (code == TCL_OK) {
 		expStdoutLogU(Tcl_GetStringResult(interp),1);
-	    } else {
-		expStdoutLogU(prompt2_default,1);
 	    }
+	    else expStdoutLogU(prompt2_default,1);
 	}
 
 	esPtr->force_read = 1;
@@ -397,7 +428,11 @@ exp_interpreter(Tcl_Interp *interp, Tcl_Obj *eofObj)
 
 /*ARGSUSED*/
 int
-Exp_ExpVersionObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+Exp_ExpVersionObjCmd(clientData, interp, objc, objv)
+ClientData clientData;
+Tcl_Interp *interp;
+     int objc;
+     Tcl_Obj *CONST objv[];		/* Argument objects. */
 {
 	int emajor, umajor;
 	char *user_version;	/* user-supplied version string */
@@ -458,14 +493,17 @@ if {$exp_exec_library != \"\"} {\n\
 }";
 
 static void
-DeleteCmdInfo(ClientData clientData, Tcl_Interp *interp)
+DeleteCmdInfo (clientData, interp)
+     ClientData clientData;
+     Tcl_Interp *interp;
 {
   ckfree (clientData);
 }
 
 
 int
-Expect_Init(Tcl_Interp *interp)
+Expect_Init(interp)
+Tcl_Interp *interp;
 {
     static int first_time = TRUE;
 
@@ -615,7 +653,10 @@ static char sigterm_init_default[80];
 static char debug_init_default[] = "trap {exp_debug 1} SIGINT";
 
 void
-exp_parse_argv(Tcl_Interp *interp, int argc, char **argv)
+exp_parse_argv(interp,argc,argv)
+Tcl_Interp *interp;
+int argc;
+char **argv;
 {
 	char argc_rep[10]; /* enough space for storing literal rep of argc */
 
@@ -765,12 +806,12 @@ exp_parse_argv(Tcl_Interp *interp, int argc, char **argv)
 		if (exp_cmdfilename) {
 			if (streq(exp_cmdfilename,"-")) {
 				exp_cmdfile = stdin;
-				exp_cmdfilename = NULL;
+				exp_cmdfilename = 0;
 			} else if (exp_buffer_command_input) {
 				errno = 0;
 				exp_cmdfile = fopen(exp_cmdfilename,"r");
 				if (exp_cmdfile) {
-					exp_cmdfilename = NULL;
+					exp_cmdfilename = 0;
 					expCloseOnExec(fileno(exp_cmdfile));
 				} else {
 					CONST char *msg;
@@ -829,7 +870,8 @@ exp_parse_argv(Tcl_Interp *interp, int argc, char **argv)
 }
 
 static void
-print_result (Tcl_Interp *interp)
+print_result (interp)
+     Tcl_Interp* interp;
 {
     char* msg = Tcl_GetStringResult (interp);
     if (msg[0] != 0) {
@@ -839,7 +881,8 @@ print_result (Tcl_Interp *interp)
 }
 
 static void
-run_exit (Tcl_Interp *interp)
+run_exit (interp)
+     Tcl_Interp* interp;
 {
     /* SF #439042 -- Allow overide of "exit" by user / script
      */
@@ -849,7 +892,10 @@ run_exit (Tcl_Interp *interp)
 
 /* read rc files */
 void
-exp_interpret_rcfiles(Tcl_Interp *interp, int my_rc, int sys_rc)
+exp_interpret_rcfiles(interp,my_rc,sys_rc)
+Tcl_Interp *interp;
+int my_rc;
+int sys_rc;
 {
 	int rc;
 
@@ -893,7 +939,9 @@ exp_interpret_rcfiles(Tcl_Interp *interp, int my_rc, int sys_rc)
 }
 
 int
-exp_interpret_cmdfilename(Tcl_Interp *interp, char *filename)
+exp_interpret_cmdfilename(interp,filename)
+Tcl_Interp *interp;
+char *filename;
 {
 	int rc;
 
@@ -910,7 +958,9 @@ exp_interpret_cmdfilename(Tcl_Interp *interp, char *filename)
 }
 
 int
-exp_interpret_cmdfile(Tcl_Interp *interp, FILE *fp)
+exp_interpret_cmdfile(interp,fp)
+Tcl_Interp *interp;
+FILE *fp;
 {
 	int rc = 0;
 	int gotPartial;
@@ -957,11 +1007,12 @@ static struct exp_cmd_data cmd_data[]  = {
 {0}};
 
 void
-exp_init_main_cmds(Tcl_Interp *interp)
+exp_init_main_cmds(interp)
+Tcl_Interp *interp;
 {
 	exp_create_commands(interp,cmd_data);
 }
-
+
 /*
  * Local Variables:
  * mode: c

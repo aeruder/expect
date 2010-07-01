@@ -246,7 +246,7 @@ exp_update_current_from_real_tty() {
 #endif
 
 void
-exp_init_stdio(void)
+exp_init_stdio()
 {
 	exp_stdin_is_tty = isatty(0);
 	exp_stdout_is_tty = isatty(1);
@@ -273,15 +273,10 @@ exp_tty_break(
 #endif
 }
 
-/* take strings with newlines and insert carriage-returns. This allows user
- * to write send_user strings without always putting in \r.
- * If len == NULL, use strlen to compute length of the input string.
- * Otherwise, len points at an int that holds the length, which is
- * updated to the new length on the way out.
- *
- * NB: if terminal is not in raw mode, nothing is done.
- */
-
+/* take strings with newlines and insert carriage-returns.  This allows user */
+/* to write send_user strings without always putting in \r. */
+/* If len == 0, use strlen to compute it */
+/* NB: if terminal is not in raw mode, nothing is done. */
 char *
 exp_cook(
     char *s,
@@ -806,7 +801,7 @@ exp_init_tty_cmds(struct Tcl_Interp *interp)
 {
 	exp_create_commands(interp,cmd_data);
 }
-
+
 /*
  * Local Variables:
  * mode: c

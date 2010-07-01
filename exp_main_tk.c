@@ -53,9 +53,9 @@ int *tclDummyMathPtr = (int *) matherr;
 #endif
 
 #ifdef TK_TEST
-EXTERN int		Tktest_Init (Tcl_Interp *interp);
+EXTERN int		Tktest_Init _ANSI_ARGS_((Tcl_Interp *interp));
 #endif /* TK_TEST */
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -74,12 +74,14 @@ EXTERN int		Tktest_Init (Tcl_Interp *interp);
  */
 
 int
-main(int argc, char **argv)
+main(argc, argv)
+    int argc;			/* Number of command-line arguments. */
+    char **argv;		/* Values of command-line arguments. */
 {
     Tk_Main(argc, argv, Tcl_AppInit);
     return 0;			/* Needed only to prevent compiler warning. */
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -100,7 +102,8 @@ main(int argc, char **argv)
  */
 
 int
-Tcl_AppInit(Tcl_Interp *interp)
+Tcl_AppInit(interp)
+    Tcl_Interp *interp;		/* Interpreter for application. */
 {
     if (Tcl_Init(interp) == TCL_ERROR) {
 	return TCL_ERROR;
@@ -170,10 +173,10 @@ static int rest = 0;
 /* for Expect */
 int my_rc = 1;
 int sys_rc = 1;
-static int optcmd_eval(char *, Tcl_Interp *, char *, int, char **);
-static int optcmd_diagToStderr(char *, Tcl_Interp *, char *, int, char **);
+static int optcmd_eval();
+static int optcmd_diagToStderr();
 #ifdef TCL_DEBUGGER
-static int optcmd_debug(char *, Tcl_Interp *, char *, int, char **);
+static int optcmd_debug();
 #endif
 int print_version = 0;
 
@@ -236,7 +239,8 @@ static Tk_ArgvInfo argTable[] = {
  */
 
 int
-Tk_Init2(Tcl_Interp *interp)
+Tk_Init2(interp)
+    Tcl_Interp *interp;		/* Interpreter to initialize. */
 {
     CONST char *p;
     char* alist, *cstr;
@@ -394,7 +398,12 @@ Tk_Init2(Tcl_Interp *interp)
 
 /*ARGSUSED*/
 static int
-optcmd_eval(char *dst, Tcl_Interp *interp, char *key, int argc, char **argv)
+optcmd_eval(dst,interp,key,argc,argv)
+char *dst;
+Tcl_Interp *interp;
+char *key;
+int argc;
+char **argv;
 {
 	int i;
 	int rc;
@@ -413,7 +422,12 @@ optcmd_eval(char *dst, Tcl_Interp *interp, char *key, int argc, char **argv)
 }
 
 static int
-optcmd_diagToStderr(char *dst, Tcl_Interp *interp, char *key, int argc, char **argv)
+optcmd_diagToStderr(dst,interp,key,argc,argv)
+    char *dst;
+    Tcl_Interp *interp;
+    char *key;
+    int argc;
+    char **argv;
 {
     expDiagToStderrSet(1);
     return --argc;  /* what the heck is the convention here!! */
@@ -422,7 +436,12 @@ optcmd_diagToStderr(char *dst, Tcl_Interp *interp, char *key, int argc, char **a
 #ifdef TCL_DEBUGGER
 /*ARGSUSED*/
 static int
-optcmd_debug(char *dst, Tcl_Interp *interp, char *key, int argc, char **argv)
+optcmd_debug(dst,interp,key,argc,argv)
+char *dst;
+Tcl_Interp *interp;
+char *key;
+int argc;
+char **argv;
 {
 	int i;
 
@@ -447,7 +466,7 @@ optcmd_debug(char *dst, Tcl_Interp *interp, char *key, int argc, char **argv)
 	return argc;
 }
 #endif /*TCL_DEBUGGER*/
-
+
 /*
  * Local Variables:
  * mode: c

@@ -63,7 +63,6 @@ with openpty which supports 4000 while ptmx supports 60. */
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 #ifdef NO_STDLIB_H
 #include "../compat/stdlib.h"
@@ -97,7 +96,6 @@ with openpty which supports 4000 while ptmx supports 60. */
 
 #include "exp_win.h"
 
-#include "exp_int.h"
 #include "exp_tty_in.h"
 #include "exp_rename.h"
 #include "exp_pty.h"

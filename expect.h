@@ -207,9 +207,14 @@ would appreciate credit if this program or parts of it are used.
 #undef _ANSI_ARGS_
 #undef CONST
 
+#if ((defined(__STDC__) || defined(SABER)) && !defined(NO_PROTOTYPE)) || defined(__cplusplus) || defined(USE_PROTOTYPE)
 #   define _USING_PROTOTYPES_ 1
 #   define _ANSI_ARGS_(x)	x
 #   define CONST const
+#else
+#   define _ANSI_ARGS_(x)	()
+#   define CONST
+#endif
 
 #ifdef __cplusplus
 #   define EXTERN extern "C" TCL_STORAGE_CLASS
@@ -218,8 +223,37 @@ would appreciate credit if this program or parts of it are used.
 #endif
 
 /*
+ * Macro to use instead of "void" for arguments that must have
+ * type "void *" in ANSI C;  maps them to type "char *" in
+ * non-ANSI systems.
+ */
+#ifndef __WIN32__
+#ifndef VOID
+#   ifdef __STDC__
+#       define VOID void
+#   else
+#       define VOID char
+#   endif
+#endif
+#else /* __WIN32__ */
+/*
+ * The following code is copied from winnt.h
+ */
+#ifndef VOID
+#define VOID void
+typedef char CHAR;
+typedef short SHORT;
+typedef long LONG;
+#endif
+#endif /* __WIN32__ */
+
+/*
  * Miscellaneous declarations.
  */
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 typedef struct Tcl_RegExp_ *Tcl_RegExp;
 
@@ -405,28 +439,28 @@ EXTERN int exp_reading;			/* whether we can longjmp or not */
 EXTERN int exp_is_debugging;
 EXTERN int exp_loguser;
 
-EXTERN void (*exp_close_in_child)(void);	/* procedure to close files in child */
-EXTERN void exp_slave_control(int,int);
+EXTERN void (*exp_close_in_child)();	/* procedure to close files in child */
+EXTERN void exp_slave_control _ANSI_ARGS_((int,int));
 EXTERN int exp_logfile_all;
 EXTERN FILE *exp_debugfile;
 EXTERN FILE *exp_logfile;
-extern void exp_debuglog TCL_VARARGS(char *,fmt);
-extern void exp_errorlog TCL_VARARGS(char *,fmt);
+extern void exp_debuglog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
+extern void exp_errorlog _ANSI_ARGS_(TCL_VARARGS(char *,fmt));
 
-EXTERN int exp_disconnect ((void));
-EXTERN FILE *exp_popen	(char *command);
-EXTERN void (*exp_child_exec_prelude) ((void));
+EXTERN int exp_disconnect _ANSI_ARGS_((void));
+EXTERN FILE *exp_popen	_ANSI_ARGS_((char *command));
+EXTERN void (*exp_child_exec_prelude) _ANSI_ARGS_((void));
 
 #ifndef EXP_DEFINE_FNS
-EXTERN int exp_spawnl	TCL_VARARGS(char *,file);
-EXTERN int exp_expectl	TCL_VARARGS(int,fd);
-EXTERN int exp_fexpectl	TCL_VARARGS(FILE *,fp);
+EXTERN int exp_spawnl	_ANSI_ARGS_(TCL_VARARGS(char *,file));
+EXTERN int exp_expectl	_ANSI_ARGS_(TCL_VARARGS(int,fd));
+EXTERN int exp_fexpectl	_ANSI_ARGS_(TCL_VARARGS(FILE *,fp));
 #endif
 
-EXTERN int exp_spawnv	(char *file, char *argv[]);
-EXTERN int exp_expectv	(int fd, struct exp_case *cases);
-EXTERN int exp_fexpectv	(FILE *fp, struct exp_case *cases);
+EXTERN int exp_spawnv	_ANSI_ARGS_((char *file, char *argv[]));
+EXTERN int exp_expectv	_ANSI_ARGS_((int fd, struct exp_case *cases));
+EXTERN int exp_fexpectv	_ANSI_ARGS_((FILE *fp, struct exp_case *cases));
 
-EXTERN int exp_spawnfd	(int fd);
+EXTERN int exp_spawnfd	_ANSI_ARGS_((int fd));
 
 #endif /* _EXPECT_H */

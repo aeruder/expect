@@ -37,21 +37,21 @@ EXTERN int exp_tcl_debugger_available;
 EXTERN Tcl_Interp *exp_interp;
 
 #define Exp_Init Expect_Init
-EXTERN int	Expect_Init (Tcl_Interp *);	/* for Tcl_AppInit apps */
-EXTERN void	exp_parse_argv (Tcl_Interp *,int argc,char **argv);
-EXTERN int	exp_interpreter (Tcl_Interp *,Tcl_Obj *);
-EXTERN int	exp_interpret_cmdfile (Tcl_Interp *,FILE *);
-EXTERN int	exp_interpret_cmdfilename (Tcl_Interp *,char *);
-EXTERN void	exp_interpret_rcfiles (Tcl_Interp *,int my_rc,int sys_rc);
+EXTERN int	Expect_Init _ANSI_ARGS_((Tcl_Interp *));	/* for Tcl_AppInit apps */
+EXTERN void	exp_parse_argv _ANSI_ARGS_((Tcl_Interp *,int argc,char **argv));
+EXTERN int	exp_interpreter _ANSI_ARGS_((Tcl_Interp *,Tcl_Obj *));
+EXTERN int	exp_interpret_cmdfile _ANSI_ARGS_((Tcl_Interp *,FILE *));
+EXTERN int	exp_interpret_cmdfilename _ANSI_ARGS_((Tcl_Interp *,char *));
+EXTERN void	exp_interpret_rcfiles _ANSI_ARGS_((Tcl_Interp *,int my_rc,int sys_rc));
 
-EXTERN char *	exp_cook (char *s,int *len);
+EXTERN char *	exp_cook _ANSI_ARGS_((char *s,int *len));
 
-EXTERN void	expCloseOnExec (int);
+EXTERN void	expCloseOnExec _ANSI_ARGS_((int));
 
 			/* app-specific exit handler */
-EXTERN void	(*exp_app_exit)(Tcl_Interp *);
-EXTERN void	exp_exit_handlers (ClientData);
+EXTERN void	(*exp_app_exit)_ANSI_ARGS_((Tcl_Interp *));
+EXTERN void	exp_exit_handlers _ANSI_ARGS_((ClientData));
 
-EXTERN void	exp_error TCL_VARARGS(Tcl_Interp *,interp);
+EXTERN void	exp_error _ANSI_ARGS_(TCL_VARARGS(Tcl_Interp *,interp));
 
 #endif /* _EXPECT_TCL_H */

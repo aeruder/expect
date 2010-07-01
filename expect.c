@@ -55,9 +55,9 @@ int exp_default_close_on_eof =  TRUE;
 #define EXPECT_TIMEOUT		"timeout"
 #define EXPECT_OUT		"expect_out"
 
-extern int Exp_StringCaseMatch (Tcl_UniChar *string, int strlen,
+extern int Exp_StringCaseMatch _ANSI_ARGS_((Tcl_UniChar *string, int strlen,
 					    Tcl_UniChar *pattern,int plen,
-					    int nocase,int *offset);
+					    int nocase,int *offset));
 
 typedef struct ThreadSpecificData {
     int timeout;
@@ -143,7 +143,7 @@ exp_cmd_init(
 	cmd->cmdtype = cmdtype;
 	cmd->ecd.cases = 0;
 	cmd->ecd.count = 0;
-	cmd->i_list = NULL;
+	cmd->i_list = 0;
 }
 
 static int i_read_errno;/* place to save errno, if i_read() == -1, so it
@@ -153,7 +153,7 @@ static int i_read_errno;/* place to save errno, if i_read() == -1, so it
 static int alarm_fired;	/* if alarm occurs */
 #endif
 
-void exp_background_channelhandlers_run_all(void);
+void exp_background_channelhandlers_run_all();
 
 /* exp_indirect_updateX is called by Tcl when an indirect variable is set */
 static char *exp_indirect_update1( /* 1-part Tcl variable names */
@@ -219,6 +219,18 @@ free_ecases(
 	eg->ecd.count = 0;
 }
 
+
+#if 0
+/* no standard defn for this, and some systems don't even have it, so avoid */
+/* the whole quagmire by calling it something else */
+static char *exp_strdup(char *s)
+{
+	char *news = ckalloc(strlen(s) + 1);
+	strcpy(news,s);
+	return(news);
+}
+#endif
+
 /* return TRUE if string appears to be a set of arguments
    The intent of this test is to support the ability of commands to have
    all their args braced as one.  This conflicts with the possibility of
@@ -247,7 +259,7 @@ exp_one_arg_braced(Tcl_Obj *objPtr)	/* INTL */
 			continue;
 		}
 
-		if (!isspace((unsigned char)*p)) { /* INTL: ISO space */
+		if (!isspace(*p)) { /* INTL: ISO space */
 			return(seen_nl);
 		}
 	}
@@ -343,9 +355,9 @@ exp_eval_with_one_arg(
 static void
 ecase_clear(struct ecase *ec)
 {
-	ec->i_list = NULL;
-	ec->pat = NULL;
-	ec->body = NULL;
+	ec->i_list = 0;
+	ec->pat = 0;
+	ec->body = 0;
 	ec->transfer = TRUE;
 	ec->simple_start = 0;
 	ec->indices = FALSE;
@@ -422,7 +434,7 @@ parse_expect_args(
 	    static char *flags[] = {
 		"-glob", "-regexp", "-exact", "-notransfer", "-nocase",
 		"-i", "-indices", "-iread", "-timestamp", "-timeout",
-		"-nobrace", "--", NULL
+		"-nobrace", "--", (char *)0
 	    };
 	    enum flags {
 		EXP_ARG_GLOB, EXP_ARG_REGEXP, EXP_ARG_EXACT,
@@ -568,7 +580,7 @@ parse_expect_args(
 
 	    static char *keywords[] = {
 		"timeout", "eof", "full_buffer", "default", "null",
-		NULL
+		(char *)NULL
 	    };
 	    enum keywords {
 		EXP_ARG_TIMEOUT, EXP_ARG_EOF, EXP_ARG_FULL_BUFFER,
@@ -580,7 +592,7 @@ parse_expect_args(
 	     */
 
 	    if (Tcl_GetIndexFromObj(interp, objv[i], keywords, "keyword",
-		    TCL_EXACT, &index) != TCL_OK) {
+		    1 /* exact */, &index) != TCL_OK) {
 		Tcl_ResetResult(interp);
 		goto pattern;
 	    }
@@ -691,7 +703,7 @@ struct eval_out {
 
 
 
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1087,7 +1099,7 @@ ecases_remove_by_expi(
 			ecmd->ecd.count--;
 			if (0 == ecmd->ecd.count) {
 				ckfree((char *)ecmd->ecd.cases);
-				ecmd->ecd.cases = NULL;
+				ecmd->ecd.cases = 0;
 			}
 		} else {
 			i++;
@@ -1106,7 +1118,7 @@ exp_i_remove(
 	for (;*ei; ei = &(*ei)->next) {
 		if (*ei == exp_i) {
 			*ei = exp_i->next;
-			exp_i->next = NULL;
+			exp_i->next = 0;
 			exp_free_i(interp,exp_i,exp_indirect_update2);
 			break;
 		}
@@ -1151,7 +1163,7 @@ ecmd_remove_state(
 		    esPtr->bg_ecount--;
 		    if (esPtr->bg_ecount == 0) {
 			exp_disarm_background_channelhandler(esPtr);
-			esPtr->bg_interp = NULL;
+			esPtr->bg_interp = 0;
 		    }
 		}
 		
@@ -1259,7 +1271,7 @@ exp_i_append(
 
 		/* if more than one element, add braces */
 	if (exp_i->state_list->next) {
-			Tcl_AppendResult(interp," {",(char *)NULL);
+			Tcl_AppendResult(interp," {",(char *)0);
 	}
 
 		for (fdp = exp_i->state_list;fdp;fdp=fdp->next) {
@@ -1268,10 +1280,10 @@ exp_i_append(
 			Tcl_AppendElement(interp,buf);
 		}
 
-		if (exp_i->state_list->next) {
-				Tcl_AppendResult(interp,"} ",(char *)NULL);
-		}
+	if (exp_i->state_list->next) {
+			Tcl_AppendResult(interp,"} ",(char *)0);
 	}
+}
 }
 
 /* return current setting of the permanent expect_before/after/bg */
@@ -1285,11 +1297,11 @@ expect_info(
     struct exp_i *exp_i;
     int i;
     int direct = EXP_DIRECT|EXP_INDIRECT;
-    char *iflag = NULL;
+    char *iflag = 0;
     int all = FALSE;	/* report on all fds */
-    ExpState *esPtr = NULL;
+    ExpState *esPtr = 0;
 
-    static char *flags[] = {"-i", "-all", "-noindirect", NULL};
+    static char *flags[] = {"-i", "-all", "-noindirect", (char *)0};
     enum flags {EXP_ARG_I, EXP_ARG_ALL, EXP_ARG_NOINDIRECT};
 
     /* start with 2 to skip over "cmdname -info" */
@@ -1323,7 +1335,7 @@ expect_info(
 
     if (all) {
 	/* avoid printing out -i when redundant */
-	struct exp_i *previous = NULL;
+	struct exp_i *previous = 0;
 
 	for (i=0;i<ecmd->ecd.count;i++) {
 	    if (previous != ecmd->ecd.cases[i]->i_list) {
@@ -1466,7 +1478,7 @@ Exp_ExpectGlobalObjCmd(
 	    /* unlink from middle of list */
 	    tmp = *old_i;
 	    *old_i = tmp->next;
-	    tmp->next = NULL;
+	    tmp->next = 0;
 	    exp_free_i(interp,tmp,exp_indirect_update2);
 	}
 
@@ -1558,7 +1570,7 @@ Exp_ExpectGlobalObjCmd(
 
 	for (exp_i=eg.i_list;exp_i;) {
 	    struct exp_i *next = exp_i->next;
-	    exp_i->next = NULL;
+	    exp_i->next = 0;
 	    exp_i = next;
 	}
 	free_ecases(interp,&eg,1);
@@ -2198,7 +2210,7 @@ exp_indirect_update1(
 		state_list_arm(interp,exp_i->state_list);
 	}
 
-	return NULL;
+	return (char *)0;
 }
 
 int
@@ -2210,10 +2222,10 @@ expMatchProcess(
 				/* else 0 */
     char *detail)
 {
-    ExpState *esPtr = NULL;
-    Tcl_Obj *body = NULL;
+    ExpState *esPtr = 0;
+    Tcl_Obj *body = 0;
     Tcl_UniChar *buffer;
-    struct ecase *e = NULL;	/* points to current ecase */
+    struct ecase *e = 0;	/* points to current ecase */
     int match = -1;		/* characters matched */
     /* uprooted by a NULL */
     int result = TCL_OK;
@@ -2417,16 +2429,16 @@ exp_background_channelhandler( /* INTL */
     } else {
 	esPtr->notifiedMask = mask;
 	esPtr->notified = FALSE;
-	cc = expRead(interp,(ExpState **)NULL,0,&esPtr,EXP_TIME_INFINITY,0);
+	cc = expRead(interp,(ExpState **)0,0,&esPtr,EXP_TIME_INFINITY,0);
     }
 
 do_more_data:
-    eo.e = NULL;		/* no final case yet */
-    eo.esPtr = NULL;		/* no final file selected yet */
+    eo.e = 0;		/* no final case yet */
+    eo.esPtr = 0;		/* no final file selected yet */
     eo.matchlen = 0;		/* nothing matched yet */
 
     /* force redisplay of buffer when debugging */
-    last_esPtr = NULL;
+    last_esPtr = 0;
 
     if (cc == EXP_EOF) {
 	/* do nothing */
@@ -2515,7 +2527,7 @@ Exp_ExpectObjCmd(
 {
     int cc;			/* number of chars returned in a single read */
 				/* or negative EXP_whatever */
-    ExpState *esPtr = NULL;
+    ExpState *esPtr = 0;
 
     int i;			/* misc temporary */
     struct exp_cmd_descriptor eg;
@@ -2583,8 +2595,8 @@ Exp_ExpectObjCmd(
     /* do it dynamically, since expect can be called recursively */
 
     exp_cmd_init(&eg,EXP_CMD_FG,EXP_TEMPORARY);
-    state_list = NULL;
-    esPtrs = NULL;
+    state_list = 0;
+    esPtrs = 0;
     if (TCL_ERROR == parse_expect_args(interp,&eg, (ExpState *)clientData,
 				       objc,objv)) {
 	if (new_cmd) { Tcl_DecrRefCount (new_cmd); }
@@ -2638,14 +2650,14 @@ Exp_ExpectObjCmd(
     key = expect_key++;
 
     result = TCL_OK;
-    last_esPtr = NULL;
+    last_esPtr = 0;
 
     /*
      * end of restart code
      */
 
-    eo.e = NULL;		/* no final case yet */
-    eo.esPtr = NULL;	/* no final ExpState selected yet */
+    eo.e = 0;		/* no final case yet */
+    eo.esPtr = 0;	/* no final ExpState selected yet */
     eo.matchlen = 0;	/* nothing matched yet */
 
     /* timeout code is a little tricky, be very careful changing it */
@@ -2687,7 +2699,7 @@ Exp_ExpectObjCmd(
 	    cc = EXP_NOMATCH;
 
 	    /* force redisplay of buffer when debugging */
-	    last_esPtr = NULL;
+	    last_esPtr = 0;
 	}
 
 	cc = eval_cases(interp,&exp_cmds[EXP_CMD_BEFORE],
@@ -2743,11 +2755,11 @@ error:
 
     if (state_list) {
 	exp_free_state(state_list);
-	state_list = NULL;
+	state_list = 0;
     }
     if (esPtrs) {
 	ckfree((char *)esPtrs);
-	esPtrs = NULL;
+	esPtrs = 0;
     }
 
     if (result == EXP_CONTINUE) {
@@ -2770,7 +2782,7 @@ Exp_TimestampObjCmd(
     int objc,
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
-	char *format = NULL;
+	char *format = 0;
 	time_t seconds = -1;
 	int gmt = FALSE;	/* local time by default */
 	struct tm *tm;
@@ -2852,6 +2864,15 @@ Exp_TimestampObjCmd(
 /* Helper function hnadling the common processing of -d and -i options of
  * various commands.
  */
+
+static int
+process_di _ANSI_ARGS_ ((Tcl_Interp* interp,
+			 int objc,
+			 Tcl_Obj *CONST objv[],		/* Argument objects. */
+			 int* at,
+			 int* Default,
+			 ExpState **esOut,
+			 CONST char* cmd));
 
 static int
 process_di (
@@ -2942,7 +2963,7 @@ Exp_MatchMaxObjCmd(
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int size = -1;
-    ExpState *esPtr = NULL;
+    ExpState *esPtr = 0;
     int Default = FALSE;
     int i;
 
@@ -2988,7 +3009,7 @@ Exp_RemoveNullsObjCmd(
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int value = -1;
-    ExpState *esPtr = NULL;
+    ExpState *esPtr = 0;
     int Default = FALSE;
     int i;
 
@@ -3032,7 +3053,7 @@ Exp_ParityObjCmd(
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int parity;
-    ExpState *esPtr = NULL;
+    ExpState *esPtr = 0;
     int Default = FALSE;
     int i;
 
@@ -3071,7 +3092,7 @@ Exp_CloseOnEofObjCmd(
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
     int close_on_eof;
-    ExpState *esPtr = NULL;
+    ExpState *esPtr = 0;
     int Default = FALSE;
     int i;
 
@@ -3236,7 +3257,7 @@ exp_init_sig(void) {
 	signal(SIGINT,sigint_handler);
 #endif
 }
-
+
 /*
  * Local Variables:
  * mode: c

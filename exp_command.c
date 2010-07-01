@@ -59,8 +59,9 @@ would appreciate credit if this program or parts of it are used.
 #include <ctype.h>		/* all this for ispunct! */
 
 #include "tclInt.h"		/* need OpenFile */
-
-#include <varargs.h>
+/*#include <varargs.h>		tclInt.h drags in varargs.h.  Since Pyramid */
+/*				objects to including varargs.h twice, just */
+/*				omit this one. */
 
 #include "tcl.h"
 #include "string.h"
@@ -305,7 +306,8 @@ exp_trap_off(char *name)
 #endif
 }
 
-static void
+static
+void
 expBusy(ExpState *esPtr)
 {
     int x = open("/dev/null",0);
@@ -423,7 +425,7 @@ expStdinoutIs(ExpState *esPtr)
 }
 
 ExpState *
-expStdinoutGet(void)
+expStdinoutGet()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -431,7 +433,7 @@ expStdinoutGet(void)
 }
 
 ExpState *
-expDevttyGet(void)
+expDevttyGet()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -530,8 +532,9 @@ set_pgrp(int fd)
 }
 #endif
 
-static void
-expSetpgrp(void)
+static
+void
+expSetpgrp()
 {
 #ifdef MIPS_BSD
     /* required on BSD side of MIPS OS <jmsellen@watdragon.waterloo.edu> */
@@ -1582,7 +1585,7 @@ unit_random()
 }
 
 void
-exp_init_unit_random(void)
+exp_init_unit_random()
 {
     srand(getpid());
 }
@@ -1643,7 +1646,7 @@ struct exp_state_list *exp_state_list_pool = 0;
 #define EXP_FD_INIT_COUNT	10
 
 struct exp_i *
-exp_new_i(void)
+exp_new_i()
 {
     int n;
     struct exp_i *i;
@@ -2803,7 +2806,7 @@ struct forked_proc {
 } *forked_proc_base = 0;
 
 void
-fork_clear_all(void)
+fork_clear_all()
 {
     struct forked_proc *f;
 
@@ -2862,10 +2865,10 @@ Exp_WaitObjCmd(
     int objc,
     Tcl_Obj *CONST objv[])		/* Argument objects. */
 {
-    char *chanName = NULL;
+    char *chanName = 0;
     struct ExpState *esPtr;
-    struct forked_proc *fp = NULL;	/* handle to a pure forked proc */
-    struct ExpState esTmp;		/* temporary memory for either f or fp */
+    struct forked_proc *fp = 0;	/* handle to a pure forked proc */
+    struct ExpState esTmp;	/* temporary memory for either f or fp */
     char spawn_id[20];
 
     int nowait = FALSE;
@@ -3500,7 +3503,9 @@ exp_flageq_code(
 }
 
 void
-exp_create_commands(Tcl_Interp *interp, struct exp_cmd_data *c)
+exp_create_commands(interp,c)
+    Tcl_Interp *interp;
+    struct exp_cmd_data *c;
 {
     Namespace *globalNsPtr = (Namespace *) Tcl_GetGlobalNamespace(interp);
     Namespace *currNsPtr   = (Namespace *) Tcl_GetCurrentNamespace(interp);
@@ -3572,7 +3577,7 @@ exp_init_most_cmds(Tcl_Interp *interp)
     Tcl_InitHashTable(&slaveNames,TCL_STRING_KEYS);
 #endif /* HAVE_PTYTRAP */
 }
-
+
 /*
  * Local Variables:
  * mode: c
