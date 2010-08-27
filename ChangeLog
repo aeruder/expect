@@ -1,5 +1,8 @@
 2010-08-27  Jeff Hobbs  <jeffh@ActiveState.com>
 
+	* exp_main_sub.c: add return to silence compiler warning.
+	Updated EXP_VERSION to 5.45.0
+
 	* config.guess, config.sub, expect.m4 (removed):
 	* configure, configure.in, tclconfig/tcl.m4: Update to TEA 3.9
 	* Makefile.in, aclocal.m4: Partial cleanup of the build system.
