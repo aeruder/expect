@@ -34,6 +34,10 @@ ExpBackslash _ANSI_ARGS_ ((char prefix,
 			 Tcl_UniChar* str,
 			 int          strlen));
 
+static int
+ExpCountStar _ANSI_ARGS_ ((Tcl_UniChar* src, Tcl_UniChar* last));
+
+
 static char*
 xxx (Tcl_UniChar* x, int xl)
 {
@@ -465,6 +469,15 @@ exp_retoglob (
   LOG (stderr,"ST '%s'\n",xxx(out,nexto-out)); FF;
 
   /*
+   * Heuristic: if there are more than two *s, the risk is far too
+   * large that the result actually is slower than the normal re
+   * matching.  So bail out.
+   */
+  if (ExpCountStar (out,nexto) > 2) {
+      goto error;
+  }
+
+  /*
    * Check if the result is actually useful.
    * Empty or just a *, or ? are not. A series
    * of ?'s is borderline, as they semi-count
@@ -715,6 +728,31 @@ ExpCollapseQBack (src, last)
   LOG (stderr,"/%1d '%s' <-- \n",skip,xxx(base,dst-base)); FF;
   LOG (stderr,"'%s'\n",   xxx(src,last-src));  FF;
   return dst;
+}
+
+static int
+ExpCountStar (src, last)
+    Tcl_UniChar* src;
+    Tcl_UniChar* last;
+{
+    int skip = 0;
+    int stars = 0;
+
+    /* Count number of *'s. State machine. The complexity is due to the
+     * need of handling escaped characters.
+     */
+
+    for (; src < last; src++) {
+	if (skip) {
+	    skip = 0;
+	} else if (*src == '\\') {
+	    skip = 1;
+	} else if (*src == '*') {
+	    stars++;
+	}
+    }
+
+    return stars;
 }
 
 #undef CHOP
