@@ -69,6 +69,9 @@ with openpty which supports 4000 while ptmx supports 60. */
 #else
 #include <stdlib.h>
 #endif
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
 
 #ifdef HAVE_SYSMACROS_H
 #include <sys/sysmacros.h>

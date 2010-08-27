@@ -10,7 +10,10 @@ would appreciate credit if this program or parts of it are used.
 
 #include <stdio.h>
 
-#include "tcldbgcf.h"
+#ifndef HAVE_STRCHR
+#define strchr(s,c) index(s,c)
+#endif /* HAVE_STRCHR */
+
 #if 0
 /* tclInt.h drags in stdlib.  By claiming no-stdlib, force it to drag in */
 /* Tcl's compat version.  This avoids having to test for its presence */

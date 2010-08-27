@@ -1,3 +1,32 @@
+2010-08-27  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* config.guess, config.sub, expect.m4 (removed):
+	* configure, configure.in, tclconfig/tcl.m4: Update to TEA 3.9
+	* Makefile.in, aclocal.m4: Partial cleanup of the build system.
+	* testsuite/Makefile.in:   Remove unused EXP_ from configure.in
+	* testsuite/aclocal.m4:    and no longer use Tk.
+	* testsuite/configure:     Update testsuite bits to use TEA info.
+	* testsuite/configure.in:
+	Update expect to version 5.45
+
+	* Dbg.c: account for removal of tcldbgcf.h
+	* DbgMkfl.in, Dbgconfig.in, Dbgconfigure, DbgpkgInd.in (removed):
+	* tcldbgcf.h.in (removed): removed Dbg debugger subcomponent as it
+	no longer built and debugger functionality is included in expect
+	library and binary
+
+	* pty_termios.c: add HAVE_STRING_H include string.h
+	* exp_trap.c: add HAVE_STRING_H include string.h
+
+	* expectk.man, exp_main_tk.c (removed): expectk no longer
+	built. Use tclsh with package require Tk and Expect instead.
+
+	* tests/all.tcl: add package require Expect
+
+	* example/archie, example/autoexpect: minor code cleanup
+	* example/tkpasswd, example/tknewsbiff, example/tkterm: use
+	package require statements in lieu of expectk
+
 2009-11-03  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_command.c (Exp_SpawnObjCmd): [Expect SF Bug 2891422]. Fixed
