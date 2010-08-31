@@ -1,5 +1,10 @@
 2010-08-31  Andreas Kupries <andreask@activestate.com>
 
+	* Dbg.c: [Bug 2972727]: Applied the parts of Larry Virden's patch
+	  which were still current. Most of it applied to the partially
+	  ansified sources we had in trunk for a time and where errors in
+	  that set of changes, thus out of date now.
+
 	* example/unbuffer: [Bug 2949748]: Applied patch by Vitezslav
 	  Crhonek <vcrhonek@users.sourceforge.net> to prevent unbuffer
 	  from eating the exit code of the command it ran (regular mode
