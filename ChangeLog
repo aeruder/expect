@@ -1,3 +1,11 @@
+2010-08-31  Andreas Kupries <andreask@activestate.com>
+
+	* example/unbuffer: [Bug 2949748]: Applied patch by Vitezslav
+	  Crhonek <vcrhonek@users.sourceforge.net> to prevent unbuffer
+	  from eating the exit code of the command it ran (regular mode
+	  only, not -p). Slightly modified, I removed the superfluous
+	  'eval' used to invoke 'wait', invoking it directly.
+
 2010-08-27  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* retoglob.c: Fail if the generated glob contains more than
