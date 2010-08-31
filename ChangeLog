@@ -1,5 +1,12 @@
 2010-08-31  Andreas Kupries <andreask@activestate.com>
 
+	* Various cleanups, local patches of ActiveState.
+	* exp_clib.c: Remove local copy of Tcl_ErrnoMsg().
+	* exp_inter.c: Hack access to TCL_REG_BOSONLY when not present,
+	became private with Tcl 8.5 and higher.
+	* expect.h: Remove the local fiddling with the memory allocation
+	and panic macros.
+
 	* Dbg.c: [Bug 2972727]: Applied the parts of Larry Virden's patch
 	  which were still current. Most of it applied to the partially
 	  ansified sources we had in trunk for a time and where errors in
