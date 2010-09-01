@@ -329,7 +329,8 @@ pkgIndex.tcl:
 	( echo pkg_mkIndex . $(PKG_LIB_FILE) \; exit; ) | $(TCLSH)
 
 pkgIndex.tcl-hand:
-	(echo 'package ifneeded Expect $(PACKAGE_VERSION) \
+	(echo 'if {![package vsatisfies [package provide Tcl] @TCL_VERSION@]} {return}' ; \
+	 echo 'package ifneeded Expect $(PACKAGE_VERSION) \
 	    [list load [file join $$dir $(PKG_LIB_FILE)]]'\
 	) > pkgIndex.tcl
 
