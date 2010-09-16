@@ -7757,7 +7757,7 @@ fi
 
 	    if test "$tcl_ok" = yes; then
 
-		LDFLAGS="$LDFLAGS -Wl,E"
+		LDFLAGS="$LDFLAGS -Wl,-E"
 		CC_SEARCH_FLAGS='-Wl,+s,+b,${LIB_RUNTIME_DIR}:.'
 		LD_SEARCH_FLAGS='+s +b ${LIB_RUNTIME_DIR}:.'
 		LD_LIBRARY_PATH_VAR="SHLIB_PATH"
