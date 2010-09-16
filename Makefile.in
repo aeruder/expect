@@ -405,7 +405,7 @@ $(SCRIPTS):
 expect:	exp_main_exp.o $(PKG_LIB_FILE)
 	$(CC) \
 		@CFLAGS@ \
-		@TCL_LD_FLAGS@ \
+		@LDFLAGS_DEFAULT@ \
 		-o expect exp_main_exp.o \
 		@EXP_BUILD_LIB_SPEC@ \
 		@TCL_LIB_SPEC@ \

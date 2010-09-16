@@ -437,12 +437,12 @@ AC_DEFUN([TEA_LOAD_TCLCONFIG], [
 	    ;;
     esac
 
+    # The BUILD_$pkg is to define the correct extern storage class
+    # handling when making this package
+    AC_DEFINE_UNQUOTED(BUILD_${PACKAGE_NAME}, [],
+	    [Building extension source?])
     # Do this here as we have fully defined TEA_PLATFORM now
     if test "${TEA_PLATFORM}" = "windows" ; then
-	# The BUILD_$pkg is to define the correct extern storage class
-	# handling when making this package
-	AC_DEFINE_UNQUOTED(BUILD_${PACKAGE_NAME}, [],
-		[Building extension source?])
 	CLEANFILES="$CLEANFILES *.lib *.dll *.pdb *.exp"
     fi
 
@@ -1439,7 +1439,7 @@ dnl AC_CHECK_TOOL(AR, ar)
 	    ])
 	    AC_CHECK_LIB(dld, shl_load, tcl_ok=yes, tcl_ok=no)
 	    AS_IF([test "$tcl_ok" = yes], [
-		LDFLAGS="$LDFLAGS -E"
+		LDFLAGS="$LDFLAGS -Wl,E"
 		CC_SEARCH_FLAGS='-Wl,+s,+b,${LIB_RUNTIME_DIR}:.'
 		LD_SEARCH_FLAGS='+s +b ${LIB_RUNTIME_DIR}:.'
 		LD_LIBRARY_PATH_VAR="SHLIB_PATH"
@@ -3188,8 +3188,8 @@ print("manifest needed")
 #endif
 	], [
 	# Could do a CHECK_PROG for mt, but should always be with MSVC8+
-	VC_MANIFEST_EMBED_DLL="mt.exe -nologo -manifest \[$]@.manifest -outputresource:\[$]@\;2"
-	VC_MANIFEST_EMBED_EXE="mt.exe -nologo -manifest \[$]@.manifest -outputresource:\[$]@\;1"
+	VC_MANIFEST_EMBED_DLL="if test -f \[$]@.manifest ; then mt.exe -nologo -manifest \[$]@.manifest -outputresource:\[$]@\;2 ; fi"
+	VC_MANIFEST_EMBED_EXE="if test -f \[$]@.manifest ; then mt.exe -nologo -manifest \[$]@.manifest -outputresource:\[$]@\;1 ; fi"
 	MAKE_SHARED_LIB="${MAKE_SHARED_LIB} ; ${VC_MANIFEST_EMBED_DLL}"
 	TEA_ADD_CLEANFILES([*.manifest])
 	])
@@ -3856,6 +3856,8 @@ AC_DEFUN([TEA_LOAD_CONFIG], [
         $1_LIB_SPEC=${$1_BUILD_LIB_SPEC}
         $1_STUB_LIB_SPEC=${$1_BUILD_STUB_LIB_SPEC}
         $1_STUB_LIB_PATH=${$1_BUILD_STUB_LIB_PATH}
+        $1_INCLUDE_SPEC=${$1_BUILD_INCLUDE_SPEC}
+        $1_LIBRARY_PATH=${$1_LIBRARY_PATH}
     fi
 
     AC_SUBST($1_VERSION)
@@ -4023,56 +4025,6 @@ AC_DEFUN([TEA_PATH_CELIB], [
 	    AC_MSG_RESULT([found $CELIB_DIR])
 	fi
     fi
-])
-
-#--------------------------------------------------------------------
-# TEA_EMBED_MANIFEST
-#
-#	Figure out if we can embed the manifest where necessary
-#
-# Arguments:
-#	An optional manifest to merge into DLL/EXE.
-#
-# Results:
-#	Will define the following vars:
-#		VC_MANIFEST_EMBED_DLL
-#		VC_MANIFEST_EMBED_EXE
-#
-#--------------------------------------------------------------------
-
-AC_DEFUN([TEA_EMBED_MANIFEST], [
-    AC_MSG_CHECKING(whether to embed manifest)
-    AC_ARG_ENABLE(embedded-manifest,
-	AC_HELP_STRING([--enable-embedded-manifest],
-		[embed manifest if possible (default: yes)]),
-	[embed_ok=$enableval], [embed_ok=yes])
-
-    VC_MANIFEST_EMBED_DLL=
-    VC_MANIFEST_EMBED_EXE=
-    result=no
-    if test "$embed_ok" = "yes" -a "${SHARED_BUILD}" = "1" \
-       -a "$GCC" != "yes" ; then
-	# Add the magic to embed the manifest into the dll/exe
-	AC_EGREP_CPP([manifest needed], [
-#if defined(_MSC_VER) && _MSC_VER >= 1400
-print("manifest needed")
-#endif
-	], [
-	# Could do a CHECK_PROG for mt, but should always be with MSVC8+
-	# Could add 'if test -f' check, but manifest should be created
-	# in this compiler case
-	# Add in a manifest argument that may be specified
-	VC_MANIFEST_EMBED_DLL="mt.exe -nologo -manifest \[$]@.manifest $1 -outputresource:\[$]@\;2"
-	VC_MANIFEST_EMBED_EXE="mt.exe -nologo -manifest \[$]@.manifest $1 -outputresource:\[$]@\;1"
-	result=yes
-	if test "x$1" != x ; then
-	    result="yes ($1)"
-	fi
-	])
-    fi
-    AC_MSG_RESULT([$result])
-    AC_SUBST(VC_MANIFEST_EMBED_DLL)
-    AC_SUBST(VC_MANIFEST_EMBED_EXE)
 ])
 
 

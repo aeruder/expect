@@ -1,3 +1,10 @@
+2010-09-16  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* configure: regen with ac-2.59
+	* tclconfig/tcl.m4: update for correct LDFLAGS on HP-UX
+	* Makefile.in (expect): use TEA LDFLAGS instead of tclConfig.sh to
+	build expect executable
+
 2010-09-01  Andreas Kupries  <andreask@activestate.com>
 
 	* Makefile.in: [Bug 865278] Semi-applied Don Porter's patch adding

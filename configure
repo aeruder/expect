@@ -1709,15 +1709,15 @@ echo "${ECHO_T}unix" >&6
 	    ;;
     esac
 
-    # Do this here as we have fully defined TEA_PLATFORM now
-    if test "${TEA_PLATFORM}" = "windows" ; then
-	# The BUILD_$pkg is to define the correct extern storage class
-	# handling when making this package
+    # The BUILD_$pkg is to define the correct extern storage class
+    # handling when making this package
 
 cat >>confdefs.h <<_ACEOF
 #define BUILD_${PACKAGE_NAME}
 _ACEOF
 
+    # Do this here as we have fully defined TEA_PLATFORM now
+    if test "${TEA_PLATFORM}" = "windows" ; then
 	CLEANFILES="$CLEANFILES *.lib *.dll *.pdb *.exp"
     fi
 
@@ -7757,7 +7757,7 @@ fi
 
 	    if test "$tcl_ok" = yes; then
 
-		LDFLAGS="$LDFLAGS -E"
+		LDFLAGS="$LDFLAGS -Wl,E"
 		CC_SEARCH_FLAGS='-Wl,+s,+b,${LIB_RUNTIME_DIR}:.'
 		LD_SEARCH_FLAGS='+s +b ${LIB_RUNTIME_DIR}:.'
 		LD_LIBRARY_PATH_VAR="SHLIB_PATH"
@@ -16312,8 +16312,8 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
   $EGREP "manifest needed" >/dev/null 2>&1; then
 
 	# Could do a CHECK_PROG for mt, but should always be with MSVC8+
-	VC_MANIFEST_EMBED_DLL="mt.exe -nologo -manifest \$@.manifest -outputresource:\$@\;2"
-	VC_MANIFEST_EMBED_EXE="mt.exe -nologo -manifest \$@.manifest -outputresource:\$@\;1"
+	VC_MANIFEST_EMBED_DLL="if test -f \$@.manifest ; then mt.exe -nologo -manifest \$@.manifest -outputresource:\$@\;2 ; fi"
+	VC_MANIFEST_EMBED_EXE="if test -f \$@.manifest ; then mt.exe -nologo -manifest \$@.manifest -outputresource:\$@\;1 ; fi"
 	MAKE_SHARED_LIB="${MAKE_SHARED_LIB} ; ${VC_MANIFEST_EMBED_DLL}"
 
     CLEANFILES="$CLEANFILES *.manifest"
