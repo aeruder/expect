@@ -339,8 +339,9 @@ pkgIndex.tcl-hand:
 # You may need to tweak this target to make it work correctly.
 #========================================================================
 
+TAR		= tar
 #COMPRESS	= tar cvf $(PKG_DIR).tar $(PKG_DIR); compress $(PKG_DIR).tar
-COMPRESS	= gtar zcvf $(PKG_DIR).tar.gz $(PKG_DIR)
+COMPRESS	= $(TAR) zcvf $(PKG_DIR).tar.gz $(PKG_DIR)
 DIST_ROOT	= /tmp/dist
 DIST_DIR	= $(DIST_ROOT)/$(PKG_DIR)
 
@@ -349,7 +350,7 @@ dist-clean:
 
 dist: dist-clean doc
 	mkdir -p $(DIST_DIR)
-	cp -p $(srcdir)/ChangeLog $(srcdir)/README* $(srcdir)/doc/license* \
+	cp -p $(srcdir)/ChangeLog $(srcdir)/README* $(srcdir)/license* \
 		$(srcdir)/aclocal.m4 $(srcdir)/configure $(srcdir)/*.in \
 		$(DIST_DIR)/
 	chmod 664 $(DIST_DIR)/Makefile.in $(DIST_DIR)/aclocal.m4
@@ -361,38 +362,20 @@ dist: dist-clean doc
 	chmod 664 $(DIST_DIR)/tclconfig/tcl.m4
 	chmod +x $(DIST_DIR)/tclconfig/install-sh
 
-	-list='htdocs/art demos generic library mac tests unix win tea.tests tools tools/rules'; \
+	cp -p $(srcdir)/*.{c,h,man,html} $(srcdir)/vgrindefs $(srcdir)/NEWS \
+		$(srcdir)/INSTALL $(srcdir)/FAQ $(srcdir)/HISTORY \
+		$(DIST_DIR)/
+	chmod 664 $(DIST_DIR)/*.{c,h,man,html}
+
+	-list='demos example generic library tests unix win tests testsuite'; \
 	for p in $$list; do \
 	    if test -d $(srcdir)/$$p ; then \
 		mkdir -p $(DIST_DIR)/$$p; \
-		cp -p $(srcdir)/$$p/*.* $(srcdir)/$$p/* $(DIST_DIR)/$$p/; \
+		cp -p $(srcdir)/$$p/* $(DIST_DIR)/$$p/; \
 	    fi; \
 	done
-
-	-list='doc'; \
-	for p in $$list; do \
-	    if test -d $$p ; then \
-		mkdir -p $(DIST_DIR)/$$p; \
-		cp -p $$p/*.* $$p/* $(DIST_DIR)/$$p/; \
-	    fi; \
-	done
-	-mv $(DIST_DIR)/htdocs/art $(DIST_DIR)/doc/art
-	rm -rf $(DIST_DIR)/htdocs
 
 	(cd $(DIST_ROOT); $(COMPRESS);)
-
-dist_orig:
-	rm -rf $(PKG_DIR)*
-	ls -d $(srcdir)/* > __FILES
-	mkdir $(PKG_DIR)
-	cp -rf `cat __FILES | grep -v __FILES` $(PKG_DIR)
-	rm __FILES
-	find $(PKG_DIR) -name CVS -prune -exec rm -rf {} \;
-	cd $(PKG_DIR) ; $(TCLSH_PROG) PREPARE
-	-tar cf - $(PKG_DIR) | gzip --best > $(PKG_DIR).tar.gz
-	-tar cf - $(PKG_DIR) | bzip2 > $(PKG_DIR).tar.bz2
-	-zip -r $(PKG_DIR).zip $(PKG_DIR)
-	rm -rf $(PKG_DIR)
 
 $(SCRIPTS):
 	$(TCLSH) $(srcdir)/fixline1 $(SHORT_BINDIR) < $(srcdir)/example/$@ > $@
@@ -594,9 +577,9 @@ install-bin-binaries:
 
 .SUFFIXES: .c .$(OBJEXT) .man .n .html
 
-#Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
-#	cd $(top_builddir) \
-#	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) \
+	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 uninstall-binaries:
 	list='$(lib_BINARIES)'; for p in $$list; do \

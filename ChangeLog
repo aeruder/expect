@@ -1,3 +1,9 @@
+2010-09-17  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* Makefile.in: improved make dist target to include the necessary
+	files, and remove old dist_orig.
+	Enable Makefile regen target
+
 2010-09-16  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* configure: regen with ac-2.59
