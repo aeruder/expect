@@ -362,10 +362,10 @@ dist: dist-clean doc
 	chmod 664 $(DIST_DIR)/tclconfig/tcl.m4
 	chmod +x $(DIST_DIR)/tclconfig/install-sh
 
-	cp -p $(srcdir)/*.{c,h,man,html} $(srcdir)/vgrindefs $(srcdir)/NEWS \
+	cp -p $(srcdir)/*.{c,h,man} $(srcdir)/vgrindefs $(srcdir)/NEWS \
 		$(srcdir)/INSTALL $(srcdir)/FAQ $(srcdir)/HISTORY \
 		$(DIST_DIR)/
-	chmod 664 $(DIST_DIR)/*.{c,h,man,html}
+	chmod 664 $(DIST_DIR)/*.{c,h,man}
 
 	-list='demos example generic library tests unix win tests testsuite'; \
 	for p in $$list; do \
