@@ -1,3 +1,12 @@
+2010-09-30  Andreas Kupries  <andreask@activestate.com>
+
+	* Makefile.in: Continued work on the 'make dist' target (config.{sub,guess})
+	* install.sh: Removed unused file.
+	* mkinstalldirs: Removed unused file.
+	* tclconfig/README.txt: Removed unused file.
+	* testsuite/config/: Removed contents of unused directory.
+	* test/.Sanitize: Removed unused file.
+
 2010-09-17  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* Makefile.in: improved make dist target to include the necessary
