@@ -1,4 +1,11 @@
-#!../expect -f
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+package require Expect
+
+
 # ftp-inband - copy files over a telnet/rlogin/etc link
 # Author: Don Libes, NIST
 # Date: Jan 11, 1993

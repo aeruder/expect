@@ -1,4 +1,11 @@
-#!../expect --
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+package require Expect
+
+
 # rlogin-cwd - rlogin but with same directory
 #
 # You can extend this idea to save any arbitrary information across rlogin

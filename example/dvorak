@@ -1,4 +1,11 @@
-#!../expect -f
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+package require Expect
+
+
 # simulate a dvorak keyboard
 # Actually just the lowercase letters are mapped to show the basic idea.
 # Really, uppercase and control should probably be mapped too.

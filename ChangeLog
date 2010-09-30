@@ -1,5 +1,33 @@
 2010-09-30  Andreas Kupries  <andreask@activestate.com>
 
+	* example/autopasswd: Updated to use tclsh in PATH, and 'package
+	* example/chess.exp: require Expect'. Obsoletes fixline1.
+	* example/cryptdir:
+	* example/decryptdir:
+	* example/dislocate:
+	* example/dvorak:
+	* example/ftp-inband:
+	* example/ftp-rfc:
+	* example/gethostbyaddr:
+	* example/kibitz:
+	* example/lpunlock:
+	* example/mkpasswd:
+	* example/multixterm:
+	* example/passmass:
+	* example/read1char:
+	* example/rftp:
+	* example/rlogin-cwd:
+	* example/robohunt:
+	* example/rogue.exp:
+	* example/telnet-cwd:
+	* example/timed-read:
+	* example/timed-run:
+	* example/unbuffer:
+	* example/virterm:
+	* example/weather:
+	* example/xkibitz:
+	* example/xpstat:
+
 	* Makefile.in: Continued work on the 'make dist' target (config.{sub,guess})
 	* install.sh: Removed unused file.
 	* mkinstalldirs: Removed unused file.

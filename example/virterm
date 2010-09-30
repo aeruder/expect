@@ -1,4 +1,9 @@
-#!../expect --
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+package require Expect
 
 # Name: virterm - terminal emulator using Expect, v1.0, December, 1994
 # Author: Adrian Mariano <adrian@cam.cornell.edu>

@@ -1,4 +1,11 @@
-#!../expect --
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+package require Expect
+
+
 # passmass: change password on many machines
 # Synopsis: passmass host1 host2 host3 ....
 # Don Libes - March 11, 1991

@@ -1,4 +1,11 @@
-#!../expect -f
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+package require Expect
+
+
 # expect script to connect two UNIX chess programs together.
 # written by Don Libes - May 9, 1990
 
