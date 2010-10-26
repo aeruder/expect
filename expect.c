@@ -946,6 +946,9 @@ eval_case_string(
 	expDiagLogU(expPrintify(Tcl_GetString(e->pat)));
 	expDiagLog("\"? ");
 	if (p) {
+	    /* Bug 3095935. Go from #bytes to #chars */
+	    patLength = Tcl_NumUtfChars (pat, patLength);
+
 	    e->simple_start = p - str;
 	    o->e = e;
 	    o->matchlen = patLength;
@@ -2344,7 +2347,7 @@ expMatchProcess(
 	}
     }
 
-    /* this is broken out of (match > 0) (above) since it can */
+    /* this is broken out of (match > 0) (above) since it can be */
     /* that an EOF occurred with match == 0 */
     if (eo->esPtr) {
 	Tcl_UniChar *str;

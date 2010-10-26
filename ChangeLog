@@ -1,3 +1,10 @@
+2010-10-26  Andreas Kupries  <andreask@activestate.com>
+
+	* expect.c: [Bug 3095935]: Convert #bytes information to #chars to
+	  prevent later code to fail when copying strings around and
+	  miscalculating how much to copy, for strings containing
+	  non-ASCII utf chars.
+
 2010-09-30  Andreas Kupries  <andreask@activestate.com>
 
 	* example/autopasswd: Updated to use tclsh in PATH, and 'package
