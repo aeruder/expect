@@ -1,3 +1,28 @@
+2012-08-15  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_main_sub.c: Updated EXP_VERSION to 5.45.1
+	* configure, configure.in: Updated expect to version 5.45.1
+
+	* exp_chan.c: Applied patch sent in by Ogawa Hirofumi
+	  <hirofumi@mail.parknet.co.jp>. The patch fixes a problem when
+	  talking a tty where the writer has died. Some operating systems
+	  report the condition as EIO with nothing read, while this
+	  actually an EOF. Without the patch the returned data is
+	  incomplete due to the error reported immediately and dropping
+	  data in buffers.
+
+2012-05-16  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_chan.c: [Bug 3526461]: Applied patch by Michael Cleverly
+	  <cleverly@users.sourceforge.net> fixing a problem with the
+	  iteration over the expect channel list where the loop code may
+	  modify the list, breaking the iterator.
+
+	* exp_chan.c: [Bug 3526707]: Applied patch by Michael Cleverly
+	* exp_command.h: <cleverly@users.sourceforge.net> fixing problem
+	* expect.c: with an insufficient test for a lost channel in
+	  exp_background_channelhandler.
+
 2010-10-26  Andreas Kupries  <andreask@activestate.com>
 
 	* expect.c: [Bug 3095935]: Convert #bytes information to #chars to

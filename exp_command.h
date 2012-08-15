@@ -244,6 +244,7 @@ EXTERN void		exp_init_unit_random _ANSI_ARGS_((void));
 EXTERN void		exp_init_sig _ANSI_ARGS_((void));
 EXTERN void		expChannelInit _ANSI_ARGS_((void));
 EXTERN int		expChannelCountGet _ANSI_ARGS_((void));
+EXTERN int              expChannelStillAlive _ANSI_ARGS_((ExpState *, char *));
 
 EXTERN int		exp_tcl2_returnvalue _ANSI_ARGS_((int));
 EXTERN int		exp_2tcl_returnvalue _ANSI_ARGS_((int));

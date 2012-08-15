@@ -2503,8 +2503,12 @@ do_more_data:
      */
 
     /* First check that the esPtr is even still valid! */
-    /* This ought to be sufficient. */
-    if (0 == Tcl_GetChannel(interp,backup,(int *)0)) {
+    /* 
+     * It isn't sufficient to just check that 'Tcl_GetChannel' still knows about
+     * backup since it is possible that esPtr was lost in the background AND
+     * another process spawned and reassigned the same name. 
+     */
+    if (!expChannelStillAlive(esPtr, backup)) {
       expDiagLog("expect channel %s lost in background handler\n",backup);
       return;
     }

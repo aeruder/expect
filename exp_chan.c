@@ -217,6 +217,11 @@ ExpInputProc(instanceData, buf, toRead, errorCodePtr)
 
     bytesRead = read(esPtr->fdin, buf, (size_t) toRead);
     /*printf("ExpInputProc: read(%d,,) = %d\r\n",esPtr->fdin,bytesRead);*/
+
+    /* Emulate EOF on tty for tcl */
+    if ((bytesRead == -1) && (errno == EIO) && isatty(esPtr->fdin)) {
+	bytesRead = 0;
+    }
     if (bytesRead > -1) {
 	/* strip parity if requested */
 	if (esPtr->parity == 0) {
@@ -447,6 +452,34 @@ expChannelCountGet()
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     return tsdPtr->channelCount;
 }
+
+int
+expChannelStillAlive(esBackupPtr, backupName)
+     ExpState *esBackupPtr;
+     char *backupName;
+{
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
+    ExpState *esPtr;
+
+    /* 
+     * This utility function is called from 'exp_background_channelhandler'
+     * and checks to make sure that backupName can still be found in the 
+     * channels linked list at the same address as before.
+     *
+     * If it can't be (or if the memory address has changed) then it
+     * means that it was lost in the background (and possibly another
+     * channel was opened and reassigned the same name).
+     */
+
+    for (esPtr = tsdPtr->firstExpPtr; esPtr; esPtr = esPtr->nextPtr) {
+        if (0 == strcmp(esPtr->name, backupName)) 
+            return (esPtr == esBackupPtr);
+    }
+        
+    /* not found; must have been lost in the background */
+    return 0;
+}
+
 #if 0 /* Converted to macros */
 int
 expSizeGet(esPtr)
@@ -602,12 +635,38 @@ exp_background_channelhandlers_run_all()
 {
     ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&dataKey);
     ExpState *esPtr;
+    ExpState *esNextPtr;
+    ExpState *esPriorPtr = 0;
 
     /* kick off any that already have input waiting */
-    for (esPtr = tsdPtr->firstExpPtr;esPtr;esPtr = esPtr->nextPtr) {
+    for (esPtr = tsdPtr->firstExpPtr;esPtr; esPriorPtr = esPtr, esPtr = esPtr->nextPtr) {
 	/* is bg_interp the best way to check if armed? */
 	if (esPtr->bg_interp && !expSizeZero(esPtr)) {
+            /* 
+             * We save the nextPtr in a local variable before calling
+             * 'exp_background_channelhandler' since in some cases
+             * 'expStateFree' could end up getting called before it
+             * returns, leading to a likely segfault on the next
+             * interaction through the for loop.
+             */
+            esNextPtr = esPtr->nextPtr;
 	    exp_background_channelhandler((ClientData)esPtr,0);
+            if (esNextPtr != esPtr->nextPtr) {
+                /* 
+                 * 'expStateFree' must have been called from
+                 * underneath us so we know that esPtr->nextPtr is
+                 * invalid.  However, it is possible that either the
+                 * original nextPtr and/or the priorPtr have been
+                 * freed too.  If the esPriorPtr->nextPtr is now
+                 * esNextPtr it seems safe to proceed.  Otherwise we
+                 * break and end early for safety.
+                 */
+                if (esPriorPtr && esPriorPtr->nextPtr == esNextPtr) {
+                    esPtr = esPriorPtr;
+                } else {
+                    break; /* maybe set esPtr = tsdPtr->firstExpPtr again? */
+                }
+            }
 	}
     }
 }
