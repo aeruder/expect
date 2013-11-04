@@ -1,3 +1,13 @@
+2013-11-04  Andreas Kupries  <andreask@activestate.com>
+
+	* exp_main_sub.c: Updated EXP_VERSION to 5.45.2
+	* configure, configure.in: Updated expect to version 5.45.2
+
+	* expect.c: [http://sourceforge.net/p/expect/patches/16/]. Report
+	  and fix both by Per Cederqvist. Replaced a memcpy with memmove
+	  as the latter properly handles overlapping memory, whereas the
+	  original code does not.
+
 2012-08-15  Andreas Kupries  <andreask@activestate.com>
 
 	* exp_main_sub.c: Updated EXP_VERSION to 5.45.1

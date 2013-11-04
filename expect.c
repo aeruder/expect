@@ -1093,8 +1093,10 @@ ecases_remove_by_expi(
 
 			/* shift remaining elements down */
 			/* but only if there are any left */
+			/* Use memmove to handle the overlap */
+			/* memcpy breaks */
 			if (i+1 != ecmd->ecd.count) {
-				memcpy(&ecmd->ecd.cases[i],
+				memmove(&ecmd->ecd.cases[i],
 				       &ecmd->ecd.cases[i+1],
 					((ecmd->ecd.count - i) - 1) * 
 					sizeof(struct exp_cmd_descriptor *));
