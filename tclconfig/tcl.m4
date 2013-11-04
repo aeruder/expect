@@ -3389,9 +3389,12 @@ AC_DEFUN([TEA_PRIVATE_TCL_HEADERS], [
             # the framework's Headers and PrivateHeaders directories
             case ${TCL_DEFS} in
 	    	*TCL_FRAMEWORK*)
-		    if test -d "${TCL_BIN_DIR}/Headers" -a \
-			    -d "${TCL_BIN_DIR}/PrivateHeaders"; then
-			TCL_INCLUDES="-I\"${TCL_BIN_DIR}/Headers\" -I\"${TCL_BIN_DIR}/PrivateHeaders\" ${TCL_INCLUDES}"
+		    if test -d "${TCL_BIN_DIR}/Headers"; then
+			if test -d "${TCL_BIN_DIR}/PrivateHeaders"; then
+			    TCL_INCLUDES="-I\"${TCL_BIN_DIR}/Headers\" -I\"${TCL_BIN_DIR}/PrivateHeaders\" ${TCL_INCLUDES}"
+			elif test -d "${TCL_BIN_DIR}/Headers/tcl-private"; then
+			    TCL_INCLUDES="-I\"${TCL_BIN_DIR}/Headers\" -I\"${TCL_BIN_DIR}/Headers/tcl-private\" ${TCL_INCLUDES}"
+			fi
 		    else
 			TCL_INCLUDES="${TCL_INCLUDES} ${TCL_INCLUDE_SPEC} `echo "${TCL_INCLUDE_SPEC}" | sed -e 's/Headers/PrivateHeaders/'`"
 		    fi

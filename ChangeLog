@@ -1,5 +1,8 @@
 2013-11-04  Andreas Kupries  <andreask@activestate.com>
 
+	* tclconfig/tcl.m4: [http://sourceforge.net/p/expect/patches/17/]
+	* configure: Extended Tcl header detection for OS X Mountain Lion.
+
 	* exp_main_sub.c: Updated EXP_VERSION to 5.45.2
 	* configure, configure.in: Updated expect to version 5.45.2
 
