@@ -1,3 +1,21 @@
+2014-05-01  Andreas Kupries <andreask@activestate.com>
+
+	* exp_main_sub.c: Updated EXP_VERSION to 5.45.3
+	* configure, configure.in: Updated expect to version 5.45.3
+
+	* expect.man [http://sourceforge.net/p/expect/bugs/86/]. Report
+	  and fix by Vitezlav Crhonek.
+
+	* expect.c [http://sourceforge.net/p/expect/bugs/76/]. Report and
+	  fix by Mutsuhito Iikura. On finding a full buffer during
+	  matching the sliding window mechanism slides too far, truncating
+	  the whole buffer and preventing matches across the boundary. Fix
+	  is shortening the slide distance (slide only one 1/3).
+
+	* expect.c: [http://sourceforge.net/p/expect/patches/18/]. Report
+	  and fix both by Nils Carlson <nils.carlson@ludd.ltu.se>.
+	  Replaced a cc==0 check with proper Tcl_Eof() check.
+
 2013-11-04  Andreas Kupries  <andreask@activestate.com>
 
 	* tclconfig/tcl.m4: [http://sourceforge.net/p/expect/patches/17/]

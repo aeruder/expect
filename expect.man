@@ -173,7 +173,9 @@ way, use the
 .B \-b
 flag.
 (When using Expectk, this option is specified as
-.BR \-buffer .)  Note that stdio-buffering may still take place however this shouldn't cause problems when reading from a fifo or stdin.
+.BR \-buffer .)
+Note that stdio-buffering may still take place however this shouldn't cause
+problems when reading from a fifo or stdin.
 .PP
 If the string "\-" is supplied as a filename, standard input is read instead.
 (Use "./\-" to read from a file actually named "\-".)

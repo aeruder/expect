@@ -33,7 +33,7 @@
 #endif
 #ifdef __CENTERLINE__
 #undef	EXP_VERSION
-#define	EXP_VERSION		"5.45.2"		/* I give up! */
+#define	EXP_VERSION		"5.45.3"		/* I give up! */
 					/* It is not necessary that number */
 					/* be accurate.  It is just here to */
 					/* pacify Centerline which doesn't */

@@ -972,21 +972,21 @@ eval_case_string(
 	}
 	expDiagLogU(no);
     } else if (e->use == PAT_FULLBUFFER) {
-      expDiagLogU(Tcl_GetString(e->pat));
-      expDiagLogU("? ");
-      /* this must be the same test as in expIRead */
+        expDiagLogU(Tcl_GetString(e->pat));
+	expDiagLogU("? ");
+	/* this must be the same test as in expIRead */
 	/* We drop one third when are at least 2/3 full */
 	/* condition is (size >= max*2/3) <=> (size*3 >= max*2) */
 	if (((expSizeGet(esPtr)*3) >= (esPtr->input.max*2)) && (numchars > 0)) {
-	o->e = e;
-	    o->matchlen = numchars;
+	    o->e = e;
+	    o->matchlen = numchars/3;
 	    o->matchbuf = str;
-	o->esPtr = esPtr;
-	expDiagLogU(yes);
-	return(EXP_FULLBUFFER);
-      } else {
-	expDiagLogU(no);
-      }
+	    o->esPtr = esPtr;
+	    expDiagLogU(yes);
+	    return(EXP_FULLBUFFER);
+	} else {
+	    expDiagLogU(no);
+	}
     }
     return(EXP_NOMATCH);
 }
@@ -1861,17 +1861,8 @@ expRead(
 	/* try to read it */
 	cc = expIRead(interp,esPtr,timeout,tcl_set_flags);
 	
-	/* the meaning of 0 from i_read means eof.  Muck with it a */
-	/* little, so that from now on it means "no new data arrived */
-	/* but it should be looked at again anyway". */
-	if (cc == 0) {
+	if (Tcl_Eof(esPtr->channel)) {
 	    cc = EXP_EOF;
-	} else if (cc > 0) {
-	    /* successfully read data */
-	} else {
-	    /* failed to read data - some sort of error was encountered such as
-	     * an interrupt with that forced an error return
-	     */
 	}
     } else if (cc == EXP_DATA_OLD) {
 	cc = 0;
@@ -1969,6 +1960,8 @@ exp_buffer_shuffle( /* INTL */
     str      = esPtr->input.buffer;
     numchars = esPtr->input.use;
 
+    /* We discard 1/3 of the data in the buffer.
+     */
     skiplen = numchars/3;
     p       = str + skiplen;
 
@@ -1977,7 +1970,7 @@ exp_buffer_shuffle( /* INTL */
      */
 
     lostChar = *p;
-    /* temporarily stick null in middle of string */
+    /* Temporarily stick null in middle of string to terminate */
     *p = 0;
 
     expDiagLog("%s: set %s(buffer) \"",caller_name,array_name);
@@ -1988,12 +1981,13 @@ exp_buffer_shuffle( /* INTL */
 	    save_flags);
 
     /*
-     * restore damage
+     * Restore damage done fir display above.
      */
     *p = lostChar;
 
     /*
-     * move 2nd half of string down to 1st half
+     * move the higher 2/3 of the string down over the lower 2/3.
+     * This destroys the 1st 1/3.
      */
 
     newlen = numchars - skiplen;
