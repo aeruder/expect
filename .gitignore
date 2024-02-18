@@ -1,0 +1,11 @@
+*.o
+*.so
+expect
+expect_cf.h
+Makefile
+pkgIndex.tcl
+config.log
+config.status
+compile_commands.json
+.vscode
+.cache
